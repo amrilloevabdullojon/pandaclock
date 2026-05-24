@@ -1,0 +1,8 @@
+{
+  "extends": "@pandaclock/config/tsconfig/base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "verbatimModuleSyntax": false
+  },
+  "include": ["src/**/*", "prisma/**/*"]
+}

@@ -1,0 +1,167 @@
+// Pandaclock Prisma schema.
+//
+// ВАЖНО: эта схема описывает ТОЛЬКО public schema (общие для платформы таблицы).
+// Каждая tenant-схема создаётся динамически через src/tenant-template.ts
+// и НЕ управляется Prisma migrations.
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["public"]
+}
+
+// ============================================
+// Tenant management
+// ============================================
+
+model Tenant {
+  id          String       @id @default(uuid()) @db.Uuid
+  slug        String       @unique
+  name        String
+  industry    String?
+  country     String       @default("UZ")
+  timezone    String       @default("Asia/Tashkent")
+  status      TenantStatus @default(TRIAL)
+  schemaName  String       @unique @map("schema_name")
+  trialEndsAt DateTime?    @map("trial_ends_at")
+  metadata    Json?
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  subscription Subscription?
+  invitations  TenantInvitation[]
+
+  @@index([status])
+  @@map("tenants")
+  @@schema("public")
+}
+
+enum TenantStatus {
+  TRIAL
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+
+  @@schema("public")
+}
+
+model Subscription {
+  id             String        @id @default(uuid()) @db.Uuid
+  tenantId       String        @unique @map("tenant_id") @db.Uuid
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan           PlanCode
+  employeesLimit Int           @map("employees_limit")
+  modules        Json          @default("{}")
+  priceAmount    Decimal       @map("price_amount") @db.Decimal(12, 2)
+  priceCurrency  String        @default("UZS") @map("price_currency")
+  billingPeriod  BillingPeriod @map("billing_period")
+  startedAt      DateTime      @map("started_at")
+  expiresAt      DateTime      @map("expires_at")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  transactions BillingTransaction[]
+
+  @@map("subscriptions")
+  @@schema("public")
+}
+
+enum PlanCode {
+  STARTER
+  BUSINESS
+  PRO
+  ENTERPRISE
+
+  @@schema("public")
+}
+
+enum BillingPeriod {
+  MONTHLY
+  YEARLY
+
+  @@schema("public")
+}
+
+model BillingTransaction {
+  id             String            @id @default(uuid()) @db.Uuid
+  subscriptionId String            @map("subscription_id") @db.Uuid
+  subscription   Subscription      @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  amount         Decimal           @db.Decimal(12, 2)
+  currency       String            @default("UZS")
+  provider       PaymentProvider
+  providerTxId   String?           @map("provider_tx_id")
+  status         TransactionStatus
+  metadata       Json?
+  createdAt      DateTime          @default(now()) @map("created_at")
+
+  @@index([subscriptionId, createdAt])
+  @@index([providerTxId])
+  @@map("billing_transactions")
+  @@schema("public")
+}
+
+enum PaymentProvider {
+  CLICK
+  PAYME
+  UZCARD
+  HUMO
+  STRIPE
+  BANK_TRANSFER
+
+  @@schema("public")
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+
+  @@schema("public")
+}
+
+model TenantInvitation {
+  id        String           @id @default(uuid()) @db.Uuid
+  tenantId  String           @map("tenant_id") @db.Uuid
+  tenant    Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  email     String
+  token     String           @unique
+  status    InvitationStatus @default(PENDING)
+  expiresAt DateTime         @map("expires_at")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  @@index([email])
+  @@map("tenant_invitations")
+  @@schema("public")
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+
+  @@schema("public")
+}
+
+// ============================================
+// Platform admins (наша команда)
+// ============================================
+
+model PlatformAdmin {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  firstName    String   @map("first_name")
+  lastName     String   @map("last_name")
+  role         String   @default("SUPPORT")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("platform_admins")
+  @@schema("public")
+}

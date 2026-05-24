@@ -1,0 +1,8 @@
+{
+  "extends": "@pandaclock/config/tsconfig/react.json",
+  "compilerOptions": {
+    "jsx": "preserve",
+    "noEmit": true
+  },
+  "include": ["src/**/*"]
+}

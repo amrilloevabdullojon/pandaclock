@@ -1,0 +1,29 @@
+{
+  "common": {
+    "appName": "Pandaclock",
+    "tagline": "HR-система, которая работает за вас",
+    "loading": "Загрузка...",
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "submit": "Отправить",
+    "delete": "Удалить",
+    "edit": "Редактировать"
+  },
+  "auth": {
+    "login": {
+      "title": "Добро пожаловать",
+      "subtitle": "Войдите в свой аккаунт",
+      "emailLabel": "Email",
+      "passwordLabel": "Пароль",
+      "rememberMe": "Запомнить меня",
+      "forgotPassword": "Забыли пароль?",
+      "submit": "Войти",
+      "noAccount": "Нет аккаунта?",
+      "createAccount": "Создать"
+    }
+  },
+  "home": {
+    "comingSoon": "Скоро запуск",
+    "description": "Мы готовим что-то особенное. Если вы участвуете в пилоте, войдите в свой аккаунт компании."
+  }
+}

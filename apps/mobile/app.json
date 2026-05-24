@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "Pandaclock",
+    "slug": "pandaclock",
+    "version": "0.0.1",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#5B4FE2"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "uz.pandaclock.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Pandaclock использует геолокацию, чтобы подтвердить, что вы на работе в момент отметки.",
+        "NSFaceIDUsageDescription": "Используйте Face ID для быстрого входа в Pandaclock."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#5B4FE2"
+      },
+      "package": "uz.pandaclock.app",
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION", "USE_BIOMETRIC"]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Pandaclock использует геолокацию для подтверждения присутствия на работе."
+        }
+      ]
+    ],
+    "scheme": "pandaclock",
+    "extra": {
+      "apiUrl": "http://localhost:4000/api/v1"
+    }
+  }
+}

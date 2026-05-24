@@ -23,6 +23,7 @@
 - [x] `AGENTS.md` — главный файл для AI-агентов
 - [x] `CLAUDE.md` — дополнения для Claude Code
 - [x] `README.md` — для людей
+- [x] `CONTRIBUTING.md`
 - [x] `package.json` (root)
 - [x] `pnpm-workspace.yaml`
 - [x] `turbo.json`
@@ -32,67 +33,88 @@
 - [x] `.editorconfig`
 - [x] `docker-compose.yml`
 - [x] `.github/workflows/ci.yml`
+- [x] PR / Issue templates
 - [x] Переместить документы в `docs/`
 - [x] Первый коммит
 
 ## Базовые packages
 
-- [ ] `packages/config/` — общие eslint, tailwind, tsconfig
-  - [ ] eslint preset
-  - [ ] tailwind preset (с дизайн-токенами из docs/Дизайн_система.md)
-  - [ ] tsconfig presets (base, react, node)
-- [ ] `packages/types/` — общие TypeScript types
-  - [ ] Tenant, User, Department types
-  - [ ] API response types
-- [ ] `packages/ui/` — shadcn/ui компоненты
-  - [ ] Setup shadcn/ui
-  - [ ] Базовые компоненты: Button, Input, Card, Badge
-- [ ] `packages/db/` — Prisma
-  - [ ] Установить Prisma
-  - [ ] Initial schema: tenants, subscriptions, billing_transactions
-  - [ ] Tenant template SQL (для создания tenant schema)
-  - [ ] Migrations
+- [x] `packages/config/` — общие eslint, tailwind, tsconfig
+  - [x] eslint preset (base, react, node)
+  - [x] tailwind preset (с дизайн-токенами из docs/Дизайн_система.md)
+  - [x] tsconfig presets (base, react, nextjs, node)
+- [x] `packages/types/` — общие TypeScript types
+  - [x] Tenant, Subscription
+  - [x] User, Department
+  - [x] Task, TimeEntry, LeaveRequest
+  - [x] API response types
+- [x] `packages/ui/` — shadcn/ui компоненты
+  - [x] Button, Input, Card, Badge, Avatar, Dialog
+  - [x] globals.css с CSS-переменными
+  - [x] utils (cn helper)
+- [x] `packages/db/` — Prisma
+  - [x] Initial schema: tenants, subscriptions, billing_transactions, platform_admins, tenant_invitations
+  - [x] Tenant template SQL (users, departments, tasks, time_entries, leave_requests, audit_log, refresh_tokens)
+  - [x] Singleton Prisma client
+  - [x] Seed-скрипт
 
 ## Backend (apps/api)
 
-- [ ] Создать NestJS приложение
-- [ ] Подключить Prisma
-- [ ] `TenantMiddleware` — определение tenant по subdomain
-- [ ] `TenantPrismaService` — динамический search_path
-- [ ] Endpoint: `POST /api/v1/tenants` — регистрация компании
-- [ ] Endpoint: `POST /api/v1/auth/register-company`
-- [ ] Endpoint: `POST /api/v1/auth/login`
-- [ ] JWT-стратегия (access + refresh)
-- [ ] Swagger/OpenAPI документация
+- [x] Скелет NestJS приложения
+- [x] `TenantMiddleware` — определение tenant по subdomain (+ X-Tenant-Slug fallback)
+- [x] `TenantPrismaService` — динамический search_path (request-scoped)
+- [x] Endpoint: `POST /api/v1/auth/register-company` (создание tenant + schema + admin)
+- [x] Endpoint: `POST /api/v1/auth/login` (bcrypt + JWT access/refresh)
+- [x] Endpoint: `GET /api/v1/health`
+- [x] Swagger UI на `/docs`
+- [x] Pino logger
+- [x] CORS для `*.pandaclock.uz` и dev URL
+- [ ] Passport JWT strategy + guards
+- [ ] Refresh token rotation в БД
+- [ ] Rate limiting (throttler)
+- [ ] Sentry integration
 
 ## Frontend Web (apps/web)
 
-- [ ] Создать Next.js 15 приложение (App Router)
-- [ ] Tailwind + shadcn/ui setup
-- [ ] Подключить Nunito (Google Fonts)
-- [ ] next-intl для локализации (RU базовый)
-- [ ] Route: `/` — заглушка "Coming Soon"
-- [ ] Route: `/login` — форма входа
-- [ ] Connect to API
+- [x] Next.js 15 App Router скелет
+- [x] Tailwind + дизайн-токены из @pandaclock/config
+- [x] Nunito (Google Fonts) подключён
+- [x] next-intl с русской локалью
+- [x] Главная страница "Coming Soon"
+- [x] Страница /login
+- [x] 404 страница
+- [x] API-клиент (`lib/api-client.ts`)
+- [ ] Защищённые маршруты (middleware с проверкой JWT)
+- [ ] Layout с sidebar для авторизованных пользователей
+- [ ] Multi-step registration wizard
 
 ## Marketing site (apps/marketing)
 
-- [ ] Создать Next.js 15 приложение (или зашарить с web?)
-- [ ] Setup Tailwind + дизайн-токены
-- [ ] Минимальная landing page (см. docs/Landing_page_бриф.md)
+- [x] Next.js 15 скелет
+- [x] Tailwind + дизайн-токены
+- [x] Hero, ValueProps, NavBar, CTA, Footer
+- [ ] Sprint 4: добавить секции Problem, Features (детально), Industries, Pricing, FAQ
+- [ ] SEO meta + Open Graph + Schema.org
+- [ ] Google Analytics + Yandex.Metrica
 
 ## Mobile (apps/mobile)
 
-- [ ] Создать Expo приложение
-- [ ] NativeWind (Tailwind для RN)
-- [ ] Базовая навигация (Expo Router)
-- [ ] Экран Login
-- [ ] Экран Home (заглушка)
+- [x] Expo 52 + Expo Router 4 скелет
+- [x] NativeWind (Tailwind для RN) с общим preset
+- [x] Nunito font
+- [x] Welcome / Login экраны
+- [x] Tab bar (Home, Tasks, Chats, Requests, Profile)
+- [x] Home screen с 4 состояниями (clock-in / working / break / finished)
+- [x] Permission strings для геолокации и Face ID
+- [ ] SecureStore для хранения JWT
+- [ ] API-клиент
+- [ ] Реальные экраны для остальных табов (Tasks, Chats, Requests)
 
 ## DevOps
 
-- [ ] Husky + lint-staged setup
-- [ ] commitlint setup (Conventional Commits)
+- [x] Husky + lint-staged setup
+- [x] commitlint setup (Conventional Commits)
+- [x] CI workflow (GitHub Actions)
 - [ ] Vercel deployment для apps/web и apps/marketing
 - [ ] Vercel deployment для apps/api
 - [ ] Neon project setup (production + staging branches)
@@ -101,57 +123,71 @@
 - [ ] DNS: pandaclock.uz + wildcard *.pandaclock.uz
 - [ ] SSL via Cloudflare
 
-## Документация для команды
+## Документация
 
-- [ ] CONTRIBUTING.md (как делать PR)
-- [ ] ARCHITECTURE.md (краткое описание решений)
-- [ ] PR/Issue templates в .github/
+- [x] README.md (актуальный)
+- [x] CONTRIBUTING.md (как делать PR)
+- [x] AGENTS.md (для AI-агентов)
+- [x] CLAUDE.md (для Claude Code)
+- [x] 16 .md документов в `docs/`
 
 ---
 
 # 🔵 ДАЛЬНЕЙШИЕ СПРИНТЫ (планируется)
 
-## Sprint 1: Фундамент (недели 3-4)
-- Авторизация компаний и пользователей
-- Multi-tenancy работает end-to-end
-- Базовые роли (Employee, Manager, Admin)
-- Welcome email
+## Sprint 1: Фундамент авторизации (недели 3-4)
+- Реальная регистрация компании через web (multi-step wizard)
+- Email verification flow
+- Реальный login + сохранение токенов в SecureStore/cookies
+- Защищённые маршруты (web middleware + mobile guard)
+- Реальный профиль пользователя
+- Welcome email через Resend
+- Refresh token rotation
+- E2E тест happy path
 
 ## Sprint 2: Сотрудники и отделы (недели 5-6)
 - CRUD departments
 - CRUD users
-- Импорт из Excel
+- Импорт сотрудников из Excel
+- Карточка сотрудника
 - Org chart
 
 ## Sprint 3: Учёт времени (недели 7-8)
-- Mobile clock-in/out
-- Геолокация
-- Web dashboard "Кто на работе"
-- Offline-режим
+- Mobile clock-in/out с реальной БД
+- Геолокация и валидация по радиусу
+- Перерывы
+- Web dashboard "Кто на работе сейчас"
+- Offline-режим в mobile с синхронизацией
 
 ## Sprint 4: Задачи (недели 9-10)
-- Канбан-доска
+- Канбан-доска (drag-n-drop)
 - Создание/назначение задач
 - Комментарии и файлы
+- Mobile экран задач
+- Лендинг расширение (Pricing, FAQ, Industries)
 
 ## Sprint 5: Заявки и уведомления (недели 11-12)
-- Отпуска / больничные
-- Push notifications
-- Email шаблоны
+- Отпуска / больничные (CRUD + workflow утверждения)
+- Push notifications (Expo)
+- Email шаблоны (welcome, новая задача, заявка)
+- Inline approve/reject в email
 
 ## Sprint 6: Отчёты (недели 13-14)
-- Экспорт Excel/PDF
-- KPI дашборды
+- Async-генерация Excel/PDF через BullMQ
+- KPI дашборды для руководителя
+- Дашборд сотрудника
+- Календарь графика
 
 ## Sprint 7: Биллинг + Чаты (недели 15-16)
-- Click / Payme интеграции
+- Click / Payme webhooks
 - Тарифы и подписки
 - Чаты отделов (Socket.IO)
+- Видео-созвоны (LiveKit базовый)
 
 ## Sprint 8: Полировка + Запуск (недели 17-18)
-- E2E тесты
-- Локализация (узбекский)
-- Юридические страницы
+- E2E тесты (Playwright + Maestro)
+- Локализация (узбекский латиница)
+- Юридические страницы (оферта, ПД, DPA)
 - App Store + Google Play
 - Soft launch с пилотами
 
@@ -167,8 +203,8 @@ _Пока нет блокеров._
 
 # 📊 МЕТРИКИ ПРОГРЕССА
 
-- **Sprint 0:** ~30% (структура есть, packages и apps впереди)
-- **Готовность MVP:** ~5%
+- **Sprint 0:** ~95% (структура и скаффолды готовы; осталось деплоить и финализировать оставшиеся mobile экраны)
+- **Готовность MVP:** ~12%
 - **Документация:** ✅ 100%
 
 ---
