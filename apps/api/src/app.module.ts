@@ -7,6 +7,8 @@ import { TenantModule } from "./tenant/tenant.module.js";
 import { AuthModule } from "./auth/auth.module.js";
 import { EmailModule } from "./email/email.module.js";
 import { HealthModule } from "./health/health.module.js";
+import { DepartmentsModule } from "./departments/departments.module.js";
+import { EmployeesModule } from "./employees/employees.module.js";
 import { TenantMiddleware } from "./tenant/tenant.middleware.js";
 
 @Module({
@@ -26,6 +28,8 @@ import { TenantMiddleware } from "./tenant/tenant.middleware.js";
     TenantModule,
     EmailModule,
     AuthModule,
+    EmployeesModule,
+    DepartmentsModule,
     HealthModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
@@ -39,6 +43,9 @@ export class AppModule implements NestModule {
         { path: "api/v1/auth/register-company", method: RequestMethod.POST },
         { path: "api/v1/auth/verify-email", method: RequestMethod.POST },
         { path: "api/v1/auth/resend-verification", method: RequestMethod.POST },
+        { path: "api/v1/auth/forgot-password", method: RequestMethod.POST },
+        { path: "api/v1/auth/reset-password", method: RequestMethod.POST },
+        { path: "api/v1/auth/accept-invite", method: RequestMethod.POST },
         { path: "api/v1/health", method: RequestMethod.GET },
       )
       .forRoutes("*");

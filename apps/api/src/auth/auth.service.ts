@@ -232,6 +232,81 @@ export class AuthService {
     await this.issueVerificationToken(user.id, user.email, user.first_name);
   }
 
+  /* ---------- Forgot / Reset password ---------- */
+
+  async forgotPassword(email: string): Promise<void> {
+    const client = await this.tenantDb.getClient();
+    const rows = await client.$queryRawUnsafe<UserRow[]>(
+      `SELECT id, email, password_hash, first_name, last_name, role, status, email_verified_at
+       FROM users WHERE email = $1 LIMIT 1`,
+      email.toLowerCase(),
+    );
+    const user = rows[0];
+    if (!user || user.status !== "ACTIVE") return; // не раскрываем enumeration
+
+    const raw = this.generateRawToken();
+    const hash = this.hash(raw);
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 час
+    await client.$executeRawUnsafe(
+      `INSERT INTO verification_tokens (user_id, token_hash, purpose, expires_at)
+       VALUES ($1, $2, 'PASSWORD_RESET', $3)`,
+      user.id,
+      hash,
+      expiresAt,
+    );
+
+    const appUrl = process.env.APP_URL ?? "http://localhost:3000";
+    const url = `${appUrl}/reset-password?token=${raw}`;
+    await this.email
+      .send({
+        to: user.email,
+        subject: "Восстановление пароля Pandaclock",
+        html: `
+          <p>Здравствуйте, ${user.first_name}!</p>
+          <p>Мы получили запрос на восстановление пароля для вашего аккаунта.</p>
+          <p><a href="${url}" style="display:inline-block;background:#5B4FE2;color:#fff;text-decoration:none;padding:14px 32px;border-radius:12px;font-weight:700;">Создать новый пароль</a></p>
+          <p>Ссылка действительна 1 час. Если вы не запрашивали — проигнорируйте это письмо.</p>
+        `,
+      })
+      .catch(() => undefined);
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    if (newPassword.length < 8) {
+      throw new BadRequestException({ code: "PASSWORD_TOO_SHORT" });
+    }
+    const hash = this.hash(token);
+    const client = await this.tenantDb.getClient();
+    const rows = await client.$queryRawUnsafe<
+      { id: string; user_id: string; expires_at: Date; consumed_at: Date | null }[]
+    >(
+      `SELECT id, user_id, expires_at, consumed_at
+       FROM verification_tokens
+       WHERE token_hash = $1 AND purpose = 'PASSWORD_RESET' LIMIT 1`,
+      hash,
+    );
+    const record = rows[0];
+    if (!record || record.consumed_at || record.expires_at.getTime() < Date.now()) {
+      throw new BadRequestException({ code: "RESET_TOKEN_INVALID" });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, Number(process.env.BCRYPT_ROUNDS ?? 10));
+    await client.$executeRawUnsafe(
+      `UPDATE users SET password_hash = $2, updated_at = NOW() WHERE id = $1`,
+      record.user_id,
+      passwordHash,
+    );
+    await client.$executeRawUnsafe(
+      `UPDATE verification_tokens SET consumed_at = NOW() WHERE id = $1`,
+      record.id,
+    );
+    // Revoke все активные refresh-токены пользователя — заставляем перелогиниться везде.
+    await client.$executeRawUnsafe(
+      `UPDATE refresh_tokens SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL`,
+      record.user_id,
+    );
+  }
+
   /* ---------- Internal helpers ---------- */
 
   private async issueTokens(

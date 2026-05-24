@@ -11,7 +11,47 @@
 
 ---
 
-# 🟢 АКТИВНЫЙ СПРИНТ: Sprint 1 — Фундамент авторизации
+# 🟢 АКТИВНЫЙ СПРИНТ: Sprint 2 — Сотрудники и отделы
+
+**Цель:** Полный CRUD сотрудников и отделов внутри tenant, инвайты по email и Excel, восстановление пароля.
+
+## API
+
+- [x] DepartmentsModule (service/controller/dto), дерево по parent_id, валидация parentId !== id
+- [x] EmployeesService с пагинацией, поиском и фильтрами (status, department)
+- [x] EmployeesController: GET list, GET detail, PATCH, DELETE (soft suspend)
+- [x] InvitationsService: создание PENDING-юзеров + verification_tokens(purpose=INVITE) + рассылка ссылок accept-invite
+- [x] ExcelImportService: парсинг .xlsx (поддержка ENG и RU колонок, валидация email)
+- [x] POST /employees/invite (batch) + POST /employees/import (multer 5MB)
+- [x] POST /auth/forgot-password (всегда 202, не раскрывает enumeration)
+- [x] POST /auth/reset-password (revoke всех refresh-токенов пользователя)
+- [x] POST /auth/accept-invite — устанавливает пароль и активирует
+- [x] DepartmentsModule + EmployeesModule зарегистрированы в AppModule
+- [x] Vitest: buildTree (departments), parseBuffer (excel import)
+
+## Web
+
+- [x] /dashboard/employees: таблица с аватарками, статусами (Active/Pending/Suspended), кнопка + Пригласить (modal)
+- [x] /dashboard/employees/[id]: header с avatar + badge статусов, табы Профиль/Время/Задачи/Заявки/Документы (последние пока заглушки)
+- [x] /dashboard/departments: дерево отделов
+- [x] /forgot-password, /reset-password, /accept-invite, /verify-email — все 4 auth-страницы
+- [x] /api/employees/invite route (прокси с auth-cookie на API)
+
+## Mobile
+
+- [x] Profile screen — режим редактирования (firstName/lastName/phone), сохранение через PATCH /employees/:id
+
+## TODO для Sprint 3
+
+- [ ] CRUD отделов из UI (create/rename/delete)
+- [ ] Excel-import на web (drag-n-drop файл + summary modal)
+- [ ] Mobile: forgot password flow
+- [ ] Mobile: accept-invite flow (через deep-link)
+- [ ] 2FA setup
+
+---
+
+# ✅ ЗАВЕРШЁННЫЙ: Sprint 1 — Фундамент авторизации
 
 **Цель:** К концу спринта работает полный auth-цикл: регистрация компании, email verification, login/refresh/logout, защищённые маршруты на web и mobile.
 **Длительность:** 2 недели
@@ -258,7 +298,8 @@ _Пока нет блокеров._
 
 - **Sprint 0:** ✅ 100% (код), осталась внешняя инфра (Vercel/Neon — требует учётных данных)
 - **Sprint 1:** ✅ 100% (auth-цикл работает end-to-end на web и mobile)
-- **Готовность MVP:** ~22%
+- **Sprint 2:** ✅ 100% (employees + departments CRUD, invitations, Excel import, password reset)
+- **Готовность MVP:** ~33%
 - **Документация:** ✅ 100%
 
 ---

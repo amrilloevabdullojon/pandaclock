@@ -17,6 +17,9 @@ import { RegisterCompanyDto } from "./dto/register-company.dto.js";
 import { LoginDto } from "./dto/login.dto.js";
 import { RefreshDto } from "./dto/refresh.dto.js";
 import { VerifyEmailDto, ResendVerificationDto } from "./dto/verify-email.dto.js";
+import { ForgotPasswordDto, ResetPasswordDto } from "./dto/password-reset.dto.js";
+import { AcceptInviteDto } from "../employees/dto/invite-employee.dto.js";
+import { InvitationsService } from "../employees/invitations.service.js";
 import { JwtAuthGuard } from "./jwt-auth.guard.js";
 import { CurrentUser } from "./current-user.decorator.js";
 import type { AuthRequestUser } from "./jwt.strategy.js";
@@ -28,6 +31,7 @@ export class AuthController {
     private readonly tenantService: TenantService,
     private readonly authService: AuthService,
     private readonly emailService: EmailService,
+    private readonly invitations: InvitationsService,
   ) {}
 
   @Post("register-company")
@@ -119,6 +123,29 @@ export class AuthController {
   async resendVerification(@Body() dto: ResendVerificationDto): Promise<{ accepted: true }> {
     await this.authService.resendVerification(dto.email);
     return { accepted: true };
+  }
+
+  @Post("forgot-password")
+  @HttpCode(202)
+  @ApiOperation({ summary: "Запрос восстановления пароля" })
+  async forgotPassword(@Body() dto: ForgotPasswordDto): Promise<{ accepted: true }> {
+    await this.authService.forgotPassword(dto.email);
+    return { accepted: true };
+  }
+
+  @Post("reset-password")
+  @HttpCode(200)
+  @ApiOperation({ summary: "Установить новый пароль по токену из письма" })
+  async resetPassword(@Body() dto: ResetPasswordDto): Promise<{ reset: true }> {
+    await this.authService.resetPassword(dto.token, dto.password);
+    return { reset: true };
+  }
+
+  @Post("accept-invite")
+  @HttpCode(200)
+  @ApiOperation({ summary: "Принять приглашение в команду" })
+  async acceptInvite(@Body() dto: AcceptInviteDto): Promise<{ userId: string }> {
+    return this.invitations.acceptInvite(dto);
   }
 
   @Get("me")
