@@ -1,4 +1,5 @@
 import "../global.css";
+import { useEffect } from "react";
 import { Stack } from "expo-router";
 import { useFonts } from "expo-font";
 import {
@@ -9,6 +10,7 @@ import {
 } from "@expo-google-fonts/nunito";
 import { StatusBar } from "expo-status-bar";
 import { ActivityIndicator, View } from "react-native";
+import { useAuthStore } from "@/lib/auth-store";
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -17,8 +19,14 @@ export default function RootLayout() {
     Nunito_700Bold,
     Nunito_800ExtraBold,
   });
+  const hydrated = useAuthStore((state) => state.hydrated);
+  const hydrate = useAuthStore((state) => state.hydrate);
 
-  if (!fontsLoaded) {
+  useEffect(() => {
+    void hydrate();
+  }, [hydrate]);
+
+  if (!fontsLoaded || !hydrated) {
     return (
       <View className="flex-1 items-center justify-center bg-neutral-50">
         <ActivityIndicator size="large" color="#5B4FE2" />

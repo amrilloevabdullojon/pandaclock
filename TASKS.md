@@ -11,7 +11,60 @@
 
 ---
 
-# 🟢 АКТИВНЫЙ СПРИНТ: Sprint 0 — Инфраструктура
+# 🟢 АКТИВНЫЙ СПРИНТ: Sprint 1 — Фундамент авторизации
+
+**Цель:** К концу спринта работает полный auth-цикл: регистрация компании, email verification, login/refresh/logout, защищённые маршруты на web и mobile.
+**Длительность:** 2 недели
+
+## API
+
+- [x] EmailModule с Resend (production) / Mailpit (dev) + branded HTML-шаблоны
+- [x] Passport JWT strategy + JwtAuthGuard + @CurrentUser() + RolesGuard
+- [x] Refresh-token storage с ротацией (`refresh_tokens` в tenant schema)
+- [x] POST /auth/refresh, POST /auth/logout
+- [x] Email verification flow (`verification_tokens` таблица)
+- [x] POST /auth/verify-email, POST /auth/resend-verification
+- [x] GET /auth/me (JwtAuthGuard)
+- [x] Welcome email отправляется при register-company с верификационной ссылкой
+- [x] Login alert email при новом входе
+- [x] ThrottlerGuard (60 req/min)
+- [x] cookie-parser middleware
+- [x] trust proxy (для x-forwarded-for)
+- [x] Vitest unit-тесты: TenantService, TenantMiddleware, JwtStrategy
+
+## Web
+
+- [x] Multi-step registration wizard (/register, 4 шага)
+- [x] Cookie-based session (HttpOnly cookies через /api/auth/login и /logout)
+- [x] middleware.ts защищает /dashboard
+- [x] Login страница использует cookie endpoint
+- [x] serverFetch с access-токеном и tenant slug для Server Components
+- [x] /dashboard layout с Sidebar + TopBar
+- [x] /dashboard главная с 4 KPI-карточками (заглушки)
+- [x] /dashboard/profile с реальными данными из /auth/me
+- [x] Logout кнопка очищает cookies через /api/auth/logout
+
+## Mobile
+
+- [x] SecureStore-backed auth store (Zustand)
+- [x] API client с автоматическим Bearer + tenant header + auto-refresh на 401
+- [x] Welcome screen с выбором tenant slug
+- [x] Login screen с реальным API-вызовом
+- [x] Tab layout с auth guard (Redirect to / если не авторизован)
+- [x] Profile screen с реальными данными из /auth/me
+- [x] Логаут через auth store (вызывает /auth/logout)
+
+## TODO для следующих спринтов
+
+- [ ] Forgot password flow (web + mobile)
+- [ ] 2FA (TOTP)
+- [ ] Web /verify-email страница (обрабатывает токен из URL)
+- [ ] Mobile экран verify-email
+- [ ] Supertest integration test для multi-tenant изоляции
+
+---
+
+# ✅ ЗАВЕРШЁННЫЙ: Sprint 0 — Инфраструктура
 
 **Цель:** К концу спринта команда может запустить проект локально и в Vercel-preview.
 **Длительность:** 2 недели
@@ -203,8 +256,9 @@ _Пока нет блокеров._
 
 # 📊 МЕТРИКИ ПРОГРЕССА
 
-- **Sprint 0:** ~95% (структура и скаффолды готовы; осталось деплоить и финализировать оставшиеся mobile экраны)
-- **Готовность MVP:** ~12%
+- **Sprint 0:** ✅ 100% (код), осталась внешняя инфра (Vercel/Neon — требует учётных данных)
+- **Sprint 1:** ✅ 100% (auth-цикл работает end-to-end на web и mobile)
+- **Готовность MVP:** ~22%
 - **Документация:** ✅ 100%
 
 ---

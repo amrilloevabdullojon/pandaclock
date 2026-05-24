@@ -1,8 +1,11 @@
-import { Module, type MiddlewareConsumer, type NestModule } from "@nestjs/common";
+import { Module, type MiddlewareConsumer, type NestModule, RequestMethod } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { LoggerModule } from "nestjs-pino";
+import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
+import { APP_GUARD } from "@nestjs/core";
 import { TenantModule } from "./tenant/tenant.module.js";
 import { AuthModule } from "./auth/auth.module.js";
+import { EmailModule } from "./email/email.module.js";
 import { HealthModule } from "./health/health.module.js";
 import { TenantMiddleware } from "./tenant/tenant.middleware.js";
 
@@ -19,20 +22,24 @@ import { TenantMiddleware } from "./tenant/tenant.middleware.js";
         redact: ["req.headers.authorization", "req.headers.cookie"],
       },
     }),
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 60 }]),
     TenantModule,
+    EmailModule,
     AuthModule,
     HealthModule,
   ],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
+    // Эти эндпоинты работают на корневом домене / до выбора tenant.
     consumer
       .apply(TenantMiddleware)
-      // Tenant определяется по поддомену для всех роутов,
-      // КРОМЕ тех, что работают на корневом домене (регистрация и health).
       .exclude(
-        { path: "api/v1/auth/register-company", method: 1 }, // POST
-        { path: "api/v1/health", method: 0 }, // GET
+        { path: "api/v1/auth/register-company", method: RequestMethod.POST },
+        { path: "api/v1/auth/verify-email", method: RequestMethod.POST },
+        { path: "api/v1/auth/resend-verification", method: RequestMethod.POST },
+        { path: "api/v1/health", method: RequestMethod.GET },
       )
       .forRoutes("*");
   }

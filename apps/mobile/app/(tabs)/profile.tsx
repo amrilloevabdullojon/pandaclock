@@ -1,10 +1,49 @@
-import { SafeAreaView, View, Text, Pressable } from "react-native";
+import { useEffect, useState } from "react";
+import { SafeAreaView, View, Text, Pressable, ActivityIndicator } from "react-native";
 import { router } from "expo-router";
+import { api } from "@/lib/api-client";
+import { useAuthStore } from "@/lib/auth-store";
+
+interface Me {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  emailVerified: boolean;
+}
 
 export default function ProfileScreen() {
-  function handleLogout() {
-    // TODO Sprint 1: очистить SecureStore
+  const logout = useAuthStore((state) => state.logout);
+  const [me, setMe] = useState<Me | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    api<Me>("/auth/me")
+      .then((data) => {
+        if (!cancelled) setMe(data);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function handleLogout() {
+    await logout();
     router.replace("/");
+  }
+
+  if (loading) {
+    return (
+      <SafeAreaView className="flex-1 items-center justify-center bg-neutral-50">
+        <ActivityIndicator color="#5B4FE2" />
+      </SafeAreaView>
+    );
   }
 
   return (
@@ -12,10 +51,18 @@ export default function ProfileScreen() {
       <View className="flex-1 px-6 pt-12">
         <View className="mb-8 items-center">
           <View className="h-24 w-24 items-center justify-center rounded-full bg-primary-100">
-            <Text className="text-3xl font-extrabold text-primary-700">АК</Text>
+            <Text className="text-3xl font-extrabold text-primary-700">
+              {me?.firstName.charAt(0) ?? "?"}
+              {me?.lastName.charAt(0) ?? ""}
+            </Text>
           </View>
-          <Text className="mt-4 text-xl font-extrabold text-neutral-900">Анна Каримова</Text>
-          <Text className="text-sm text-neutral-500">Менеджер · Маркетинг</Text>
+          <Text className="mt-4 text-xl font-extrabold text-neutral-900">
+            {me ? `${me.firstName} ${me.lastName}` : "Pandaclock"}
+          </Text>
+          <Text className="text-sm text-neutral-500">{me?.email ?? ""}</Text>
+          {me ? (
+            <Text className="mt-1 text-xs text-neutral-400">{me.role}</Text>
+          ) : null}
         </View>
 
         <Pressable

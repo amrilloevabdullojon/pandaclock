@@ -1,7 +1,13 @@
-import { Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
 import { Home, CheckSquare, MessageCircle, FileText, User } from "lucide-react-native";
+import { useAuthStore } from "@/lib/auth-store";
 
 export default function TabsLayout() {
+  const accessToken = useAuthStore((state) => state.accessToken);
+  if (!accessToken) {
+    return <Redirect href="/" />;
+  }
+
   return (
     <Tabs
       screenOptions={{
@@ -14,10 +20,7 @@ export default function TabsLayout() {
           paddingBottom: 8,
           paddingTop: 8,
         },
-        tabBarLabelStyle: {
-          fontFamily: "Nunito_600SemiBold",
-          fontSize: 11,
-        },
+        tabBarLabelStyle: { fontFamily: "Nunito_600SemiBold", fontSize: 11 },
       }}
     >
       <Tabs.Screen
