@@ -11,7 +11,49 @@
 
 ---
 
-# 🟢 АКТИВНЫЙ СПРИНТ: Sprint 3 — Учёт времени
+# 🟢 АКТИВНЫЙ СПРИНТ: Sprint 4 — Задачи и канбан
+
+**Цель:** Полный цикл работы с задачами: канбан-доска на web, mobile-приоритезированный список, комментарии, переходы статусов.
+
+## API
+
+- [x] task-status: canTransition (NEW↔IN_PROGRESS↔DONE/REJECTED, reopen из DONE)
+- [x] TasksService: list (фильтры assignee/status/priority/labels/search/scope=my|today|overdue), board, getById, create, update (с валидацией перехода), remove
+- [x] addComment / listComments
+- [x] Сортировка: URGENT→HIGH→MEDIUM→LOW + deadline NULLS LAST + created_at DESC
+- [x] При DONE автоматически проставляется completed_at; при reopen сбрасывается
+- [x] TasksController: 7 endpoints под JwtAuthGuard, ParseUUIDPipe для всех :id
+- [x] Vitest: status transitions (7 кейсов)
+
+## Web
+
+- [x] /api/tasks (POST) + /api/tasks/[id] (PATCH/DELETE) + /api/tasks/[id]/comments (POST) — auth-cookie прокси
+- [x] /dashboard/tasks — kanban с @dnd-kit/core (4 колонки + drag-n-drop + оптимистичное обновление + rollback)
+- [x] CreateTaskButton modal (title/description/assignee select/deadline/priority/labels)
+- [x] /dashboard/tasks/[id] — детальная страница (grid 2/1: контент + sidebar)
+- [x] TaskActions sidebar — кнопки с разрешёнными переходами по текущему статусу
+- [x] CommentList с inline-формой добавления комментария
+
+## Mobile
+
+- [x] (tabs)/tasks — pill-табы (На сегодня / Все мои / Просрочены), pull-to-refresh, тап → детали
+- [x] /tasks/[id] — детали + большие кнопки смены статуса (Stack screen с headerShown)
+
+## Marketing
+
+- [x] Problem section (4 карточки боли)
+- [x] Industries section (4 отрасли с бейджами "Доступно/Скоро/Этап")
+
+## TODO для Sprint 5
+
+- [ ] Маркетинг: Pricing + FAQ
+- [ ] Mobile: фильтр "Назначенные мной"
+- [ ] Уведомления о новой задаче (push + email)
+- [ ] Attachments через S3/R2
+
+---
+
+# ✅ ЗАВЕРШЁННЫЙ: Sprint 3 — Учёт времени
 
 **Цель:** Реальный clock-in/out на mobile, дашборд "Кто на работе" на web, late detection, geofence, офлайн-режим.
 
@@ -338,7 +380,8 @@ _Пока нет блокеров._
 - **Sprint 1:** ✅ 100% (auth-цикл работает end-to-end на web и mobile)
 - **Sprint 2:** ✅ 100% (employees + departments CRUD, invitations, Excel import, password reset)
 - **Sprint 3:** ✅ 100% (time tracking: clock-in/out с geofence, breaks, late detection, offline queue)
-- **Готовность MVP:** ~45%
+- **Sprint 4:** ✅ 100% (tasks: kanban с drag-n-drop, transitions, comments, mobile-список + детали, landing расширение)
+- **Готовность MVP:** ~55%
 - **Документация:** ✅ 100%
 
 ---

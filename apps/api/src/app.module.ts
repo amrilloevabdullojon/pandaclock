@@ -10,6 +10,7 @@ import { HealthModule } from "./health/health.module.js";
 import { DepartmentsModule } from "./departments/departments.module.js";
 import { EmployeesModule } from "./employees/employees.module.js";
 import { TimeModule } from "./time/time.module.js";
+import { TasksModule } from "./tasks/tasks.module.js";
 import { TenantMiddleware } from "./tenant/tenant.middleware.js";
 
 @Module({
@@ -32,6 +33,7 @@ import { TenantMiddleware } from "./tenant/tenant.middleware.js";
     EmployeesModule,
     DepartmentsModule,
     TimeModule,
+    TasksModule,
     HealthModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

@@ -1,6 +1,8 @@
 import { NavBar } from "@/components/nav-bar";
 import { Hero } from "@/components/hero";
+import { Problem } from "@/components/problem";
 import { ValueProps } from "@/components/value-props";
+import { Industries } from "@/components/industries";
 import { FinalCta } from "@/components/cta";
 import { Footer } from "@/components/footer";
 
@@ -10,8 +12,10 @@ export default function MarketingHome() {
       <NavBar />
       <main>
         <Hero />
+        <Problem />
         <ValueProps />
-        {/* TODO Sprint 4: добавить секции Problem, Features (детально), Industries, Pricing, FAQ */}
+        <Industries />
+        {/* TODO Sprint 5: Pricing + FAQ */}
         <FinalCta />
       </main>
       <Footer />
