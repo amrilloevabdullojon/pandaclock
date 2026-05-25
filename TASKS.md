@@ -11,7 +11,45 @@
 
 ---
 
-# 🟢 АКТИВНЫЙ СПРИНТ: Sprint 2 — Сотрудники и отделы
+# 🟢 АКТИВНЫЙ СПРИНТ: Sprint 3 — Учёт времени
+
+**Цель:** Реальный clock-in/out на mobile, дашборд "Кто на работе" на web, late detection, geofence, офлайн-режим.
+
+## API
+
+- [x] tenants.time_policy (jsonb) + parseTimePolicy с дефолтами
+- [x] isLateArrival, distanceMeters, isWithinGeofence (хелперы + тесты)
+- [x] TimeService: getToday / startDay / finishDay / startBreak / finishBreak
+- [x] startDay: одна сессия в день, валидация geofence (требует note если outside), is_late
+- [x] finishDay: авто-закрытие забытого перерыва, расчёт total_minutes минус breaks
+- [x] listHistory(days), whoIsWorking (live для дашборда), getDashboardCounts (KPI)
+- [x] TimeController: /time/today, /start, /finish, /break/start, /break/finish, /history, /who-is-working, /dashboard
+- [x] Vitest unit tests: startDay (conflict + happy), startBreak (no day / wrong status), finishDay calc
+
+## Web
+
+- [x] /dashboard главная — реальные KPI (всего/на работе/опоздали/в отпуске) + "Кто на работе сейчас" список
+- [x] /dashboard/time — sessions сейчас + история сотрудника за 2 недели
+
+## Mobile
+
+- [x] expo-location: запрос permission и получение координат перед startDay
+- [x] useTimeTracking — react-hook со state + handlers для start/finish/break, авто-fallback в offline-queue
+- [x] offline-queue: SecureStore-persisted queue, drain при появлении сети, retry-логика
+- [x] Home screen полностью переведён на реальные API-вызовы (4 состояния от /time/today)
+- [x] При OUTSIDE_GEOFENCE авто-retry с note "Confirmed outside geofence"
+
+## TODO для Sprint 4
+
+- [ ] Web: настройки time_policy (форма для админа)
+- [ ] Mobile: индикатор офлайн-режима в header
+- [ ] Push-уведомления: напоминание начать день (cron + Expo Push)
+- [ ] Видеть свою позицию на карте перед отметкой (Mapbox/MapKit)
+- [ ] Background sync через expo-background-fetch
+
+---
+
+# ✅ ЗАВЕРШЁННЫЙ: Sprint 2 — Сотрудники и отделы
 
 **Цель:** Полный CRUD сотрудников и отделов внутри tenant, инвайты по email и Excel, восстановление пароля.
 
@@ -299,7 +337,8 @@ _Пока нет блокеров._
 - **Sprint 0:** ✅ 100% (код), осталась внешняя инфра (Vercel/Neon — требует учётных данных)
 - **Sprint 1:** ✅ 100% (auth-цикл работает end-to-end на web и mobile)
 - **Sprint 2:** ✅ 100% (employees + departments CRUD, invitations, Excel import, password reset)
-- **Готовность MVP:** ~33%
+- **Sprint 3:** ✅ 100% (time tracking: clock-in/out с geofence, breaks, late detection, offline queue)
+- **Готовность MVP:** ~45%
 - **Документация:** ✅ 100%
 
 ---
