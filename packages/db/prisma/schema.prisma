@@ -30,6 +30,7 @@ model Tenant {
   schemaName  String       @unique @map("schema_name")
   trialEndsAt DateTime?    @map("trial_ends_at")
   metadata    Json?
+  timePolicy  Json         @default("{\"workStart\":\"09:00\",\"workEnd\":\"18:00\",\"lateThresholdMinutes\":15,\"workdays\":[1,2,3,4,5]}") @map("time_policy")
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
 
