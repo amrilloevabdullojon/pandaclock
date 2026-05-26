@@ -1,0 +1,29 @@
+{
+  "common": {
+    "appName": "Pandaclock",
+    "tagline": "Siz uchun ishlaydigan HR tizimi",
+    "loading": "Yuklanmoqda...",
+    "save": "Saqlash",
+    "cancel": "Bekor qilish",
+    "submit": "Yuborish",
+    "delete": "O'chirish",
+    "edit": "Tahrirlash"
+  },
+  "auth": {
+    "login": {
+      "title": "Xush kelibsiz",
+      "subtitle": "Akkauntingizga kiring",
+      "emailLabel": "Email",
+      "passwordLabel": "Parol",
+      "rememberMe": "Eslab qol",
+      "forgotPassword": "Parolni unutdingizmi?",
+      "submit": "Kirish",
+      "noAccount": "Akkauntingiz yo'qmi?",
+      "createAccount": "Yaratish"
+    }
+  },
+  "home": {
+    "comingSoon": "Tez orada",
+    "description": "Biz alohida narsani tayyorlamoqdamiz. Agar pilot ishtirokchisi bo'lsangiz, akkauntingizga kiring."
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "common": {
+    "appName": "Pandaclock",
+    "tagline": "The HR system that works for you",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "delete": "Delete",
+    "edit": "Edit"
+  },
+  "auth": {
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Sign in to your account",
+      "emailLabel": "Email",
+      "passwordLabel": "Password",
+      "rememberMe": "Remember me",
+      "forgotPassword": "Forgot password?",
+      "submit": "Sign in",
+      "noAccount": "No account?",
+      "createAccount": "Create one"
+    }
+  },
+  "home": {
+    "comingSoon": "Coming soon",
+    "description": "We're polishing something special. If you're in the pilot, please sign in to your workspace."
+  }
+}

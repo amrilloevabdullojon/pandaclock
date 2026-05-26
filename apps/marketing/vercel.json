@@ -1,0 +1,29 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "buildCommand": "cd ../.. && pnpm turbo run build --filter @pandaclock/marketing...",
+  "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
+  "outputDirectory": ".next",
+  "regions": ["fra1"],
+  "redirects": [
+    {
+      "source": "/twitter",
+      "destination": "https://twitter.com/pandaclock_uz",
+      "permanent": false
+    },
+    {
+      "source": "/telegram",
+      "destination": "https://t.me/pandaclock_uz",
+      "permanent": false
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    }
+  ]
+}

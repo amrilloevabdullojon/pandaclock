@@ -17,6 +17,7 @@ import { ReportsModule } from "./reports/reports.module.js";
 import { CalendarModule } from "./calendar/calendar.module.js";
 import { BillingModule } from "./billing/billing.module.js";
 import { ChatsModule } from "./chats/chats.module.js";
+import { SchedulerModule } from "./scheduler/scheduler.module.js";
 import { TenantMiddleware } from "./tenant/tenant.middleware.js";
 
 @Module({
@@ -46,6 +47,7 @@ import { TenantMiddleware } from "./tenant/tenant.middleware.js";
     CalendarModule,
     BillingModule,
     ChatsModule,
+    SchedulerModule,
     HealthModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
@@ -63,6 +65,8 @@ export class AppModule implements NestModule {
         { path: "api/v1/auth/reset-password", method: RequestMethod.POST },
         { path: "api/v1/auth/accept-invite", method: RequestMethod.POST },
         { path: "api/v1/health", method: RequestMethod.GET },
+        { path: "api/v1/webhooks/click", method: RequestMethod.POST },
+        { path: "api/v1/webhooks/payme", method: RequestMethod.POST },
       )
       .forRoutes("*");
   }

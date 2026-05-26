@@ -11,7 +11,71 @@
 
 ---
 
-# 🟢 АКТИВНЫЙ СПРИНТ: Sprint 7 — Биллинг и чаты
+# 🎉 MVP ГОТОВ — Sprint 8: Полировка и запуск
+
+**Статус:** все 8 спринтов закрыты. Pandaclock готов к soft-launch с пилотами.
+
+## Sprint 8 — Полировка + запуск
+
+### API
+- [x] BillingTransaction recording из Click и Payme webhooks (поиск tenant по merchant_trans_id, продление subscription.expiresAt, перевод TRIAL → ACTIVE)
+- [x] TransactionService.parseMerchantTransId + Vitest (4 кейса)
+- [x] SchedulerModule (@nestjs/schedule): утренние напоминания (Cron 09:00), trial-warning за 3 дня до конца
+- [x] e2e скелет (supertest) — Health endpoint
+- [x] AppModule зарегистрировал SchedulerModule + webhook routes исключены из TenantMiddleware
+
+### Web
+- [x] i18n: en.json + uz-latn.json + cookie-based locale
+- [x] LocaleSwitcher компонент в TopBar
+- [x] /api/locale endpoint для смены локали
+- [x] /legal/oferta, /legal/privacy, /legal/dpa страницы
+
+### Mobile
+- [x] eas.json с 3 профилями (development/preview/production)
+- [x] README с инструкциями по EAS build/submit/update
+
+### Marketing
+- [x] Расширенные метаданные (Open Graph + Twitter Card + canonical + alternate locales)
+- [x] sitemap.ts + robots.ts (Next.js 15 MetadataRoute)
+- [x] Schema.org JSON-LD (SoftwareApplication + Organization)
+- [x] Viewport meta + themeColor
+
+### DevOps
+- [x] Multi-stage Dockerfile для API (production-ready, non-root user, healthcheck)
+- [x] vercel.json для web и marketing (rewrites, headers, security)
+- [x] .dockerignore
+
+### Документация
+- [x] docs/Deployment_runbook.md — окружения, env vars, pre-flight, миграции, rollback, smoke test
+- [x] docs/On_call_playbook.md — severity levels, 7 типовых сценариев, post-mortem template
+
+## Готовность MVP — итог по 8 спринтам
+
+- ✅ Sprint 0: monorepo + scaffolds (Turborepo, NestJS, Next.js, Expo)
+- ✅ Sprint 1: auth (login/register/JWT rotation/email verification/forgot)
+- ✅ Sprint 2: employees + departments + invitations + Excel import
+- ✅ Sprint 3: time tracking + geofence + breaks + offline queue
+- ✅ Sprint 4: tasks (kanban, transitions, comments)
+- ✅ Sprint 5: leave requests + balance + Expo Push + landing
+- ✅ Sprint 6: reports (xlsx/pdf) + calendar + mobile offline
+- ✅ Sprint 7: billing (Click/Payme) + chats (Socket.IO) + locale
+- ✅ Sprint 8: полировка + deployment configs + docs
+
+## Post-MVP backlog
+
+- [ ] Чек-лист безопасности (penetration test, OWASP ZAP)
+- [ ] ISO 27001 подготовка
+- [ ] Telegram-бот для уведомлений
+- [ ] Видео-созвоны (LiveKit)
+- [ ] Отраслевые модули: HoReCa (sprint 2 продукта), колл-центры, банки
+- [ ] Интеграция с 1С
+- [ ] AI-аналитика (предсказание выгорания)
+- [ ] White-label
+- [ ] Расширение на СНГ
+
+---
+
+# ✅ ЗАВЕРШЁННЫЙ: Sprint 7 — Биллинг и чаты
 
 **Цель:** Платная подписка с тарифами Pandaclock, webhook-handler'ы для Click/Payme, real-time чаты на Socket.IO с web и mobile клиентами.
 

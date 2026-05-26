@@ -1,0 +1,56 @@
+{
+  "cli": {
+    "version": ">= 13.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "base": {
+      "node": "22.10.0",
+      "ios": {
+        "resourceClass": "m-medium"
+      },
+      "android": {
+        "resourceClass": "medium"
+      }
+    },
+    "development": {
+      "extends": "base",
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "http://localhost:4000/api/v1"
+      },
+      "ios": { "simulator": true }
+    },
+    "preview": {
+      "extends": "base",
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api-staging.pandaclock.uz/api/v1"
+      },
+      "channel": "preview"
+    },
+    "production": {
+      "extends": "base",
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.pandaclock.uz/api/v1"
+      },
+      "channel": "production",
+      "ios": { "buildConfiguration": "Release" }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "owner@pandaclock.uz",
+        "ascAppId": "PLACEHOLDER",
+        "appleTeamId": "PLACEHOLDER"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./google-play-service-account.json",
+        "track": "internal"
+      }
+    }
+  }
+}
