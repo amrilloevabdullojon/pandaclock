@@ -12,9 +12,14 @@ import { StatusBar } from "expo-status-bar";
 import { ActivityIndicator, View } from "react-native";
 import { useAuthStore } from "@/lib/auth-store";
 import { usePushRegistration } from "@/lib/use-push-notifications";
+import { useDailyReminder } from "@/lib/use-daily-reminder";
+import { useNetworkStatus } from "@/lib/use-network-status";
+import { Text } from "react-native";
 
 export default function RootLayout() {
   usePushRegistration();
+  useDailyReminder();
+  const online = useNetworkStatus();
   const [fontsLoaded] = useFonts({
     Nunito_400Regular,
     Nunito_600SemiBold,
@@ -39,6 +44,13 @@ export default function RootLayout() {
   return (
     <>
       <StatusBar style="dark" />
+      {!online ? (
+        <View className="bg-warning px-4 py-1">
+          <Text className="text-center text-xs font-semibold text-white">
+            📴 Офлайн-режим — отметки сохраняются и отправятся при появлении сети
+          </Text>
+        </View>
+      ) : null}
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="login" />

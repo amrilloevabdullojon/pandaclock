@@ -11,7 +11,42 @@
 
 ---
 
-# 🟢 АКТИВНЫЙ СПРИНТ: Sprint 5 — Заявки и уведомления
+# 🟢 АКТИВНЫЙ СПРИНТ: Sprint 6 — Отчёты и календарь
+
+**Цель:** Реальные KPI-отчёты с Excel/PDF экспортом, единый календарь команды, mobile офлайн-индикатор и локальные напоминания.
+
+## API
+
+- [x] ReportsService: attendance (days/late/hours по сотруднику), hours (avg/total), tasks (assigned/completed/overdue + rate)
+- [x] period helper с дефолтом «текущий месяц по таймзоне tenant»
+- [x] ExportService: xlsx (через xlsx aoa_to_sheet), pdf (PDFKit с шапкой Pandaclock и заголовками)
+- [x] ReportsController: GET /reports/attendance|hours|tasks + /reports/:type/export?format=xlsx|pdf|json, RolesGuard для OWNER/ADMIN/HR/MANAGER
+- [x] CalendarService: events(start, end, scope) → unified LEAVE_APPROVED/PENDING + TASK_DEADLINE с фильтром my/team/all
+- [x] CalendarController + RequestsModule + ReportsModule + CalendarModule зарегистрированы в AppModule
+- [x] Vitest: resolvePeriod (custom + дефолт + февраль)
+
+## Web
+
+- [x] /dashboard/reports: 3 карточки выбора типа отчёта, ReportControls (datepicker период + кнопки Excel/PDF), таблицы с правильными колонками для каждого типа
+- [x] /api/reports/[type]/export — стримит файл с правильными Content-Type / Content-Disposition
+- [x] /dashboard/calendar: месячный grid (7×6), Пн-Вс header, события на ячейках с цветом по типу, навигация по месяцам
+- [x] /dashboard/employees/[id]: вкладки Time/Tasks/Requests наполнены реальными данными через serverFetch
+
+## Mobile
+
+- [x] useNetworkStatus (expo-network polling каждые 10s) → офлайн-баннер в RootLayout
+- [x] useDailyReminder: scheduleNotificationAsync на 9:05 каждый день (CALENDAR trigger, repeats true)
+
+## TODO для Sprint 7
+
+- [ ] Async-экспорт через BullMQ для больших отчётов
+- [ ] Filter calendar by department/user
+- [ ] Дополнить employee tabs контролами для админа (выгрузить отчёт по сотруднику)
+- [ ] Cron-уведомление: дедлайн через час → push исполнителю
+
+---
+
+# ✅ ЗАВЕРШЁННЫЙ: Sprint 5 — Заявки и уведомления
 
 **Цель:** Полный цикл leave-requests + Expo Push + расширенный лендинг.
 
@@ -424,7 +459,8 @@ _Пока нет блокеров._
 - **Sprint 3:** ✅ 100% (time tracking: clock-in/out с geofence, breaks, late detection, offline queue)
 - **Sprint 4:** ✅ 100% (tasks: kanban с drag-n-drop, transitions, comments, mobile-список + детали, landing расширение)
 - **Sprint 5:** ✅ 100% (leave requests + balance + Expo Push + landing Pricing/FAQ)
-- **Готовность MVP:** ~65%
+- **Sprint 6:** ✅ 100% (reports XLSX/PDF, calendar, employee tabs, mobile offline + daily reminder)
+- **Готовность MVP:** ~75%
 - **Документация:** ✅ 100%
 
 ---

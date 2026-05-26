@@ -13,6 +13,8 @@ import { TimeModule } from "./time/time.module.js";
 import { TasksModule } from "./tasks/tasks.module.js";
 import { RequestsModule } from "./requests/requests.module.js";
 import { NotificationsModule } from "./notifications/notifications.module.js";
+import { ReportsModule } from "./reports/reports.module.js";
+import { CalendarModule } from "./calendar/calendar.module.js";
 import { TenantMiddleware } from "./tenant/tenant.middleware.js";
 
 @Module({
@@ -38,6 +40,8 @@ import { TenantMiddleware } from "./tenant/tenant.middleware.js";
     TasksModule,
     RequestsModule,
     NotificationsModule,
+    ReportsModule,
+    CalendarModule,
     HealthModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
