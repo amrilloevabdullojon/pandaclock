@@ -11,6 +11,8 @@ import { DepartmentsModule } from "./departments/departments.module.js";
 import { EmployeesModule } from "./employees/employees.module.js";
 import { TimeModule } from "./time/time.module.js";
 import { TasksModule } from "./tasks/tasks.module.js";
+import { RequestsModule } from "./requests/requests.module.js";
+import { NotificationsModule } from "./notifications/notifications.module.js";
 import { TenantMiddleware } from "./tenant/tenant.middleware.js";
 
 @Module({
@@ -34,6 +36,8 @@ import { TenantMiddleware } from "./tenant/tenant.middleware.js";
     DepartmentsModule,
     TimeModule,
     TasksModule,
+    RequestsModule,
+    NotificationsModule,
     HealthModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

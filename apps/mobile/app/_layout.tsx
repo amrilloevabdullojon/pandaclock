@@ -11,8 +11,10 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { ActivityIndicator, View } from "react-native";
 import { useAuthStore } from "@/lib/auth-store";
+import { usePushRegistration } from "@/lib/use-push-notifications";
 
 export default function RootLayout() {
+  usePushRegistration();
   const [fontsLoaded] = useFonts({
     Nunito_400Regular,
     Nunito_600SemiBold,

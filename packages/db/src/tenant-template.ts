@@ -219,6 +219,19 @@ CREATE TABLE refresh_tokens (
 CREATE INDEX idx_refresh_tokens_user ON refresh_tokens(user_id);
 CREATE INDEX idx_refresh_tokens_expires ON refresh_tokens(expires_at);
 
+-- Expo push notification tokens
+CREATE TABLE push_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token TEXT NOT NULL,
+  platform VARCHAR(16) NOT NULL,
+  last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (user_id, token)
+);
+
+CREATE INDEX idx_push_tokens_user ON push_tokens(user_id);
+
 -- One-time tokens (email verification, password reset)
 CREATE TABLE verification_tokens (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

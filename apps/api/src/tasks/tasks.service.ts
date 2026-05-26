@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { TenantPrismaService } from "../tenant/tenant-prisma.service.js";
+import { NotificationsService } from "../notifications/notifications.service.js";
 import { canTransition, type TaskStatus, type TaskPriority } from "./task-status.js";
 import type { CreateTaskDto, TasksQueryDto, UpdateTaskDto } from "./dto/task.dto.js";
 
@@ -58,7 +59,10 @@ const SELECT_TASK = `
 
 @Injectable()
 export class TasksService {
-  constructor(private readonly tenantDb: TenantPrismaService) {}
+  constructor(
+    private readonly tenantDb: TenantPrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   async list(query: TasksQueryDto, currentUserId: string): Promise<TaskWithPeople[]> {
     const filters: string[] = [];
@@ -152,7 +156,18 @@ export class TasksService {
     );
     const id = rows[0]?.id;
     if (!id) throw new BadRequestException({ code: "INSERT_FAILED" });
-    return this.getById(id);
+
+    const task = await this.getById(id);
+    if (task.assigneeId && task.assigneeId !== createdById) {
+      void this.notifications
+        .pushToUsers([task.assigneeId], {
+          title: `📋 Новая задача от ${task.createdByName}`,
+          body: task.title,
+          data: { type: "TASK_ASSIGNED", taskId: task.id },
+        })
+        .catch(() => undefined);
+    }
+    return task;
   }
 
   async update(id: string, input: UpdateTaskDto, currentUserId: string): Promise<TaskWithPeople> {
@@ -201,7 +216,17 @@ export class TasksService {
       `UPDATE tasks SET ${sets.join(", ")}, updated_at = NOW() WHERE id = $1`,
       ...params,
     );
-    return this.getById(id);
+    const updated = await this.getById(id);
+    if (input.status === "DONE" && updated.createdById !== currentUserId) {
+      void this.notifications
+        .pushToUsers([updated.createdById], {
+          title: `✅ Задача выполнена`,
+          body: `${updated.assigneeName ?? "Сотрудник"} закрыл «${updated.title}»`,
+          data: { type: "TASK_DONE", taskId: updated.id },
+        })
+        .catch(() => undefined);
+    }
+    return updated;
   }
 
   async remove(id: string): Promise<void> {

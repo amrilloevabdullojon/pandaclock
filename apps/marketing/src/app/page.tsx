@@ -3,6 +3,8 @@ import { Hero } from "@/components/hero";
 import { Problem } from "@/components/problem";
 import { ValueProps } from "@/components/value-props";
 import { Industries } from "@/components/industries";
+import { Pricing } from "@/components/pricing";
+import { Faq } from "@/components/faq";
 import { FinalCta } from "@/components/cta";
 import { Footer } from "@/components/footer";
 
@@ -15,7 +17,8 @@ export default function MarketingHome() {
         <Problem />
         <ValueProps />
         <Industries />
-        {/* TODO Sprint 5: Pricing + FAQ */}
+        <Pricing />
+        <Faq />
         <FinalCta />
       </main>
       <Footer />

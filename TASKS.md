@@ -11,7 +11,49 @@
 
 ---
 
-# 🟢 АКТИВНЫЙ СПРИНТ: Sprint 4 — Задачи и канбан
+# 🟢 АКТИВНЫЙ СПРИНТ: Sprint 5 — Заявки и уведомления
+
+**Цель:** Полный цикл leave-requests + Expo Push + расширенный лендинг.
+
+## API
+
+- [x] leave-utils: countWorkingDays, accruedDays, rangesOverlap + Vitest (9 кейсов)
+- [x] RequestsService: list (scope my/team/all), create (с валидацией пересечений), approve/reject, cancel
+- [x] balance(userId): {used, accrued, pending, remaining} с пропорциональным начислением 21 день/год
+- [x] push_tokens (UNIQUE user_id+token) добавлены в tenant template
+- [x] NotificationsService (Expo HTTP API), register/unregister token, pushToUsers (fire-and-forget)
+- [x] Интеграция: при create task → push исполнителю; при DONE → автору; при create request → руководителю; при approve/reject → заявителю
+- [x] NotificationsController (POST /notifications/push/register, DELETE /notifications/push)
+- [x] RequestsController: list/balance/create/approve/reject/cancel, RolesGuard для approve/reject
+
+## Web
+
+- [x] /api/requests + /api/requests/[id]/[action] (approve/reject/cancel) — auth-cookie прокси
+- [x] /dashboard/requests с scope-табами (My/Team/All) + status-фильтрами
+- [x] CreateRequestButton модалка: type chips, daterange, live-расчёт рабочих дней и остатка
+- [x] DecisionButtons inline для PENDING заявок в скоупах team/all
+- [x] 4 KPI-карточки баланса (Накоплено / Использовано / Pending / Остаток)
+
+## Mobile
+
+- [x] usePushRegistration hook (Expo getExpoPushTokenAsync + permission flow)
+- [x] (tabs)/requests — список своих заявок + Modal создания с type chips + 2 date input + причина
+
+## Marketing
+
+- [x] Pricing с toggle Monthly/Yearly, 4 тарифа, Pro выделен gradient + "Рекомендуем"
+- [x] FAQ accordion с 10 вопросами
+
+## TODO для Sprint 6
+
+- [ ] Web: детальная страница заявки с историей решений
+- [ ] Mobile: native date picker вместо текстового поля
+- [ ] Cron-уведомления (напомнить начать день, дедлайн через час)
+- [ ] Calendar страница с отпусками команды
+
+---
+
+# ✅ ЗАВЕРШЁННЫЙ: Sprint 4 — Задачи и канбан
 
 **Цель:** Полный цикл работы с задачами: канбан-доска на web, mobile-приоритезированный список, комментарии, переходы статусов.
 
@@ -381,7 +423,8 @@ _Пока нет блокеров._
 - **Sprint 2:** ✅ 100% (employees + departments CRUD, invitations, Excel import, password reset)
 - **Sprint 3:** ✅ 100% (time tracking: clock-in/out с geofence, breaks, late detection, offline queue)
 - **Sprint 4:** ✅ 100% (tasks: kanban с drag-n-drop, transitions, comments, mobile-список + детали, landing расширение)
-- **Готовность MVP:** ~55%
+- **Sprint 5:** ✅ 100% (leave requests + balance + Expo Push + landing Pricing/FAQ)
+- **Готовность MVP:** ~65%
 - **Документация:** ✅ 100%
 
 ---
