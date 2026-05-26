@@ -219,6 +219,43 @@ CREATE TABLE refresh_tokens (
 CREATE INDEX idx_refresh_tokens_user ON refresh_tokens(user_id);
 CREATE INDEX idx_refresh_tokens_expires ON refresh_tokens(expires_at);
 
+-- Chat channels (отделовые + кастомные + DM)
+CREATE TABLE chat_channels (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  type VARCHAR(16) NOT NULL DEFAULT 'CHANNEL',
+  name VARCHAR(255),
+  department_id UUID REFERENCES departments(id) ON DELETE SET NULL,
+  is_default BOOLEAN NOT NULL DEFAULT FALSE,
+  created_by_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_chat_channels_department ON chat_channels(department_id) WHERE department_id IS NOT NULL;
+
+CREATE TABLE chat_members (
+  channel_id UUID NOT NULL REFERENCES chat_channels(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  last_read_at TIMESTAMPTZ,
+  role VARCHAR(16) NOT NULL DEFAULT 'MEMBER',
+  PRIMARY KEY (channel_id, user_id)
+);
+
+CREATE INDEX idx_chat_members_user ON chat_members(user_id);
+
+CREATE TABLE chat_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  channel_id UUID NOT NULL REFERENCES chat_channels(id) ON DELETE CASCADE,
+  author_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  body TEXT NOT NULL,
+  attachments JSONB,
+  edited_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_chat_messages_channel_created ON chat_messages(channel_id, created_at DESC);
+
 -- Expo push notification tokens
 CREATE TABLE push_tokens (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

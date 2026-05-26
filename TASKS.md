@@ -11,7 +11,47 @@
 
 ---
 
-# 🟢 АКТИВНЫЙ СПРИНТ: Sprint 6 — Отчёты и календарь
+# 🟢 АКТИВНЫЙ СПРИНТ: Sprint 7 — Биллинг и чаты
+
+**Цель:** Платная подписка с тарифами Pandaclock, webhook-handler'ы для Click/Payme, real-time чаты на Socket.IO с web и mobile клиентами.
+
+## API
+
+- [x] pricing table (STARTER/BUSINESS/PRO/ENTERPRISE) + calculatePrice + planCanFit + Vitest (8 кейсов)
+- [x] BillingService: getCurrentSubscription (+ activeEmployees count), listTransactions, previewChange, changePlan
+- [x] BillingController: GET /plans, /subscription, /transactions, /preview; POST /change-plan с RolesGuard
+- [x] ClickProvider: MD5 signature verification (constant-time compare) + buildResponse + prepare/complete check
+- [x] PaymeProvider: Basic-auth merchant key check + JSON-RPC ok/error envelopes
+- [x] Vitest для обоих провайдеров (valid/tampered signature, wrong basic auth)
+- [x] WebhooksController: POST /webhooks/click + /webhooks/payme (public, без JWT)
+- [x] tenant template: chat_channels, chat_members (PRIMARY KEY composite), chat_messages с индексом (channel_id, created_at DESC)
+- [x] ChatsService: listChannels (с unread_count через JOIN), createChannel (CHANNEL/DM), listMessages, sendMessage, markRead, getChannelMemberIds
+- [x] ChatsController: GET /chats/channels, POST /chats/channels, GET/POST /channels/:id/messages, POST /channels/:id/read
+- [x] ChatsGateway (Socket.IO): JWT-handshake с tenant binding, channel:join/leave, message:send, typing indicator, rooms по tenant + channel
+- [x] BillingModule + ChatsModule зарегистрированы в AppModule
+
+## Web
+
+- [x] /api/billing/change-plan + /api/chats/access-token + /api/chats/channels/[id]/messages — auth-cookie прокси
+- [x] /dashboard/settings/billing: текущий тариф (KPI карточка с ценой), 4 plan-карточки, кнопка "Выбрать", таблица истории
+- [x] /dashboard/chats: 2-колоночный layout (список каналов + окно), Socket.IO клиент с автоподключением по channelId, отправка сообщений через message:send
+
+## Mobile
+
+- [x] socket.ts: getChatSocket с auth handshake (token из useAuthStore)
+- [x] (tabs)/chats: pull-to-refresh список с unread-бейджами
+- [x] /chats/[id]: KeyboardAvoidingView, real-time подписка на message:new, отправка через socket.emit
+
+## TODO для Sprint 8
+
+- [ ] BillingTransaction создаётся при успешном Click/Payme webhook (привязка через merchant_trans_id)
+- [ ] Email-уведомления о биллинге (оплата прошла, неудача, триал заканчивается)
+- [ ] Mobile: typing indicators + read receipts
+- [ ] Web: создание DM из карточки сотрудника
+
+---
+
+# ✅ ЗАВЕРШЁННЫЙ: Sprint 6 — Отчёты и календарь
 
 **Цель:** Реальные KPI-отчёты с Excel/PDF экспортом, единый календарь команды, mobile офлайн-индикатор и локальные напоминания.
 
@@ -460,7 +500,8 @@ _Пока нет блокеров._
 - **Sprint 4:** ✅ 100% (tasks: kanban с drag-n-drop, transitions, comments, mobile-список + детали, landing расширение)
 - **Sprint 5:** ✅ 100% (leave requests + balance + Expo Push + landing Pricing/FAQ)
 - **Sprint 6:** ✅ 100% (reports XLSX/PDF, calendar, employee tabs, mobile offline + daily reminder)
-- **Готовность MVP:** ~75%
+- **Sprint 7:** ✅ 100% (billing + Click/Payme webhooks + Socket.IO chats на web и mobile)
+- **Готовность MVP:** ~85%
 - **Документация:** ✅ 100%
 
 ---
