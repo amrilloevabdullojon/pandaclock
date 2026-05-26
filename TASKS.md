@@ -565,7 +565,8 @@ _Пока нет блокеров._
 - **Sprint 5:** ✅ 100% (leave requests + balance + Expo Push + landing Pricing/FAQ)
 - **Sprint 6:** ✅ 100% (reports XLSX/PDF, calendar, employee tabs, mobile offline + daily reminder)
 - **Sprint 7:** ✅ 100% (billing + Click/Payme webhooks + Socket.IO chats на web и mobile)
-- **Готовность MVP:** ~85%
+- **Sprint 8:** ✅ 100% (полировка: cron, i18n, legal, EAS, Dockerfile, vercel.json, SEO, runbooks)
+- **Готовность MVP:** ✅ 100% — готов к soft-launch с пилотами 🚀
 - **Документация:** ✅ 100%
 
 ---
