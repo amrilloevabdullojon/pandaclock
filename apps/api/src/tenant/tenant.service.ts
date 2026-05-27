@@ -65,7 +65,12 @@ export class TenantService {
 
       await tx.$executeRawUnsafe(`CREATE SCHEMA "${schemaName}"`);
       await tx.$executeRawUnsafe(`SET search_path TO "${schemaName}"`);
-      await tx.$executeRawUnsafe(TENANT_TEMPLATE_SQL);
+      // Prisma $executeRawUnsafe не умеет multi-statement в одном prepared statement,
+      // поэтому разбиваем template SQL на отдельные команды по `;` (комментарии и пустые
+      // строки отбрасываем).
+      for (const stmt of splitSql(TENANT_TEMPLATE_SQL)) {
+        await tx.$executeRawUnsafe(stmt);
+      }
 
       await tx.$executeRawUnsafe(
         `INSERT INTO users (
@@ -143,4 +148,20 @@ export class TenantService {
       throw new BadRequestException({ code: "INVALID_SCHEMA_NAME" });
     }
   }
+}
+
+/**
+ * Разбивает SQL-блок на отдельные команды по `;`.
+ * Игнорирует строки-комментарии (--) и пустые строки. Все наши команды
+ * в tenant-template без литералов с `;`, иначе пришлось бы парсить нормально.
+ */
+function splitSql(sql: string): string[] {
+  const noComments = sql
+    .split("\n")
+    .map((line) => (line.trim().startsWith("--") ? "" : line))
+    .join("\n");
+  return noComments
+    .split(";")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
 }

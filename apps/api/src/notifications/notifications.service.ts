@@ -42,7 +42,7 @@ export class NotificationsService {
   async unregisterToken(userId: string, token: string): Promise<void> {
     const client = await this.tenantDb.getClient();
     await client.$executeRawUnsafe(
-      `DELETE FROM push_tokens WHERE user_id = $1 AND token = $2`,
+      `DELETE FROM push_tokens WHERE user_id = $1::uuid AND token = $2`,
       userId,
       token,
     );

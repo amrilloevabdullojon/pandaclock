@@ -73,7 +73,7 @@ export class TimeService {
       `SELECT id, date, started_at, finished_at, status, total_minutes,
               breaks_total_minutes, is_late
        FROM time_entries
-       WHERE user_id = $1 AND date = CURRENT_DATE
+       WHERE user_id = $1::uuid AND date = CURRENT_DATE
        LIMIT 1`,
       userId,
     );
@@ -97,7 +97,7 @@ export class TimeService {
       const breaks = await client.$queryRawUnsafe<BreakRow[]>(
         `SELECT id, time_entry_id, started_at, finished_at, type
          FROM breaks
-         WHERE time_entry_id = $1 AND finished_at IS NULL
+         WHERE time_entry_id = $1::uuid AND finished_at IS NULL
          ORDER BY started_at DESC LIMIT 1`,
         entry.id,
       );
@@ -128,7 +128,7 @@ export class TimeService {
     const client = await this.tenantDb.getClient();
 
     const existing = await client.$queryRawUnsafe<TimeEntryRow[]>(
-      `SELECT id FROM time_entries WHERE user_id = $1 AND date = CURRENT_DATE LIMIT 1`,
+      `SELECT id FROM time_entries WHERE user_id = $1::uuid AND date = CURRENT_DATE LIMIT 1`,
       userId,
     );
     if (existing.length > 0) {
@@ -153,7 +153,7 @@ export class TimeService {
          user_id, date, started_at, status, is_late, ip_address,
          start_latitude, start_longitude, note
        )
-       VALUES ($1, CURRENT_DATE, NOW(), 'WORKING', $2, $3::inet, $4, $5, $6)`,
+       VALUES ($1::uuid, CURRENT_DATE, NOW(), 'WORKING', $2, $3::inet, $4, $5, $6)`,
       userId,
       isLate,
       request.ipAddress ?? null,
@@ -175,7 +175,7 @@ export class TimeService {
     const entries = await client.$queryRawUnsafe<TimeEntryRow[]>(
       `SELECT id, started_at, breaks_total_minutes, status
        FROM time_entries
-       WHERE user_id = $1 AND date = CURRENT_DATE LIMIT 1`,
+       WHERE user_id = $1::uuid AND date = CURRENT_DATE LIMIT 1`,
       userId,
     );
     const entry = entries[0];
@@ -189,7 +189,7 @@ export class TimeService {
 
     const breaks = await client.$queryRawUnsafe<{ total: number }[]>(
       `SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (finished_at - started_at))) / 60, 0)::int AS total
-       FROM breaks WHERE time_entry_id = $1 AND finished_at IS NOT NULL`,
+       FROM breaks WHERE time_entry_id = $1::uuid AND finished_at IS NOT NULL`,
       entry.id,
     );
     const breaksTotal = breaks[0]?.total ?? 0;
@@ -204,7 +204,7 @@ export class TimeService {
            total_minutes = $2, breaks_total_minutes = $3,
            finish_latitude = $4, finish_longitude = $5,
            updated_at = NOW()
-       WHERE id = $1`,
+       WHERE id = $1::uuid`,
       entry.id,
       totalMinutes,
       breaksTotal,
@@ -218,7 +218,7 @@ export class TimeService {
   async startBreak(userId: string, tenantSlug: string, type: string): Promise<TodaySession> {
     const client = await this.tenantDb.getClient();
     const entries = await client.$queryRawUnsafe<TimeEntryRow[]>(
-      `SELECT id, status FROM time_entries WHERE user_id = $1 AND date = CURRENT_DATE LIMIT 1`,
+      `SELECT id, status FROM time_entries WHERE user_id = $1::uuid AND date = CURRENT_DATE LIMIT 1`,
       userId,
     );
     const entry = entries[0];
@@ -227,12 +227,12 @@ export class TimeService {
       throw new ConflictException({ code: "NOT_WORKING" });
     }
     await client.$executeRawUnsafe(
-      `INSERT INTO breaks (time_entry_id, started_at, type) VALUES ($1, NOW(), $2)`,
+      `INSERT INTO breaks (time_entry_id, started_at, type) VALUES ($1::uuid, NOW(), $2)`,
       entry.id,
       type,
     );
     await client.$executeRawUnsafe(
-      `UPDATE time_entries SET status = 'ON_BREAK', updated_at = NOW() WHERE id = $1`,
+      `UPDATE time_entries SET status = 'ON_BREAK', updated_at = NOW() WHERE id = $1::uuid`,
       entry.id,
     );
     return this.getToday(userId, tenantSlug);
@@ -241,7 +241,7 @@ export class TimeService {
   async finishBreak(userId: string, tenantSlug: string): Promise<TodaySession> {
     const client = await this.tenantDb.getClient();
     const entries = await client.$queryRawUnsafe<TimeEntryRow[]>(
-      `SELECT id, status FROM time_entries WHERE user_id = $1 AND date = CURRENT_DATE LIMIT 1`,
+      `SELECT id, status FROM time_entries WHERE user_id = $1::uuid AND date = CURRENT_DATE LIMIT 1`,
       userId,
     );
     const entry = entries[0];
@@ -251,7 +251,7 @@ export class TimeService {
     }
     await this.closeOpenBreaks(entry.id);
     await client.$executeRawUnsafe(
-      `UPDATE time_entries SET status = 'WORKING', updated_at = NOW() WHERE id = $1`,
+      `UPDATE time_entries SET status = 'WORKING', updated_at = NOW() WHERE id = $1::uuid`,
       entry.id,
     );
     return this.getToday(userId, tenantSlug);
@@ -273,7 +273,7 @@ export class TimeService {
     >(
       `SELECT date, started_at, finished_at, total_minutes, is_late
        FROM time_entries
-       WHERE user_id = $1 AND date >= CURRENT_DATE - ($2::int * INTERVAL '1 day')
+       WHERE user_id = $1::uuid AND date >= CURRENT_DATE - ($2::int * INTERVAL '1 day')
        ORDER BY date DESC`,
       userId,
       days,
@@ -346,7 +346,7 @@ export class TimeService {
   private async closeOpenBreaks(timeEntryId: string): Promise<void> {
     const client = await this.tenantDb.getClient();
     await client.$executeRawUnsafe(
-      `UPDATE breaks SET finished_at = NOW() WHERE time_entry_id = $1 AND finished_at IS NULL`,
+      `UPDATE breaks SET finished_at = NOW() WHERE time_entry_id = $1::uuid AND finished_at IS NULL`,
       timeEntryId,
     );
   }

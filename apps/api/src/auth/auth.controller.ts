@@ -9,6 +9,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
+import { Throttle } from "@nestjs/throttler";
 import type { Request } from "express";
 import { AuthService, type AuthTokens, type SessionContext } from "./auth.service.js";
 import { TenantService } from "../tenant/tenant.service.js";
@@ -86,7 +87,8 @@ export class AuthController {
 
   @Post("login")
   @HttpCode(200)
-  @ApiOperation({ summary: "Вход в систему" })
+  @Throttle({ default: { ttl: 5 * 60 * 1000, limit: 5 } })
+  @ApiOperation({ summary: "Вход в систему (5 попыток / 5 минут)" })
   async login(@Body() dto: LoginDto, @Req() req: Request): Promise<AuthTokens> {
     if (!req.tenant) throw new UnauthorizedException({ code: "TENANT_REQUIRED" });
     const ctx = this.extractContext(req);

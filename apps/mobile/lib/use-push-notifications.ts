@@ -8,6 +8,7 @@ import { useAuthStore } from "./auth-store";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
+    shouldShowAlert: true,
     shouldShowBanner: true,
     shouldShowList: true,
     shouldPlaySound: true,

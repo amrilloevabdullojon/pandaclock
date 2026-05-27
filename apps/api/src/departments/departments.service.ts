@@ -80,7 +80,7 @@ export class DepartmentsService {
          head_id = COALESCE($4, head_id),
          description = COALESCE($5, description),
          updated_at = NOW()
-       WHERE id = $1
+       WHERE id = $1::uuid
        RETURNING id, name, parent_id, head_id, description, created_at, updated_at`,
       id,
       input.name ?? null,
@@ -95,7 +95,7 @@ export class DepartmentsService {
 
   async remove(id: string): Promise<void> {
     const client = await this.tenantDb.getClient();
-    const result = await client.$executeRawUnsafe(`DELETE FROM departments WHERE id = $1`, id);
+    const result = await client.$executeRawUnsafe(`DELETE FROM departments WHERE id = $1::uuid`, id);
     if (result === 0) {
       throw new NotFoundException({ code: "DEPARTMENT_NOT_FOUND" });
     }
@@ -104,7 +104,7 @@ export class DepartmentsService {
   private async assertExists(id: string): Promise<void> {
     const client = await this.tenantDb.getClient();
     const rows = await client.$queryRawUnsafe<{ id: string }[]>(
-      `SELECT id FROM departments WHERE id = $1 LIMIT 1`,
+      `SELECT id FROM departments WHERE id = $1::uuid LIMIT 1`,
       id,
     );
     if (rows.length === 0) {

@@ -119,14 +119,14 @@ export class InvitationsService {
              email_verified_at = NOW(),
              pd_consent_at = NOW(),
              updated_at = NOW()
-       WHERE id = $1`,
+       WHERE id = $1::uuid`,
       token.user_id,
       passwordHash,
       input.firstName ?? "",
       input.lastName ?? "",
     );
     await client.$executeRawUnsafe(
-      `UPDATE verification_tokens SET consumed_at = NOW() WHERE id = $1`,
+      `UPDATE verification_tokens SET consumed_at = NOW() WHERE id = $1::uuid`,
       token.id,
     );
 

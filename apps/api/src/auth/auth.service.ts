@@ -117,7 +117,7 @@ export class AuthService {
 
     const users = await client.$queryRawUnsafe<UserRow[]>(
       `SELECT id, email, password_hash, first_name, last_name, role, status, email_verified_at
-       FROM users WHERE id = $1 LIMIT 1`,
+       FROM users WHERE id = $1::uuid LIMIT 1`,
       payload.sub,
     );
     const user = users[0];
@@ -127,7 +127,7 @@ export class AuthService {
 
     // Rotation: revoke предыдущий, выдать новые
     await client.$executeRawUnsafe(
-      `UPDATE refresh_tokens SET revoked_at = NOW() WHERE id = $1`,
+      `UPDATE refresh_tokens SET revoked_at = NOW() WHERE id = $1::uuid`,
       token.id,
     );
     return this.issueTokens(user, tenantSlug, ctx, token.id);
@@ -156,7 +156,7 @@ export class AuthService {
     const client = await this.tenantDb.getClient();
     const rows = await client.$queryRawUnsafe<UserRow[]>(
       `SELECT id, email, password_hash, first_name, last_name, role, status, email_verified_at
-       FROM users WHERE id = $1 LIMIT 1`,
+       FROM users WHERE id = $1::uuid LIMIT 1`,
       userId,
     );
     const user = rows[0];
@@ -210,11 +210,11 @@ export class AuthService {
     }
 
     await client.$executeRawUnsafe(
-      `UPDATE verification_tokens SET consumed_at = NOW() WHERE id = $1`,
+      `UPDATE verification_tokens SET consumed_at = NOW() WHERE id = $1::uuid`,
       record.id,
     );
     await client.$executeRawUnsafe(
-      `UPDATE users SET email_verified_at = NOW() WHERE id = $1`,
+      `UPDATE users SET email_verified_at = NOW() WHERE id = $1::uuid`,
       record.user_id,
     );
   }
@@ -292,17 +292,17 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(newPassword, Number(process.env.BCRYPT_ROUNDS ?? 10));
     await client.$executeRawUnsafe(
-      `UPDATE users SET password_hash = $2, updated_at = NOW() WHERE id = $1`,
+      `UPDATE users SET password_hash = $2, updated_at = NOW() WHERE id = $1::uuid`,
       record.user_id,
       passwordHash,
     );
     await client.$executeRawUnsafe(
-      `UPDATE verification_tokens SET consumed_at = NOW() WHERE id = $1`,
+      `UPDATE verification_tokens SET consumed_at = NOW() WHERE id = $1::uuid`,
       record.id,
     );
     // Revoke все активные refresh-токены пользователя — заставляем перелогиниться везде.
     await client.$executeRawUnsafe(
-      `UPDATE refresh_tokens SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL`,
+      `UPDATE refresh_tokens SET revoked_at = NOW() WHERE user_id = $1::uuid AND revoked_at IS NULL`,
       record.user_id,
     );
   }
@@ -338,7 +338,7 @@ export class AuthService {
     const client = await this.tenantDb.getClient();
     const inserted = await client.$queryRawUnsafe<{ id: string }[]>(
       `INSERT INTO refresh_tokens (user_id, token_hash, expires_at, ip_address, user_agent)
-       VALUES ($1, $2, $3, $4::inet, $5)
+       VALUES ($1::uuid, $2, $3, $4::inet, $5)
        RETURNING id`,
       user.id,
       refreshHash,
@@ -349,7 +349,7 @@ export class AuthService {
 
     if (previousRefreshId && inserted[0]) {
       await client.$executeRawUnsafe(
-        `UPDATE refresh_tokens SET replaced_by = $1 WHERE id = $2`,
+        `UPDATE refresh_tokens SET replaced_by = $1::uuid WHERE id = $2::uuid`,
         inserted[0].id,
         previousRefreshId,
       );

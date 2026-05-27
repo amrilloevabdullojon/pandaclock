@@ -128,7 +128,7 @@ export class EmployeesService {
               u.email_verified_at, u.created_at
        FROM users u
        LEFT JOIN departments d ON d.id = u.department_id
-       WHERE u.id = $1 LIMIT 1`,
+       WHERE u.id = $1::uuid LIMIT 1`,
       id,
     );
     const row = rows[0];
@@ -164,7 +164,7 @@ export class EmployeesService {
 
     const client = await this.tenantDb.getClient();
     const result = await client.$executeRawUnsafe(
-      `UPDATE users SET ${sets.join(", ")}, updated_at = NOW() WHERE id = $1`,
+      `UPDATE users SET ${sets.join(", ")}, updated_at = NOW() WHERE id = $1::uuid`,
       ...params,
     );
     if (result === 0) throw new NotFoundException({ code: "EMPLOYEE_NOT_FOUND" });
@@ -174,7 +174,7 @@ export class EmployeesService {
   async deactivate(id: string): Promise<void> {
     const client = await this.tenantDb.getClient();
     await client.$executeRawUnsafe(
-      `UPDATE users SET status = 'SUSPENDED', updated_at = NOW() WHERE id = $1`,
+      `UPDATE users SET status = 'SUSPENDED', updated_at = NOW() WHERE id = $1::uuid`,
       id,
     );
   }

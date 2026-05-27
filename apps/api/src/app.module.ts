@@ -18,6 +18,7 @@ import { CalendarModule } from "./calendar/calendar.module.js";
 import { BillingModule } from "./billing/billing.module.js";
 import { ChatsModule } from "./chats/chats.module.js";
 import { SchedulerModule } from "./scheduler/scheduler.module.js";
+import { AuditModule } from "./audit/audit.module.js";
 import { TenantMiddleware } from "./tenant/tenant.middleware.js";
 
 @Module({
@@ -48,6 +49,7 @@ import { TenantMiddleware } from "./tenant/tenant.middleware.js";
     BillingModule,
     ChatsModule,
     SchedulerModule,
+    AuditModule,
     HealthModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

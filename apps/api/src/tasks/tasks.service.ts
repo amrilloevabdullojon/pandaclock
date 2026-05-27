@@ -131,7 +131,7 @@ export class TasksService {
        FROM tasks t
        LEFT JOIN users a ON a.id = t.assignee_id
        JOIN users c ON c.id = t.created_by_id
-       WHERE t.id = $1 LIMIT 1`,
+       WHERE t.id = $1::uuid LIMIT 1`,
       id,
     );
     const row = rows[0];
@@ -144,7 +144,7 @@ export class TasksService {
     const client = await this.tenantDb.getClient();
     const rows = await client.$queryRawUnsafe<{ id: string }[]>(
       `INSERT INTO tasks (title, description, status, priority, created_by_id, assignee_id, deadline, labels)
-       VALUES ($1, $2, 'NEW', $3, $4, $5, $6, $7::text[])
+       VALUES ($1, $2, 'NEW', $3, $4::uuid, $5::uuid, $6::timestamptz, $7::text[])
        RETURNING id`,
       input.title,
       input.description ?? null,
@@ -213,7 +213,7 @@ export class TasksService {
     void currentUserId; // зарезервировано для audit log в следующих спринтах
     const client = await this.tenantDb.getClient();
     await client.$executeRawUnsafe(
-      `UPDATE tasks SET ${sets.join(", ")}, updated_at = NOW() WHERE id = $1`,
+      `UPDATE tasks SET ${sets.join(", ")}, updated_at = NOW() WHERE id = $1::uuid`,
       ...params,
     );
     const updated = await this.getById(id);
@@ -231,7 +231,7 @@ export class TasksService {
 
   async remove(id: string): Promise<void> {
     const client = await this.tenantDb.getClient();
-    const result = await client.$executeRawUnsafe(`DELETE FROM tasks WHERE id = $1`, id);
+    const result = await client.$executeRawUnsafe(`DELETE FROM tasks WHERE id = $1::uuid`, id);
     if (result === 0) throw new NotFoundException({ code: "TASK_NOT_FOUND" });
   }
 
@@ -241,7 +241,7 @@ export class TasksService {
     await this.getById(taskId);
     const client = await this.tenantDb.getClient();
     await client.$executeRawUnsafe(
-      `INSERT INTO task_comments (task_id, author_id, body) VALUES ($1, $2, $3)`,
+      `INSERT INTO task_comments (task_id, author_id, body) VALUES ($1::uuid, $2::uuid, $3)`,
       taskId,
       authorId,
       body,
@@ -274,7 +274,7 @@ export class TasksService {
   private async assertUserExists(userId: string): Promise<void> {
     const client = await this.tenantDb.getClient();
     const rows = await client.$queryRawUnsafe<{ id: string }[]>(
-      `SELECT id FROM users WHERE id = $1 LIMIT 1`,
+      `SELECT id FROM users WHERE id = $1::uuid LIMIT 1`,
       userId,
     );
     if (rows.length === 0) {

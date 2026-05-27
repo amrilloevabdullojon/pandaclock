@@ -11,7 +11,56 @@
 
 ---
 
-# 🎉 MVP ГОТОВ — Sprint 8: Полировка и запуск
+# 🚀 LOCAL POLISH ROUND — всё работает end-to-end
+
+**Что сделано в этот раунд:**
+
+- [x] **Docker Desktop** запущен, `docker compose up -d` поднял Postgres 16 (порт 5433 — соседский skillpath уже занял 5432), Redis, MinIO, Mailpit
+- [x] **Prisma migration `init`** создана и применена → 5 public-таблиц (tenants, subscriptions, billing_transactions, tenant_invitations, platform_admins) + enums
+- [x] **TENANT_TEMPLATE_SQL разбит на отдельные команды** (Prisma $executeRawUnsafe не умеет multi-statement)
+- [x] **30+ UUID касts** в raw queries (`$1::uuid`, `$1::inet`, `$1::date`, `$1::timestamptz`) — PostgreSQL не приводит text→uuid автоматически в parameterized queries
+- [x] **AuthModule сделан @Global**, экспортирует JwtStrategy/PassportModule/JwtModule — JwtAuthGuard теперь работает в любом модуле без дублирования
+- [x] **TenantMiddleware** переписан под Nest 11 / Express 5: пути без globalPrefix, `forRoutes({ path: '{*splat}', method: RequestMethod.ALL })`
+- [x] **packages/db** теперь компилируется в `dist/` (main/exports переключены) — Node ESM резолвит из собранного API
+- [x] **bcrypt native binding** собран через `node-pre-gyp install` (без node-gyp toolchain)
+
+## E2E реально работает (доказано curl-ом)
+
+| Endpoint | HTTP | Что подтверждает |
+|----------|------|------------------|
+| `POST /auth/register-company` | 201 | tenant + schema + Owner user созданы в одной транзакции |
+| `POST /auth/login` | 200 | JWT access+refresh с правильным payload |
+| `GET /auth/me` | 200 | JwtAuthGuard + tenant binding работают |
+| `POST /auth/refresh` | 200 | rotation выпускает новую пару |
+| `GET /employees` | 200 | список сотрудников из tenant schema |
+| `POST /departments` | 201 | CRUD отделов |
+| `POST /time/start` → break → break/finish → finish | 200/201 | полный цикл рабочего дня с late detection |
+| `POST /tasks` + `PATCH /tasks/:id` + `POST /tasks/:id/comments` | 201/200/201 | задачи + переходы + комментарии |
+| `POST /requests` + `POST /requests/:id/approve` | 201/201 | заявка на отпуск + утверждение |
+| `GET /requests/balance` | 200 | расчёт `{used, accrued, pending, remaining}` |
+| `GET /reports/attendance` | 200 | агрегации с late count и hours |
+| `GET /calendar/events` | 200 | unified feed leave_requests + task_deadlines |
+
+## Hardening сделан
+
+- [x] **Rate limit `/auth/login`** через `@Throttle({ ttl: 5min, limit: 5 })` — 6-я попытка реально возвращает 429
+- [x] **Audit log** через global APP_INTERCEPTOR (singleton scope с собственным PrismaClient + manual search_path) — пишет action/entity_type/entity_id/ip/user_agent/changes для каждого POST/PATCH/DELETE
+- [x] **pnpm.overrides** на `@types/react@18.3.12` + `react-dom@18.3.1` → mobile typecheck: **0 ошибок**
+- [x] **`shouldShowAlert`** добавлен в Expo NotificationBehavior (поломалось в Expo SDK 52)
+
+## Маскот Pandi
+
+Без AI image API (есть только ANTHROPIC_API_KEY который не умеет генерить картинки) — нарисовал 3 SVG-маскота руками:
+
+- `pandi-hello.svg` — машет лапой (Hero на landing)
+- `pandi-clock.svg` — обнимает будильник (для loading/empty states)
+- `pandi-404.svg` — растерян с вопросами (для not-found)
+
+Landing уже использует `pandi-hello.svg` в Hero вместо emoji.
+
+---
+
+# ✅ ЗАВЕРШЁННЫЙ: Sprint 8 — Полировка и запуск
 
 **Статус:** все 8 спринтов закрыты. Pandaclock готов к soft-launch с пилотами.
 

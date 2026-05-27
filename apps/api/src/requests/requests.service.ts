@@ -103,7 +103,7 @@ export class RequestsService {
        FROM leave_requests r
        JOIN users u ON u.id = r.user_id
        LEFT JOIN users a ON a.id = r.approver_id
-       WHERE r.id = $1 LIMIT 1`,
+       WHERE r.id = $1::uuid LIMIT 1`,
       id,
     );
     const row = rows[0];
@@ -121,7 +121,7 @@ export class RequestsService {
     const client = await this.tenantDb.getClient();
     const rows = await client.$queryRawUnsafe<{ id: string }[]>(
       `INSERT INTO leave_requests (user_id, type, start_date, end_date, days_count, reason, status)
-       VALUES ($1, $2, $3, $4, $5, $6, 'PENDING')
+       VALUES ($1::uuid, $2, $3::date, $4::date, $5, $6, 'PENDING')
        RETURNING id`,
       userId,
       dto.type,
@@ -173,7 +173,7 @@ export class RequestsService {
     }
     const client = await this.tenantDb.getClient();
     await client.$executeRawUnsafe(
-      `UPDATE leave_requests SET status = 'CANCELLED', updated_at = NOW() WHERE id = $1`,
+      `UPDATE leave_requests SET status = 'CANCELLED', updated_at = NOW() WHERE id = $1::uuid`,
       id,
     );
     return this.getById(id);
@@ -187,7 +187,7 @@ export class RequestsService {
   }> {
     const client = await this.tenantDb.getClient();
     const userRows = await client.$queryRawUnsafe<{ hire_date: Date | null }[]>(
-      `SELECT hire_date FROM users WHERE id = $1 LIMIT 1`,
+      `SELECT hire_date FROM users WHERE id = $1::uuid LIMIT 1`,
       userId,
     );
     const hireDate = userRows[0]?.hire_date ?? null;
@@ -201,7 +201,7 @@ export class RequestsService {
          COALESCE(SUM(CASE WHEN status = 'APPROVED' AND type = 'VACATION' THEN days_count ELSE 0 END), 0)::int AS used,
          COALESCE(SUM(CASE WHEN status = 'PENDING' AND type = 'VACATION' THEN days_count ELSE 0 END), 0)::int AS pending
        FROM leave_requests
-       WHERE user_id = $1`,
+       WHERE user_id = $1::uuid`,
       userId,
     );
     const { used, pending } = aggregates[0] ?? { used: 0, pending: 0 };
@@ -228,9 +228,9 @@ export class RequestsService {
     const client = await this.tenantDb.getClient();
     await client.$executeRawUnsafe(
       `UPDATE leave_requests
-         SET status = $2, approver_id = $3, approver_comment = $4,
+         SET status = $2, approver_id = $3::uuid, approver_comment = $4,
              decided_at = NOW(), updated_at = NOW()
-       WHERE id = $1`,
+       WHERE id = $1::uuid`,
       id,
       status,
       approverId,
@@ -250,7 +250,7 @@ export class RequestsService {
   private async findManagerId(userId: string): Promise<string | null> {
     const client = await this.tenantDb.getClient();
     const rows = await client.$queryRawUnsafe<{ manager_id: string | null }[]>(
-      `SELECT manager_id FROM users WHERE id = $1 LIMIT 1`,
+      `SELECT manager_id FROM users WHERE id = $1::uuid LIMIT 1`,
       userId,
     );
     return rows[0]?.manager_id ?? null;
@@ -260,7 +260,7 @@ export class RequestsService {
     const client = await this.tenantDb.getClient();
     const rows = await client.$queryRawUnsafe<{ id: string; start_date: Date; end_date: Date }[]>(
       `SELECT id, start_date, end_date FROM leave_requests
-       WHERE user_id = $1 AND status IN ('PENDING', 'APPROVED')`,
+       WHERE user_id = $1::uuid AND status IN ('PENDING', 'APPROVED')`,
       userId,
     );
     for (const row of rows) {

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@pandaclock/ui";
 
@@ -32,12 +33,14 @@ export function Hero() {
 
         <div className="relative">
           <div className="aspect-[4/3] rounded-2xl bg-gradient-primary p-1 shadow-primary">
-            <div className="flex h-full w-full items-center justify-center rounded-xl bg-white text-center text-neutral-400">
-              <div>
-                <div className="text-7xl">🐼</div>
-                <p className="mt-2 text-sm">Превью дашборда</p>
-                <p className="text-xs">(скриншот добавится в Sprint 4)</p>
-              </div>
+            <div className="flex h-full w-full items-center justify-center rounded-xl bg-white">
+              <Image
+                src="/mascot/pandi-hello.svg"
+                alt="Pandi, маскот Pandaclock, машет лапой"
+                width={280}
+                height={280}
+                priority
+              />
             </div>
           </div>
           <div className="absolute -bottom-6 -left-6 rounded-xl border border-neutral-200 bg-white p-4 shadow-md">
