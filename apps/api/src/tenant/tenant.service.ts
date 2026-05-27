@@ -1,8 +1,7 @@
 import { Injectable, ConflictException, BadRequestException } from "@nestjs/common";
 import * as bcrypt from "bcrypt";
 import * as crypto from "node:crypto";
-import { PrismaClient } from "@prisma/client";
-import { prisma, TENANT_TEMPLATE_SQL } from "@pandaclock/db";
+import { prisma, PrismaClient, TENANT_TEMPLATE_SQL } from "@pandaclock/db";
 import type { Tenant } from "@pandaclock/db";
 
 export interface CreateTenantParams {

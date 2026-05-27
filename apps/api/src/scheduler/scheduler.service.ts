@@ -1,7 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
-import { PrismaClient } from "@prisma/client";
-import { prisma } from "@pandaclock/db";
+import { prisma, PrismaClient } from "@pandaclock/db";
 import { EmailService } from "../email/email.service.js";
 
 /**

@@ -1,5 +1,5 @@
 import { Injectable, Logger, NotFoundException } from "@nestjs/common";
-import { prisma } from "@pandaclock/db";
+import { prisma, type Prisma } from "@pandaclock/db";
 
 /**
  * Регистрирует успешный платёж в public.billing_transactions
@@ -39,7 +39,7 @@ export class TransactionService {
           provider: input.provider,
           providerTxId: input.providerTxId,
           status: "SUCCEEDED",
-          metadata: input.metadata ?? {},
+          metadata: (input.metadata ?? {}) as Prisma.InputJsonValue,
         },
       });
       const now = new Date();

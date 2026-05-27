@@ -1,13 +1,6 @@
 import { Injectable, type NestMiddleware, NotFoundException } from "@nestjs/common";
 import type { Request, Response, NextFunction } from "express";
 import { prisma } from "@pandaclock/db";
-import type { Tenant } from "@pandaclock/db";
-
-declare module "express-serve-static-core" {
-  interface Request {
-    tenant?: Tenant;
-  }
-}
 
 /**
  * Извлекает tenant slug из поддомена и кладёт tenant в request.

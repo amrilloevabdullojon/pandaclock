@@ -40,8 +40,8 @@ interface RefreshRow {
   revoked_at: Date | null;
 }
 
-const ACCESS_TTL = process.env.JWT_ACCESS_TTL ?? "15m";
-const REFRESH_TTL = process.env.JWT_REFRESH_TTL ?? "30d";
+const ACCESS_TTL: string = process.env.JWT_ACCESS_TTL ?? "15m";
+const REFRESH_TTL: string = process.env.JWT_REFRESH_TTL ?? "30d";
 const REFRESH_DAYS = 30;
 const VERIFICATION_TTL_HOURS = 24;
 
@@ -324,13 +324,13 @@ export class AuthService {
 
     const accessToken = await this.jwt.signAsync(payload, {
       secret: process.env.JWT_SECRET,
-      expiresIn: ACCESS_TTL,
+      expiresIn: ACCESS_TTL as unknown as number,
     });
 
     const refreshRaw = this.generateRawToken();
     const refreshToken = await this.jwt.signAsync(
       { ...payload, jti: refreshRaw },
-      { secret: process.env.JWT_REFRESH_SECRET, expiresIn: REFRESH_TTL },
+      { secret: process.env.JWT_REFRESH_SECRET, expiresIn: REFRESH_TTL as unknown as number },
     );
     const refreshHash = this.hash(refreshToken);
     const expiresAt = new Date(Date.now() + REFRESH_DAYS * 24 * 60 * 60 * 1000);

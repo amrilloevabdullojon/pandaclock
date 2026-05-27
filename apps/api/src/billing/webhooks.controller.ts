@@ -7,27 +7,25 @@ import { TransactionService } from "./transaction.service.js";
 /**
  * Public webhook endpoints. НЕ требуют JWT — провайдер аутентифицируется
  * через подпись (Click) или Basic-auth (Payme).
- *
- * Эти роуты в AppModule помечены excludeFromTenantMiddleware (см. exclude list).
  */
 @ApiTags("billing-webhooks")
 @Controller("webhooks")
 export class WebhooksController {
   private readonly logger = new Logger(WebhooksController.name);
-  private readonly click = new ClickProvider(process.env.CLICK_SECRET ?? "dev-secret");
-  private readonly payme = new PaymeProvider(process.env.PAYME_MERCHANT_KEY ?? "dev-key");
+  private readonly clickProvider = new ClickProvider(process.env.CLICK_SECRET ?? "dev-secret");
+  private readonly paymeProvider = new PaymeProvider(process.env.PAYME_MERCHANT_KEY ?? "dev-key");
 
   constructor(private readonly transactions: TransactionService) {}
 
   @Post("click")
   @ApiOperation({ summary: "Click webhook (Prepare + Complete)" })
   async click(@Body() body: ClickRequest) {
-    if (!this.click.verifySignature(body)) {
+    if (!this.clickProvider.verifySignature(body)) {
       this.logger.warn({ click_trans_id: body.click_trans_id }, "click signature mismatch");
-      return this.click.buildResponse(body, { ok: false });
+      return this.clickProvider.buildResponse(body, { ok: false });
     }
 
-    if (this.click.isComplete(body) && body.error === "0") {
+    if (this.clickProvider.isComplete(body) && body.error === "0") {
       try {
         await this.transactions.recordSuccess({
           merchantTransId: body.merchant_trans_id,
@@ -41,7 +39,7 @@ export class WebhooksController {
       }
     }
 
-    return this.click.buildResponse(body, { ok: true, merchantPrepareId: Date.now() });
+    return this.clickProvider.buildResponse(body, { ok: true, merchantPrepareId: Date.now() });
   }
 
   @Post("payme")
@@ -50,13 +48,13 @@ export class WebhooksController {
     @Body() body: { id: number; method: string; params: Record<string, unknown> },
     @Headers("authorization") auth?: string,
   ) {
-    if (!this.payme.verifyAuthHeader(auth)) {
-      return this.payme.errorResponse(-32504, "Insufficient privilege", body.id);
+    if (!this.paymeProvider.verifyAuthHeader(auth)) {
+      return this.paymeProvider.errorResponse(-32504, "Insufficient privilege", body.id);
     }
 
     if (body.method === "PerformTransaction") {
       const account = body.params.account as { order?: string } | undefined;
-      const amount = Number(body.params.amount ?? 0) / 100; // Payme присылает в тийинах
+      const amount = Number(body.params.amount ?? 0) / 100;
       const txId = String(body.params.id ?? "");
       if (account?.order && amount > 0 && txId) {
         try {
@@ -73,6 +71,6 @@ export class WebhooksController {
       }
     }
 
-    return this.payme.okResponse({ allow: true }, body.id);
+    return this.paymeProvider.okResponse({ allow: true }, body.id);
   }
 }

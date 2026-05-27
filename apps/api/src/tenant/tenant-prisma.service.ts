@@ -1,7 +1,7 @@
 import { Injectable, Scope, Inject } from "@nestjs/common";
 import { REQUEST } from "@nestjs/core";
 import type { Request } from "express";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@pandaclock/db";
 
 /**
  * Per-request Prisma client с динамическим search_path для tenant schema.
