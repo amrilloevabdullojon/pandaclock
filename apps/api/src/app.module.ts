@@ -55,19 +55,21 @@ import { TenantMiddleware } from "./tenant/tenant.middleware.js";
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
     // Эти эндпоинты работают на корневом домене / до выбора tenant.
+    // В Nest 11 (Express 5) exclude-пути указываем БЕЗ globalPrefix
+    // и используем именованный wildcard '{*splat}' для forRoutes.
     consumer
       .apply(TenantMiddleware)
       .exclude(
-        { path: "api/v1/auth/register-company", method: RequestMethod.POST },
-        { path: "api/v1/auth/verify-email", method: RequestMethod.POST },
-        { path: "api/v1/auth/resend-verification", method: RequestMethod.POST },
-        { path: "api/v1/auth/forgot-password", method: RequestMethod.POST },
-        { path: "api/v1/auth/reset-password", method: RequestMethod.POST },
-        { path: "api/v1/auth/accept-invite", method: RequestMethod.POST },
-        { path: "api/v1/health", method: RequestMethod.GET },
-        { path: "api/v1/webhooks/click", method: RequestMethod.POST },
-        { path: "api/v1/webhooks/payme", method: RequestMethod.POST },
+        { path: "auth/register-company", method: RequestMethod.POST },
+        { path: "auth/verify-email", method: RequestMethod.POST },
+        { path: "auth/resend-verification", method: RequestMethod.POST },
+        { path: "auth/forgot-password", method: RequestMethod.POST },
+        { path: "auth/reset-password", method: RequestMethod.POST },
+        { path: "auth/accept-invite", method: RequestMethod.POST },
+        { path: "health", method: RequestMethod.GET },
+        { path: "webhooks/click", method: RequestMethod.POST },
+        { path: "webhooks/payme", method: RequestMethod.POST },
       )
-      .forRoutes("*");
+      .forRoutes({ path: "{*splat}", method: RequestMethod.ALL });
   }
 }

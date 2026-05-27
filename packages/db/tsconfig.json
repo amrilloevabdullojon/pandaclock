@@ -1,8 +1,16 @@
 {
   "extends": "@pandaclock/config/tsconfig/base.json",
   "compilerOptions": {
-    "noEmit": true,
-    "verbatimModuleSyntax": false
+    "noEmit": false,
+    "verbatimModuleSyntax": false,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "dist",
+    "rootDir": "src",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true
   },
-  "include": ["src/**/*", "prisma/**/*"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "prisma"]
 }

@@ -62,11 +62,13 @@ export default async function ReportsPage({
   if (start) qs.set("start", start);
   if (end) qs.set("end", end);
 
-  let report:
-    | { period: { startIso: string; endIso: string }; rows: AttendanceRow[] | HoursRow[] | TasksRow[] }
-    | null = null;
+  type ReportPayload = {
+    period: { startIso: string; endIso: string };
+    rows: AttendanceRow[] | HoursRow[] | TasksRow[];
+  };
+  let report: ReportPayload | null = null;
   if (selected) {
-    report = await serverFetch<typeof report>(
+    report = await serverFetch<ReportPayload>(
       `/reports/${selected.id}${qs.size ? `?${qs.toString()}` : ""}`,
     ).catch(() => null);
   }

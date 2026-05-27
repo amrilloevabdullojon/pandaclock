@@ -3,14 +3,18 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./client": "./src/client.ts",
-    "./tenant-template": "./src/tenant-template.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./client": "./dist/client.js",
+    "./tenant-template": "./dist/tenant-template.js"
   },
   "scripts": {
+    "build": "tsc",
     "prisma": "prisma",
     "generate": "prisma generate",
     "migrate:dev": "prisma migrate dev",
