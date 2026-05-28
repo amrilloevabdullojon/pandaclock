@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { BarChart3 } from "lucide-react";
 import {
+  BarChart,
   Card,
   CardContent,
+  DonutChart,
   EmptyState,
   PageHeader,
   Table,
@@ -113,6 +115,7 @@ export default async function ReportsPage({
       {selected && report ? (
         <>
           <ReportControls type={selected.id} period={report.period} />
+          {report.rows.length > 0 && <ReportChart type={selected.id} rows={report.rows} />}
           <Card>
             <CardContent className="p-0">
               {report.rows.length === 0 ? (
@@ -132,6 +135,138 @@ export default async function ReportsPage({
       ) : null}
     </>
   );
+}
+
+function ReportChart({
+  type,
+  rows,
+}: {
+  type: ReportType;
+  rows: AttendanceRow[] | HoursRow[] | TasksRow[];
+}) {
+  if (type === "attendance") {
+    const data = (rows as AttendanceRow[]).slice(0, 12).map((r) => ({
+      name: shortName(r.fullName),
+      Часов: Math.round((r.totalMinutes / 60) * 10) / 10,
+      Опозданий: r.lateCount,
+    }));
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-foreground text-base font-bold">
+                Топ-{data.length} по часам и опозданиям
+              </h3>
+              <p className="text-muted-foreground text-xs">Часы работы и опоздания за период</p>
+            </div>
+          </div>
+          <BarChart
+            data={data}
+            xKey="name"
+            bars={[
+              { key: "Часов", color: "primary" },
+              { key: "Опозданий", color: "warning" },
+            ]}
+            height={260}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (type === "hours") {
+    const data = (rows as HoursRow[]).slice(0, 12).map((r) => ({
+      name: shortName(r.fullName),
+      Всего: Math.round((r.totalMinutes / 60) * 10) / 10,
+      Среднее: Math.round((r.averageMinutes / 60) * 10) / 10,
+    }));
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-foreground text-base font-bold">Часы по сотрудникам</h3>
+              <p className="text-muted-foreground text-xs">Всего и среднее за день</p>
+            </div>
+          </div>
+          <BarChart
+            data={data}
+            xKey="name"
+            bars={[
+              { key: "Всего", color: "primary" },
+              { key: "Среднее", color: "info" },
+            ]}
+            height={260}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Tasks: donut по выполнено / в работе / просрочено + BarChart completion-rate
+  const tasksRows = rows as TasksRow[];
+  const totals = tasksRows.reduce(
+    (acc, r) => {
+      acc.completed += r.completed;
+      acc.assigned += r.assigned;
+      acc.overdue += r.overdue;
+      return acc;
+    },
+    { completed: 0, assigned: 0, overdue: 0 },
+  );
+  const inProgress = Math.max(0, totals.assigned - totals.completed - totals.overdue);
+  const donutData = [
+    { name: "Выполнено", value: totals.completed, color: "success" as const },
+    { name: "В работе", value: inProgress, color: "info" as const },
+    { name: "Просрочено", value: totals.overdue, color: "danger" as const },
+  ];
+  const barData = tasksRows
+    .slice(0, 10)
+    .map((r) => ({ name: shortName(r.fullName), "% выполнения": r.completionRate }));
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-3">
+      <Card>
+        <CardContent className="p-6">
+          <h3 className="text-foreground mb-2 text-base font-bold">Структура задач</h3>
+          <p className="text-muted-foreground mb-4 text-xs">
+            {totals.completed} из {totals.assigned} выполнено
+          </p>
+          <DonutChart
+            data={donutData}
+            centerLabel={{
+              value:
+                totals.assigned > 0
+                  ? `${Math.round((totals.completed / totals.assigned) * 100)}%`
+                  : "—",
+              description: "выполнено",
+            }}
+            height={220}
+          />
+        </CardContent>
+      </Card>
+      <Card className="lg:col-span-2">
+        <CardContent className="p-6">
+          <h3 className="text-foreground mb-2 text-base font-bold">% выполнения по сотрудникам</h3>
+          <p className="text-muted-foreground mb-4 text-xs">Топ-{barData.length}</p>
+          <BarChart
+            data={barData}
+            xKey="name"
+            bars={[{ key: "% выполнения", color: "primary" }]}
+            horizontal
+            height={Math.max(220, barData.length * 30)}
+          />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function shortName(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0]!;
+  return `${parts[0]} ${parts[1]?.charAt(0) ?? ""}.`;
 }
 
 function ReportTable({

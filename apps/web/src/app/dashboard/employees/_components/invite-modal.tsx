@@ -1,8 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import * as React from "react";
 import { useRouter } from "next/navigation";
+import { useFieldArray, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Mail, Plus, Trash2, UserPlus } from "lucide-react";
 import {
+  Alert,
+  AlertDescription,
   Button,
   Dialog,
   DialogContent,
@@ -11,100 +17,162 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
   Input,
+  toast,
 } from "@pandaclock/ui";
+
+const inviteSchema = z.object({
+  invitees: z
+    .array(
+      z.object({
+        email: z.string().min(1, "Email обязателен").email("Похоже на не-email"),
+      }),
+    )
+    .min(1, "Введите минимум один email")
+    .max(20, "За раз можно пригласить до 20 человек"),
+});
+
+type InviteValues = z.infer<typeof inviteSchema>;
 
 export function InviteEmployees() {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
-  const [emails, setEmails] = useState<string[]>([""]);
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [summary, setSummary] = useState<{ invited: number; skipped: number } | null>(null);
+  const [open, setOpen] = React.useState(false);
+  const [summary, setSummary] = React.useState<{ invited: number; skipped: number } | null>(null);
 
-  function updateEmail(idx: number, value: string) {
-    setEmails((current) => current.map((email, i) => (i === idx ? value : email)));
-  }
+  const form = useForm<InviteValues>({
+    resolver: zodResolver(inviteSchema),
+    defaultValues: { invitees: [{ email: "" }] },
+    mode: "onBlur",
+  });
+  const { fields, append, remove } = useFieldArray({ control: form.control, name: "invitees" });
 
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
-    setPending(true);
-    setError(null);
+  React.useEffect(() => {
+    if (!open) {
+      form.reset({ invitees: [{ email: "" }] });
+      setSummary(null);
+    }
+  }, [open, form]);
+
+  async function onSubmit(values: InviteValues) {
+    const clean = values.invitees
+      .map((inv) => ({ email: inv.email.trim() }))
+      .filter((inv) => inv.email);
+    if (clean.length === 0) {
+      form.setError("invitees.0.email", { message: "Введите минимум один email" });
+      return;
+    }
     try {
-      const clean = emails.map((email) => email.trim()).filter(Boolean);
-      if (clean.length === 0) {
-        setError("Введите минимум один email");
-        return;
-      }
       const response = await fetch("/api/employees/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ invitees: clean.map((email) => ({ email })) }),
+        body: JSON.stringify({ invitees: clean }),
       });
       if (!response.ok) {
-        setError("Не удалось отправить приглашения");
+        toast.error("Не удалось отправить приглашения");
         return;
       }
       const body = (await response.json()) as { invited: string[]; skipped: unknown[] };
       setSummary({ invited: body.invited.length, skipped: body.skipped.length });
+      toast.success(
+        body.invited.length === 1
+          ? "Приглашение отправлено"
+          : `Отправлено ${body.invited.length} приглашений`,
+      );
       router.refresh();
-    } finally {
-      setPending(false);
+    } catch {
+      toast.error("Сетевая ошибка");
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>+ Пригласить</Button>
+        <Button leftIcon={<UserPlus className="h-4 w-4" />}>Пригласить</Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent size="md">
         <DialogHeader>
           <DialogTitle>Пригласить сотрудников</DialogTitle>
           <DialogDescription>
-            Каждый сотрудник получит email со ссылкой для регистрации.
+            Каждый получит email со ссылкой для регистрации. Можно пригласить до 20 человек разом.
           </DialogDescription>
         </DialogHeader>
 
         {summary ? (
-          <div className="rounded-md bg-success-light p-4 text-sm text-success">
-            ✓ Приглашено: {summary.invited}. Пропущено: {summary.skipped}.
-          </div>
+          <Alert variant="success">
+            <AlertDescription>
+              Отправлено: <strong>{summary.invited}</strong>
+              {summary.skipped > 0 ? ` · уже в команде: ${summary.skipped}` : ""}
+            </AlertDescription>
+          </Alert>
         ) : null}
 
-        <form onSubmit={handleSubmit} className="space-y-3">
-          {emails.map((email, idx) => (
-            <Input
-              // eslint-disable-next-line react/no-array-index-key
-              key={idx}
-              type="email"
-              placeholder="colleague@company.uz"
-              value={email}
-              onChange={(e) => updateEmail(idx, e.target.value)}
-            />
-          ))}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setEmails((cur) => [...cur, ""])}
-          >
-            + Ещё один email
-          </Button>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-2">
+              {fields.map((field, idx) => (
+                <div key={field.id} className="flex items-start gap-2">
+                  <FormField
+                    control={form.control}
+                    name={`invitees.${idx}.email` as const}
+                    render={({ field: f }) => (
+                      <FormItem className="flex-1">
+                        {idx === 0 && <FormLabel required>Email</FormLabel>}
+                        <FormControl>
+                          <Input
+                            type="email"
+                            placeholder="colleague@company.uz"
+                            prefix={<Mail className="h-4 w-4" />}
+                            autoComplete="off"
+                            {...f}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {fields.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => remove(idx)}
+                      aria-label="Удалить"
+                      className={idx === 0 ? "mt-7" : "mt-1"}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
 
-          {error ? (
-            <p className="rounded-md bg-danger-light px-3 py-2 text-sm text-danger">{error}</p>
-          ) : null}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={fields.length >= 20}
+              onClick={() => append({ email: "" })}
+              leftIcon={<Plus className="h-3.5 w-3.5" />}
+            >
+              Ещё email
+            </Button>
 
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-              Отмена
-            </Button>
-            <Button type="submit" disabled={pending}>
-              {pending ? "..." : "Отправить приглашения"}
-            </Button>
-          </DialogFooter>
-        </form>
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+                Отмена
+              </Button>
+              <Button type="submit" loading={form.formState.isSubmitting} loadingText="Отправляем…">
+                Отправить приглашения
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

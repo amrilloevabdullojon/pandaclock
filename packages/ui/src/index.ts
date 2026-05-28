@@ -45,5 +45,8 @@ export * from "./components/table";
 // === cmdk / command-palette ===
 export * from "./components/command";
 
+// === Charts (recharts wrappers) ===
+export * from "./components/charts";
+
 // === утилиты ===
 export * from "./lib/utils";

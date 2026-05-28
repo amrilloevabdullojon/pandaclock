@@ -62,10 +62,7 @@ export class TimeService {
     };
   }
 
-  async getToday(
-    userId: string,
-    tenantSlug: string,
-  ): Promise<TodaySession> {
+  async getToday(userId: string, tenantSlug: string): Promise<TodaySession> {
     const { policy } = await this.getPolicyAndTimezone(tenantSlug);
     const client = await this.tenantDb.getClient();
 
@@ -260,16 +257,24 @@ export class TimeService {
   async listHistory(
     userId: string,
     days = 30,
-  ): Promise<{
-    date: string;
-    startedAt: Date;
-    finishedAt: Date | null;
-    totalMinutes: number | null;
-    isLate: boolean;
-  }[]> {
+  ): Promise<
+    {
+      date: string;
+      startedAt: Date;
+      finishedAt: Date | null;
+      totalMinutes: number | null;
+      isLate: boolean;
+    }[]
+  > {
     const client = await this.tenantDb.getClient();
     const rows = await client.$queryRawUnsafe<
-      { date: Date; started_at: Date; finished_at: Date | null; total_minutes: number | null; is_late: boolean }[]
+      {
+        date: Date;
+        started_at: Date;
+        finished_at: Date | null;
+        total_minutes: number | null;
+        is_late: boolean;
+      }[]
     >(
       `SELECT date, started_at, finished_at, total_minutes, is_late
        FROM time_entries
@@ -287,15 +292,17 @@ export class TimeService {
     }));
   }
 
-  async whoIsWorking(): Promise<{
-    userId: string;
-    firstName: string;
-    lastName: string;
-    avatarUrl: string | null;
-    status: string;
-    startedAt: Date;
-    departmentName: string | null;
-  }[]> {
+  async whoIsWorking(): Promise<
+    {
+      userId: string;
+      firstName: string;
+      lastName: string;
+      avatarUrl: string | null;
+      status: string;
+      startedAt: Date;
+      departmentName: string | null;
+    }[]
+  > {
     const client = await this.tenantDb.getClient();
     return client.$queryRawUnsafe(`
       SELECT u.id AS "userId", u.first_name AS "firstName", u.last_name AS "lastName",
@@ -340,6 +347,85 @@ export class TimeService {
       workingNow: Number(row?.working_now ?? 0),
       lateToday: Number(row?.late_today ?? 0),
       onLeave: Number(row?.on_leave ?? 0),
+    };
+  }
+
+  /**
+   * Возвращает sparkline (массив значений по дням) + trend % за последний день
+   * относительно среднего по периоду — для 3 ключевых метрик.
+   *
+   * Метрики:
+   *  - active: общее число активных сотрудников (стабильно, без sparkline)
+   *  - workingPerDay: сколько уникальных сотрудников отметились за день
+   *  - latePerDay: сколько опозданий за день
+   *  - onLeavePerDay: сколько сотрудников были в одобренном отпуске в этот день
+   */
+  async getDashboardTrends(days = 14): Promise<{
+    workingPerDay: { sparkline: number[]; current: number; trend: number };
+    latePerDay: { sparkline: number[]; current: number; trend: number };
+    onLeavePerDay: { sparkline: number[]; current: number; trend: number };
+  }> {
+    const client = await this.tenantDb.getClient();
+    const period = Math.max(2, Math.min(60, Math.floor(days)));
+
+    interface DayRow {
+      d: Date;
+      working: bigint;
+      late: bigint;
+      on_leave: bigint;
+    }
+
+    const rows = await client.$queryRawUnsafe<DayRow[]>(
+      `
+      WITH days AS (
+        SELECT generate_series(
+          CURRENT_DATE - ($1::int - 1) * INTERVAL '1 day',
+          CURRENT_DATE,
+          INTERVAL '1 day'
+        )::date AS d
+      )
+      SELECT
+        days.d,
+        COALESCE((
+          SELECT COUNT(DISTINCT user_id)
+            FROM time_entries
+            WHERE date = days.d
+        ), 0)::bigint AS working,
+        COALESCE((
+          SELECT COUNT(*)
+            FROM time_entries
+            WHERE date = days.d AND is_late = TRUE
+        ), 0)::bigint AS late,
+        COALESCE((
+          SELECT COUNT(*)
+            FROM leave_requests
+            WHERE status = 'APPROVED'
+              AND start_date <= days.d
+              AND end_date >= days.d
+        ), 0)::bigint AS on_leave
+      FROM days
+      ORDER BY days.d
+      `,
+      period,
+    );
+
+    const working = rows.map((r) => Number(r.working));
+    const late = rows.map((r) => Number(r.late));
+    const leave = rows.map((r) => Number(r.on_leave));
+
+    function summarize(values: number[]): { sparkline: number[]; current: number; trend: number } {
+      const current = values[values.length - 1] ?? 0;
+      const previous = values.slice(0, -1);
+      const avgPrev =
+        previous.length > 0 ? previous.reduce((a, b) => a + b, 0) / previous.length : 0;
+      const trend = avgPrev === 0 ? 0 : Math.round(((current - avgPrev) / avgPrev) * 100);
+      return { sparkline: values, current, trend };
+    }
+
+    return {
+      workingPerDay: summarize(working),
+      latePerDay: summarize(late),
+      onLeavePerDay: summarize(leave),
     };
   }
 

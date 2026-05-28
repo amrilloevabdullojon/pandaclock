@@ -1,13 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  Post,
-  Query,
-  Req,
-  UseGuards,
-} from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import type { Request } from "express";
 import { TimeService } from "./time.service.js";
@@ -71,5 +62,11 @@ export class TimeController {
   @ApiOperation({ summary: "Сводка по компании на сегодня" })
   dashboard() {
     return this.time.getDashboardCounts();
+  }
+
+  @Get("dashboard/trends")
+  @ApiOperation({ summary: "Sparkline + trend % для KPI dashboard" })
+  dashboardTrends(@Query("days") days?: string) {
+    return this.time.getDashboardTrends(days ? Number(days) : 14);
   }
 }
