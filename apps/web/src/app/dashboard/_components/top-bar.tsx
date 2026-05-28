@@ -1,8 +1,11 @@
 "use client";
 
-import { Bell, Search } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { Button } from "@pandaclock/ui";
+import { Separator } from "@pandaclock/ui";
+import { CommandTrigger } from "./command-trigger";
+import { LocaleSwitcher } from "./locale-switcher";
+import { MobileNav } from "./mobile-nav";
+import { NotificationsBell } from "./notifications-bell";
+import { UserMenu } from "./user-menu";
 
 interface TopBarProps {
   user: {
@@ -11,54 +14,32 @@ interface TopBarProps {
     email: string;
     role: string;
   } | null;
+  tenantSlug?: string | null;
 }
 
-export function TopBar({ user }: TopBarProps) {
-  const router = useRouter();
-
-  async function handleLogout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
-    router.refresh();
-  }
-
+export function TopBar({ user, tenantSlug }: TopBarProps) {
   return (
-    <header className="flex h-16 items-center justify-between border-b border-neutral-200 bg-white px-6">
-      <div className="flex items-center gap-3 text-sm text-neutral-500">
-        <Search className="h-4 w-4" />
-        <input
-          type="search"
-          placeholder="Поиск..."
-          className="bg-transparent text-sm focus:outline-none"
-        />
+    <header
+      className="z-sticky border-border bg-card/85 supports-[backdrop-filter]:bg-card/70 sticky top-0 flex h-16 items-center gap-3 border-b px-4 backdrop-blur sm:px-6"
+      role="banner"
+    >
+      <MobileNav />
+
+      <div className="flex-1">
+        <CommandTrigger />
       </div>
 
-      <div className="flex items-center gap-4">
-        <button
-          type="button"
-          aria-label="Уведомления"
-          className="relative rounded-full p-2 hover:bg-neutral-100"
-        >
-          <Bell className="h-5 w-5 text-neutral-600" />
-        </button>
-
-        {user ? (
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <p className="text-sm font-semibold text-neutral-900">
-                {user.firstName} {user.lastName}
-              </p>
-              <p className="text-xs text-neutral-500">{user.role}</p>
-            </div>
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-100 text-sm font-extrabold text-primary-700">
-              {user.firstName.charAt(0)}
-              {user.lastName.charAt(0)}
-            </div>
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
-              Выйти
-            </Button>
-          </div>
-        ) : null}
+      <div className="flex items-center gap-1.5">
+        {tenantSlug && (
+          <span className="bg-muted/60 text-muted-foreground hidden items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium sm:inline-flex">
+            <span className="bg-success h-1.5 w-1.5 rounded-full" aria-hidden="true" />
+            <span className="font-mono">{tenantSlug}</span>
+          </span>
+        )}
+        <LocaleSwitcher />
+        <NotificationsBell />
+        <Separator orientation="vertical" className="mx-1 hidden h-8 sm:block" />
+        <UserMenu user={user} />
       </div>
     </header>
   );
