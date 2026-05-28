@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { Card, CardContent } from "@pandaclock/ui";
+import { Calendar } from "lucide-react";
+import { Card, CardContent, PageHeader } from "@pandaclock/ui";
 import { serverFetch } from "@/lib/server-api";
+import { PageBreadcrumbs } from "../_components/page-breadcrumbs";
 
 interface CalendarEvent {
   id: string;
@@ -46,7 +48,11 @@ export default async function CalendarPage({
   events.forEach((event) => {
     const startD = new Date(`${event.startDate}T00:00:00Z`);
     const endD = new Date(`${event.endDate}T00:00:00Z`);
-    for (let cursor = new Date(startD); cursor <= endD; cursor = new Date(cursor.getTime() + 86400000)) {
+    for (
+      let cursor = new Date(startD);
+      cursor <= endD;
+      cursor = new Date(cursor.getTime() + 86400000)
+    ) {
       const key = cursor.toISOString().slice(0, 10);
       if (!eventsByDate.has(key)) eventsByDate.set(key, []);
       eventsByDate.get(key)?.push(event);
@@ -59,30 +65,34 @@ export default async function CalendarPage({
   const next = month === 12 ? { y: year + 1, m: 1 } : { y: year, m: month + 1 };
 
   return (
-    <div className="space-y-6">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-extrabold text-neutral-900">Календарь</h1>
-          <p className="text-sm text-neutral-500">Отпуска и дедлайны команды</p>
-        </div>
-        <nav className="flex items-center gap-2">
-          <Link
-            href={`/dashboard/calendar?y=${prev.y}&m=${prev.m}`}
-            className="rounded-md border border-neutral-200 px-3 py-1 text-sm hover:bg-neutral-50"
-          >
-            ←
-          </Link>
-          <span className="text-sm font-bold capitalize text-neutral-900">
-            {monthLabel(year, month)}
-          </span>
-          <Link
-            href={`/dashboard/calendar?y=${next.y}&m=${next.m}`}
-            className="rounded-md border border-neutral-200 px-3 py-1 text-sm hover:bg-neutral-50"
-          >
-            →
-          </Link>
-        </nav>
-      </header>
+    <>
+      <PageHeader
+        breadcrumbs={<PageBreadcrumbs />}
+        icon={<Calendar className="h-6 w-6" />}
+        title="Календарь"
+        description="Отпуска и дедлайны команды"
+        actions={
+          <nav className="flex items-center gap-2">
+            <Link
+              href={`/dashboard/calendar?y=${prev.y}&m=${prev.m}`}
+              className="border-border bg-card hover:bg-muted focus-ring rounded-md border px-3 py-1.5 text-sm transition-colors"
+              aria-label="Предыдущий месяц"
+            >
+              ←
+            </Link>
+            <span className="text-foreground min-w-40 text-center text-sm font-bold capitalize">
+              {monthLabel(year, month)}
+            </span>
+            <Link
+              href={`/dashboard/calendar?y=${next.y}&m=${next.m}`}
+              className="border-border bg-card hover:bg-muted focus-ring rounded-md border px-3 py-1.5 text-sm transition-colors"
+              aria-label="Следующий месяц"
+            >
+              →
+            </Link>
+          </nav>
+        }
+      />
 
       <Card>
         <CardContent className="p-4">
@@ -103,7 +113,9 @@ export default async function CalendarPage({
                   key={dateKey}
                   className={[
                     "min-h-[96px] rounded-md border p-2 text-xs",
-                    isCurrent ? "bg-white border-neutral-200" : "bg-neutral-50 border-neutral-100 opacity-60",
+                    isCurrent
+                      ? "border-neutral-200 bg-white"
+                      : "border-neutral-100 bg-neutral-50 opacity-60",
                   ].join(" ")}
                 >
                   <p className="font-semibold text-neutral-700">{cell.date.getUTCDate()}</p>
@@ -124,9 +136,7 @@ export default async function CalendarPage({
                       </li>
                     ))}
                     {dayEvents.length > 3 ? (
-                      <li className="text-[10px] text-neutral-500">
-                        +{dayEvents.length - 3} ещё
-                      </li>
+                      <li className="text-[10px] text-neutral-500">+{dayEvents.length - 3} ещё</li>
                     ) : null}
                   </ul>
                 </div>
@@ -135,7 +145,7 @@ export default async function CalendarPage({
           </div>
         </CardContent>
       </Card>
-    </div>
+    </>
   );
 }
 

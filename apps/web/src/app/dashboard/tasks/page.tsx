@@ -1,4 +1,7 @@
+import { CheckSquare } from "lucide-react";
+import { PageHeader } from "@pandaclock/ui";
 import { serverFetch } from "@/lib/server-api";
+import { PageBreadcrumbs } from "../_components/page-breadcrumbs";
 import { TasksBoard } from "./_components/board";
 import { CreateTaskButton } from "./_components/create-task";
 
@@ -32,17 +35,22 @@ export default async function TasksPage() {
       .catch(() => []),
   ]);
 
+  const total =
+    board.NEW.length + board.IN_PROGRESS.length + board.DONE.length + board.REJECTED.length;
+
   return (
-    <div className="space-y-6">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-extrabold text-neutral-900">Задачи</h1>
-          <p className="text-sm text-neutral-500">Канбан-доска команды</p>
-        </div>
-        <CreateTaskButton employees={employees} />
-      </header>
+    <>
+      <PageHeader
+        breadcrumbs={<PageBreadcrumbs />}
+        icon={<CheckSquare className="h-6 w-6" />}
+        title="Задачи"
+        description={`Канбан-доска команды · всего ${total} ${
+          total === 1 ? "задача" : total < 5 ? "задачи" : "задач"
+        }`}
+        actions={<CreateTaskButton employees={employees} />}
+      />
 
       <TasksBoard initialBoard={board} />
-    </div>
+    </>
   );
 }

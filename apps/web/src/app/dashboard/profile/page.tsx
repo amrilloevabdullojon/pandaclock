@@ -1,5 +1,7 @@
-import { Badge, Card, CardContent } from "@pandaclock/ui";
+import { User } from "lucide-react";
+import { Badge, Card, CardContent, PageHeader } from "@pandaclock/ui";
 import { serverFetch } from "@/lib/server-api";
+import { PageBreadcrumbs } from "../_components/page-breadcrumbs";
 
 interface MeResponse {
   id: string;
@@ -14,13 +16,18 @@ export default async function ProfilePage() {
   const me = await serverFetch<MeResponse>("/auth/me");
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-extrabold text-neutral-900">Профиль</h1>
+    <>
+      <PageHeader
+        breadcrumbs={<PageBreadcrumbs />}
+        icon={<User className="h-6 w-6" />}
+        title="Профиль"
+        description="Ваши личные данные и настройки аккаунта"
+      />
 
       <Card>
         <CardContent className="space-y-4 p-6">
           <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary-100 text-2xl font-extrabold text-primary-700">
+            <div className="bg-primary-100 text-primary-700 flex h-16 w-16 items-center justify-center rounded-full text-2xl font-extrabold">
               {me.firstName.charAt(0)}
               {me.lastName.charAt(0)}
             </div>
@@ -50,6 +57,6 @@ export default async function ProfilePage() {
           </dl>
         </CardContent>
       </Card>
-    </div>
+    </>
   );
 }

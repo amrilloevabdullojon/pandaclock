@@ -1,5 +1,7 @@
-import { Card, CardContent } from "@pandaclock/ui";
+import { Building2 } from "lucide-react";
+import { Card, CardContent, EmptyState, PageHeader } from "@pandaclock/ui";
 import { serverFetch } from "@/lib/server-api";
+import { PageBreadcrumbs } from "../_components/page-breadcrumbs";
 
 interface DepartmentNode {
   id: string;
@@ -14,26 +16,28 @@ export default async function DepartmentsPage() {
   const tree = await serverFetch<DepartmentNode[]>("/departments/tree").catch(() => []);
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-extrabold text-neutral-900">Отделы</h1>
-        <p className="text-sm text-neutral-500">
-          Структура компании. CRUD-форма будет добавлена в следующем спринте.
-        </p>
-      </header>
+    <>
+      <PageHeader
+        breadcrumbs={<PageBreadcrumbs />}
+        icon={<Building2 className="h-6 w-6" />}
+        title="Отделы"
+        description="Иерархическая структура компании"
+      />
 
       <Card>
         <CardContent className="p-6">
           {tree.length === 0 ? (
-            <div className="py-12 text-center text-sm text-neutral-500">
-              Пока нет отделов.
-            </div>
+            <EmptyState
+              icon={<Building2 />}
+              title="Пока нет отделов"
+              description="Структура появится здесь, как только вы добавите первый отдел"
+            />
           ) : (
             <Tree nodes={tree} depth={0} />
           )}
         </CardContent>
       </Card>
-    </div>
+    </>
   );
 }
 

@@ -1,5 +1,7 @@
-import { Badge, Card, CardContent } from "@pandaclock/ui";
+import { Clock } from "lucide-react";
+import { Badge, Card, CardContent, EmptyState, PageHeader } from "@pandaclock/ui";
 import { serverFetch } from "@/lib/server-api";
+import { PageBreadcrumbs } from "../_components/page-breadcrumbs";
 
 interface WorkingPerson {
   userId: string;
@@ -25,14 +27,24 @@ export default async function TimePage() {
   ]);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-extrabold text-neutral-900">Учёт времени</h1>
+    <>
+      <PageHeader
+        breadcrumbs={<PageBreadcrumbs />}
+        icon={<Clock className="h-6 w-6" />}
+        title="Учёт времени"
+        description="Кто на работе, история клик-инов и опоздания"
+      />
 
       <Card>
         <CardContent className="p-6">
-          <h2 className="mb-4 text-lg font-bold text-neutral-900">Сейчас на работе</h2>
+          <h2 className="text-foreground mb-4 text-lg font-bold">Сейчас на работе</h2>
           {working.length === 0 ? (
-            <p className="py-8 text-center text-sm text-neutral-500">Никто ещё не отметился.</p>
+            <EmptyState
+              compact
+              icon={<Clock />}
+              title="Никто ещё не отметился"
+              description="Сотрудники появятся здесь после клик-ина в мобильном приложении"
+            />
           ) : (
             <ul className="space-y-2">
               {working.map((p) => (
@@ -61,9 +73,14 @@ export default async function TimePage() {
 
       <Card>
         <CardContent className="p-6">
-          <h2 className="mb-4 text-lg font-bold text-neutral-900">Моя история за 2 недели</h2>
+          <h2 className="text-foreground mb-4 text-lg font-bold">Моя история за 2 недели</h2>
           {history.length === 0 ? (
-            <p className="py-8 text-center text-sm text-neutral-500">Пока нет записей.</p>
+            <EmptyState
+              compact
+              icon={<Clock />}
+              title="Пока нет записей"
+              description="История клик-инов появится после первой отметки"
+            />
           ) : (
             <table className="w-full text-sm">
               <thead className="text-left text-xs font-semibold uppercase text-neutral-500">
@@ -112,6 +129,6 @@ export default async function TimePage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </>
   );
 }

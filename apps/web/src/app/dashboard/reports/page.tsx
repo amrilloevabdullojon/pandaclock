@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { Card, CardContent } from "@pandaclock/ui";
+import { BarChart3 } from "lucide-react";
+import { Card, CardContent, EmptyState, PageHeader } from "@pandaclock/ui";
 import { serverFetch } from "@/lib/server-api";
+import { PageBreadcrumbs } from "../_components/page-breadcrumbs";
 import { ReportControls } from "./_components/report-controls";
 
 type ReportType = "attendance" | "hours" | "tasks";
@@ -74,19 +76,19 @@ export default async function ReportsPage({
   }
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-extrabold text-neutral-900">Отчёты</h1>
-        <p className="text-sm text-neutral-500">Выгрузка в Excel или PDF</p>
-      </header>
+    <>
+      <PageHeader
+        breadcrumbs={<PageBreadcrumbs />}
+        icon={<BarChart3 className="h-6 w-6" />}
+        title="Отчёты"
+        description="Аналитика команды с выгрузкой в Excel или PDF"
+      />
 
       <div className="grid gap-4 md:grid-cols-3">
         {REPORT_TYPES.map((rt) => (
           <Link key={rt.id} href={{ pathname: "/dashboard/reports", query: { type: rt.id } }}>
             <Card
-              className={
-                selected?.id === rt.id ? "ring-2 ring-primary-500" : "hover:shadow-md"
-              }
+              className={selected?.id === rt.id ? "ring-primary-500 ring-2" : "hover:shadow-md"}
             >
               <CardContent className="p-6">
                 <p className="text-lg font-bold text-neutral-900">{rt.title}</p>
@@ -103,9 +105,13 @@ export default async function ReportsPage({
           <Card>
             <CardContent className="p-0">
               {report.rows.length === 0 ? (
-                <p className="px-6 py-12 text-center text-sm text-neutral-500">
-                  Нет данных за выбранный период.
-                </p>
+                <div className="p-6">
+                  <EmptyState
+                    icon={<BarChart3 />}
+                    title="Нет данных за период"
+                    description="Попробуйте выбрать другой диапазон дат или дождитесь активности команды"
+                  />
+                </div>
               ) : (
                 <ReportTable type={selected.id} rows={report.rows} />
               )}
@@ -113,7 +119,7 @@ export default async function ReportsPage({
           </Card>
         </>
       ) : null}
-    </div>
+    </>
   );
 }
 
@@ -200,7 +206,7 @@ function ReportTable({
             <td className="px-6 py-3 text-right text-neutral-900">{row.assigned}</td>
             <td className="px-6 py-3 text-right text-neutral-900">{row.completed}</td>
             <td className="px-6 py-3 text-right text-neutral-900">{row.completionRate}%</td>
-            <td className="px-6 py-3 text-right text-danger">{row.overdue}</td>
+            <td className="text-danger px-6 py-3 text-right">{row.overdue}</td>
           </tr>
         ))}
       </tbody>

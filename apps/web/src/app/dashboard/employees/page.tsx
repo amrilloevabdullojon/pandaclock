@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { Badge, Card, CardContent } from "@pandaclock/ui";
+import { Users } from "lucide-react";
+import { Badge, Card, CardContent, EmptyState, PageHeader } from "@pandaclock/ui";
 import { serverFetch } from "@/lib/server-api";
+import { PageBreadcrumbs } from "../_components/page-breadcrumbs";
 import { InviteEmployees } from "./_components/invite-modal";
 
 interface EmployeesQuery {
@@ -43,23 +45,27 @@ export default async function EmployeesPage({
   ).catch(() => ({ items: [], total: 0, page: 1, pageSize: 20 }));
 
   return (
-    <div className="space-y-6">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-extrabold text-neutral-900">Сотрудники</h1>
-          <p className="text-sm text-neutral-500">Всего {employees.total} человек</p>
-        </div>
-        <InviteEmployees />
-      </header>
+    <>
+      <PageHeader
+        breadcrumbs={<PageBreadcrumbs />}
+        icon={<Users className="h-6 w-6" />}
+        title="Сотрудники"
+        description={`В команде ${employees.total} ${
+          employees.total === 1 ? "человек" : employees.total < 5 ? "человека" : "человек"
+        }`}
+        actions={<InviteEmployees />}
+      />
 
       <Card>
         <CardContent className="p-0">
           {employees.items.length === 0 ? (
-            <div className="px-6 py-16 text-center">
-              <p className="text-4xl">🐼</p>
-              <p className="mt-4 text-sm text-neutral-500">
-                Пока нет сотрудников. Пригласите первого участника команды.
-              </p>
+            <div className="p-6">
+              <EmptyState
+                icon={<Users />}
+                title="Пока нет сотрудников"
+                description="Пригласите первого участника команды — он получит письмо со ссылкой для входа"
+                action={<InviteEmployees />}
+              />
             </div>
           ) : (
             <table className="w-full text-sm">
@@ -80,7 +86,7 @@ export default async function EmployeesPage({
                         href={`/dashboard/employees/${employee.id}`}
                         className="flex items-center gap-3"
                       >
-                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-100 text-xs font-extrabold text-primary-700">
+                        <span className="bg-primary-100 text-primary-700 flex h-9 w-9 items-center justify-center rounded-full text-xs font-extrabold">
                           {employee.firstName.charAt(0)}
                           {employee.lastName.charAt(0)}
                         </span>
@@ -93,9 +99,7 @@ export default async function EmployeesPage({
                       </Link>
                     </td>
                     <td className="px-6 py-3 text-neutral-600">{employee.position ?? "—"}</td>
-                    <td className="px-6 py-3 text-neutral-600">
-                      {employee.departmentName ?? "—"}
-                    </td>
+                    <td className="px-6 py-3 text-neutral-600">{employee.departmentName ?? "—"}</td>
                     <td className="px-6 py-3">
                       <StatusBadge status={employee.status} />
                     </td>
@@ -114,7 +118,7 @@ export default async function EmployeesPage({
           )}
         </CardContent>
       </Card>
-    </div>
+    </>
   );
 }
 

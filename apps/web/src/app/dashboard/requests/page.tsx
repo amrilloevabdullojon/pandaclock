@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { Badge, Card, CardContent } from "@pandaclock/ui";
+import { FileText } from "lucide-react";
+import { Badge, Card, CardContent, EmptyState, PageHeader } from "@pandaclock/ui";
 import { serverFetch } from "@/lib/server-api";
+import { PageBreadcrumbs } from "../_components/page-breadcrumbs";
 import { CreateRequestButton } from "./_components/create-request";
 import { DecisionButtons } from "./_components/decision-buttons";
 
@@ -42,10 +44,7 @@ export default async function RequestsPage({
   searchParams: Promise<{ scope?: string; status?: Status }>;
 }) {
   const { scope: scopeParam, status: statusFilter } = await searchParams;
-  const scope = (SCOPES.find((s) => s.id === scopeParam)?.id ?? "my") as
-    | "my"
-    | "team"
-    | "all";
+  const scope = (SCOPES.find((s) => s.id === scopeParam)?.id ?? "my") as "my" | "team" | "all";
 
   const [items, balance] = await Promise.all([
     serverFetch<LeaveRequest[]>(`/requests?scope=${scope}`).catch(() => []),
@@ -55,14 +54,14 @@ export default async function RequestsPage({
   const filtered = statusFilter ? items.filter((r) => r.status === statusFilter) : items;
 
   return (
-    <div className="space-y-6">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-extrabold text-neutral-900">Заявки</h1>
-          <p className="text-sm text-neutral-500">Отпуска, больничные, отгулы</p>
-        </div>
-        <CreateRequestButton balance={balance} />
-      </header>
+    <>
+      <PageHeader
+        breadcrumbs={<PageBreadcrumbs />}
+        icon={<FileText className="h-6 w-6" />}
+        title="Заявки"
+        description="Отпуска, больничные, отгулы"
+        actions={<CreateRequestButton balance={balance} />}
+      />
 
       {balance ? (
         <div className="grid gap-4 md:grid-cols-4">
@@ -82,7 +81,7 @@ export default async function RequestsPage({
               "rounded-pill px-4 py-1.5 text-sm font-semibold transition-colors",
               scope === s.id
                 ? "bg-primary-500 text-white"
-                : "bg-white border border-neutral-200 text-neutral-700 hover:bg-neutral-50",
+                : "border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50",
             ].join(" ")}
           >
             {s.label}
@@ -113,8 +112,12 @@ export default async function RequestsPage({
       <Card>
         <CardContent className="p-0">
           {filtered.length === 0 ? (
-            <div className="px-6 py-16 text-center text-sm text-neutral-500">
-              Нет заявок в выбранном фильтре.
+            <div className="p-6">
+              <EmptyState
+                icon={<FileText />}
+                title="Нет заявок"
+                description="В выбранном фильтре ничего не найдено. Попробуйте сменить фильтр или создать новую заявку."
+              />
             </div>
           ) : (
             <ul className="divide-y divide-neutral-200">
@@ -150,7 +153,7 @@ export default async function RequestsPage({
           )}
         </CardContent>
       </Card>
-    </div>
+    </>
   );
 }
 
@@ -164,7 +167,11 @@ function Stat({
   accent?: "success" | "warning";
 }) {
   const colorClass =
-    accent === "success" ? "text-success" : accent === "warning" ? "text-warning" : "text-neutral-900";
+    accent === "success"
+      ? "text-success"
+      : accent === "warning"
+        ? "text-warning"
+        : "text-neutral-900";
   return (
     <Card>
       <CardContent className="p-6">
@@ -193,7 +200,13 @@ function statusLabel(status: Status): string {
 }
 
 function typeLabel(type: LeaveType): string {
-  return type === "VACATION" ? "Отпуск" : type === "SICK" ? "Больничный" : type === "TIME_OFF" ? "Отгул" : "Другое";
+  return type === "VACATION"
+    ? "Отпуск"
+    : type === "SICK"
+      ? "Больничный"
+      : type === "TIME_OFF"
+        ? "Отгул"
+        : "Другое";
 }
 
 function typeIcon(type: LeaveType): string {

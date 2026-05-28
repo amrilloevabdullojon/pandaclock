@@ -1,5 +1,7 @@
-import { Badge, Card, CardContent } from "@pandaclock/ui";
+import { CreditCard } from "lucide-react";
+import { Badge, Card, CardContent, EmptyState, PageHeader } from "@pandaclock/ui";
 import { serverFetch } from "@/lib/server-api";
+import { PageBreadcrumbs } from "../../_components/page-breadcrumbs";
 import { ChangePlanButton } from "./_components/change-plan-button";
 
 type PlanCode = "STARTER" | "BUSINESS" | "PRO" | "ENTERPRISE";
@@ -44,11 +46,13 @@ export default async function BillingPage() {
   ]);
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-extrabold text-neutral-900">Биллинг</h1>
-        <p className="text-sm text-neutral-500">Тариф, способ оплаты и история платежей</p>
-      </header>
+    <>
+      <PageHeader
+        breadcrumbs={<PageBreadcrumbs />}
+        icon={<CreditCard className="h-6 w-6" />}
+        title="Биллинг"
+        description="Тариф, способ оплаты и история платежей"
+      />
 
       {subscription ? (
         <Card>
@@ -69,7 +73,7 @@ export default async function BillingPage() {
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-3xl font-extrabold text-primary-500">
+                <p className="text-primary-500 text-3xl font-extrabold">
                   {formatPrice(subscription.priceAmount, subscription.priceCurrency)}
                 </p>
                 <p className="text-xs text-neutral-500">
@@ -111,7 +115,7 @@ export default async function BillingPage() {
             {(Object.values(plans) as PlanDefinition[]).map((plan) => (
               <Card
                 key={plan.code}
-                className={plan.code === subscription.plan ? "ring-2 ring-primary-500" : ""}
+                className={plan.code === subscription.plan ? "ring-primary-500 ring-2" : ""}
               >
                 <CardContent className="space-y-3 p-4">
                   <p className="text-sm font-bold uppercase tracking-wider text-neutral-500">
@@ -146,9 +150,14 @@ export default async function BillingPage() {
         <Card>
           <CardContent className="p-0">
             {transactions.length === 0 ? (
-              <p className="px-6 py-12 text-center text-sm text-neutral-500">
-                Транзакций пока нет.
-              </p>
+              <div className="p-6">
+                <EmptyState
+                  compact
+                  icon={<CreditCard />}
+                  title="Транзакций пока нет"
+                  description="История платежей появится после первого списания"
+                />
+              </div>
             ) : (
               <table className="w-full text-sm">
                 <thead className="border-b border-neutral-200 bg-neutral-50 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
@@ -190,7 +199,7 @@ export default async function BillingPage() {
           </CardContent>
         </Card>
       </section>
-    </div>
+    </>
   );
 }
 
