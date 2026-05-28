@@ -1,6 +1,9 @@
+"use client";
+
 import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
+import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "../lib/utils";
 
 export const Dialog = DialogPrimitive.Root;
@@ -15,7 +18,7 @@ export const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-50 bg-neutral-900/60 backdrop-blur-sm",
+      "z-modal-backdrop fixed inset-0 bg-neutral-900/50 backdrop-blur-sm",
       "data-[state=open]:animate-in data-[state=closed]:animate-out",
       "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className,
@@ -25,34 +28,60 @@ export const DialogOverlay = React.forwardRef<
 ));
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
+const dialogContentVariants = cva(
+  cn(
+    "fixed left-1/2 top-1/2 z-modal grid w-full -translate-x-1/2 -translate-y-1/2 gap-4",
+    "rounded-md border border-border bg-card p-6 text-card-foreground shadow-xl",
+    "data-[state=open]:animate-in data-[state=closed]:animate-out duration-200",
+    "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
+    "data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95",
+  ),
+  {
+    variants: {
+      size: {
+        sm: "max-w-sm",
+        md: "max-w-lg",
+        lg: "max-w-2xl",
+        xl: "max-w-4xl",
+        full: "inset-0 left-0 top-0 h-full max-w-full translate-x-0 translate-y-0 rounded-none border-0",
+      },
+    },
+    defaultVariants: { size: "md" },
+  },
+);
+
+interface DialogContentProps
+  extends
+    React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>,
+    VariantProps<typeof dialogContentVariants> {
+  hideClose?: boolean;
+}
+
 export const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+  DialogContentProps
+>(({ className, size, hideClose, children, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
-      className={cn(
-        "fixed left-1/2 top-1/2 z-50 grid w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4",
-        "rounded-xl border border-neutral-200 bg-white p-6 shadow-lg",
-        "data-[state=open]:animate-in data-[state=closed]:animate-out",
-        className,
-      )}
+      className={cn(dialogContentVariants({ size }), className)}
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm text-neutral-400 hover:text-neutral-600 focus-ring">
-        <X className="h-4 w-4" />
-        <span className="sr-only">Закрыть</span>
-      </DialogPrimitive.Close>
+      {!hideClose && (
+        <DialogPrimitive.Close className="text-muted-foreground focus-ring absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100">
+          <X className="h-5 w-5" />
+          <span className="sr-only">Закрыть</span>
+        </DialogPrimitive.Close>
+      )}
     </DialogPrimitive.Content>
   </DialogPortal>
 ));
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 export function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("flex flex-col space-y-1.5 text-left", className)} {...props} />;
+  return <div className={cn("flex flex-col gap-1.5 text-left", className)} {...props} />;
 }
 
 export function DialogFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
@@ -70,7 +99,7 @@ export const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn("text-lg font-semibold text-neutral-700", className)}
+    className={cn("text-foreground text-lg font-bold", className)}
     {...props}
   />
 ));
@@ -82,7 +111,7 @@ export const DialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
     ref={ref}
-    className={cn("text-sm text-neutral-500", className)}
+    className={cn("text-muted-foreground text-sm", className)}
     {...props}
   />
 ));
