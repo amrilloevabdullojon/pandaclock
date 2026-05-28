@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import * as React from "react";
+import { Hash, Lock, MessageCircle, Search, Send, Users } from "lucide-react";
 import { io, type Socket } from "socket.io-client";
+import { Avatar, AvatarFallback, Button, EmptyState, Input, ScrollArea, cn } from "@pandaclock/ui";
 
 interface ChannelRow {
   id: string;
@@ -20,16 +22,28 @@ interface Message {
   createdAt: string;
 }
 
+interface DayGroup {
+  label: string;
+  iso: string;
+  messages: Message[];
+}
+
 export function ChatsView({ initialChannels }: { initialChannels: ChannelRow[] }) {
-  const [channels] = useState(initialChannels);
-  const [activeId, setActiveId] = useState<string | null>(initialChannels[0]?.id ?? null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [draft, setDraft] = useState("");
-  const socketRef = useRef<Socket | null>(null);
-  const sessionRef = useRef<{ token: string; tenantSlug: string; apiUrl: string } | null>(null);
+  const [channels, setChannels] = React.useState(initialChannels);
+  const [activeId, setActiveId] = React.useState<string | null>(initialChannels[0]?.id ?? null);
+  const [messages, setMessages] = React.useState<Message[]>([]);
+  const [draft, setDraft] = React.useState("");
+  const [search, setSearch] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const socketRef = React.useRef<Socket | null>(null);
+  const sessionRef = React.useRef<{ token: string; tenantSlug: string; apiUrl: string } | null>(
+    null,
+  );
+  const messagesEndRef = React.useRef<HTMLDivElement | null>(null);
+  const composerRef = React.useRef<HTMLTextAreaElement | null>(null);
 
   // Загружаем session info один раз.
-  useEffect(() => {
+  React.useEffect(() => {
     let cancelled = false;
     void (async () => {
       const response = await fetch("/api/chats/access-token");
@@ -47,9 +61,11 @@ export function ChatsView({ initialChannels }: { initialChannels: ChannelRow[] }
   }, []);
 
   // Подключаем сокет при смене активного канала.
-  useEffect(() => {
+  React.useEffect(() => {
     if (!activeId) return;
     let cancelled = false;
+    setLoading(true);
+    setMessages([]);
 
     async function connect() {
       const session = sessionRef.current;
@@ -92,7 +108,11 @@ export function ChatsView({ initialChannels }: { initialChannels: ChannelRow[] }
     void (async () => {
       const history = await fetch(`/api/chats/channels/${activeId}/messages`);
       if (history.ok) setMessages((await history.json()) as Message[]);
+      setLoading(false);
     })();
+
+    // Сброс unread у локального стейта
+    setChannels((cs) => cs.map((c) => (c.id === activeId ? { ...c, unreadCount: 0 } : c)));
 
     return () => {
       cancelled = true;
@@ -101,85 +121,321 @@ export function ChatsView({ initialChannels }: { initialChannels: ChannelRow[] }
     };
   }, [activeId]);
 
-  async function send(event: React.FormEvent) {
+  // Autoscroll при новых сообщениях.
+  React.useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages.length]);
+
+  function send(event: React.FormEvent) {
     event.preventDefault();
-    if (!activeId || !draft.trim()) return;
-    socketRef.current?.emit("message:send", { channelId: activeId, body: draft });
+    const body = draft.trim();
+    if (!activeId || !body) return;
+    socketRef.current?.emit("message:send", { channelId: activeId, body });
     setDraft("");
+    composerRef.current?.focus();
   }
 
-  const activeChannel = useMemo(
+  function onComposerKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      send(e);
+    }
+  }
+
+  const activeChannel = React.useMemo(
     () => channels.find((c) => c.id === activeId) ?? null,
     [channels, activeId],
   );
 
+  const filteredChannels = React.useMemo(() => {
+    if (!search.trim()) return channels;
+    const q = search.toLowerCase();
+    return channels.filter((c) => (c.name ?? "").toLowerCase().includes(q));
+  }, [channels, search]);
+
+  const dayGroups = React.useMemo(() => groupByDay(messages), [messages]);
+
   return (
-    <div className="grid grid-cols-[280px_1fr] overflow-hidden rounded-lg border border-neutral-200 bg-white">
-      <aside className="border-r border-neutral-200">
-        <ul className="divide-y divide-neutral-100">
-          {channels.map((channel) => (
-            <li key={channel.id}>
-              <button
-                type="button"
-                onClick={() => setActiveId(channel.id)}
-                className={[
-                  "flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors",
-                  channel.id === activeId
-                    ? "bg-primary-50 text-primary-700"
-                    : "hover:bg-neutral-50",
-                ].join(" ")}
-              >
-                <span className="font-semibold">
-                  {channel.type === "CHANNEL" ? `# ${channel.name ?? "channel"}` : channel.name ?? "DM"}
-                </span>
-                {channel.unreadCount > 0 ? (
-                  <span className="rounded-pill bg-primary-500 px-2 py-0.5 text-xs font-bold text-white">
-                    {channel.unreadCount}
-                  </span>
-                ) : null}
-              </button>
-            </li>
-          ))}
-        </ul>
+    <div className="border-border bg-card grid h-[calc(100vh-220px)] min-h-[480px] grid-cols-1 overflow-hidden rounded-md border md:grid-cols-[280px_1fr]">
+      {/* === Левая колонка: каналы === */}
+      <aside className="border-border bg-muted/30 flex flex-col border-b md:border-b-0 md:border-r">
+        <div className="border-border border-b p-3">
+          <Input
+            prefix={<Search className="h-4 w-4" />}
+            size="sm"
+            placeholder="Найти канал…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <ScrollArea className="flex-1">
+          <ChannelSection
+            title="Каналы"
+            channels={filteredChannels.filter((c) => c.type === "CHANNEL")}
+            activeId={activeId}
+            onSelect={setActiveId}
+          />
+          <ChannelSection
+            title="Личные сообщения"
+            channels={filteredChannels.filter((c) => c.type === "DM")}
+            activeId={activeId}
+            onSelect={setActiveId}
+          />
+        </ScrollArea>
       </aside>
 
-      <section className="flex h-[600px] flex-col">
-        <header className="border-b border-neutral-200 px-6 py-3">
-          <h2 className="text-sm font-bold text-neutral-900">
-            {activeChannel?.type === "CHANNEL"
-              ? `# ${activeChannel.name ?? "channel"}`
-              : activeChannel?.name ?? "Выберите чат"}
-          </h2>
-        </header>
-
-        <div className="flex-1 space-y-3 overflow-y-auto px-6 py-4">
-          {messages.length === 0 ? (
-            <p className="py-12 text-center text-sm text-neutral-400">
-              Сообщений пока нет. Начните общение!
-            </p>
-          ) : (
-            messages.map((message) => (
-              <div key={message.id} className="space-y-1">
-                <div className="flex items-center gap-2 text-xs text-neutral-500">
-                  <span className="font-semibold text-neutral-900">{message.authorName}</span>
-                  <span>{new Date(message.createdAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</span>
-                </div>
-                <p className="whitespace-pre-wrap text-sm text-neutral-700">{message.body}</p>
+      {/* === Правая колонка: окно чата === */}
+      <section className="bg-background/50 flex min-h-0 flex-col">
+        {activeChannel ? (
+          <>
+            <header className="border-border bg-card/80 flex h-14 items-center justify-between border-b px-5 backdrop-blur">
+              <div className="flex min-w-0 items-center gap-2">
+                <ChannelIcon type={activeChannel.type} className="text-muted-foreground h-4 w-4" />
+                <h2 className="text-foreground truncate text-base font-bold">
+                  {activeChannel.name ?? "channel"}
+                </h2>
               </div>
-            ))
-          )}
-        </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                leftIcon={<Users className="h-4 w-4" />}
+                disabled
+              >
+                Участники
+              </Button>
+            </header>
 
-        <form onSubmit={send} className="border-t border-neutral-200 px-4 py-3">
-          <input
-            type="text"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder="Напишите сообщение..."
-            className="block w-full rounded-md border border-neutral-200 bg-white px-4 py-2 text-sm focus-ring focus-visible:border-primary-500"
-          />
-        </form>
+            <ScrollArea className="flex-1 px-5">
+              <div className="space-y-4 py-4">
+                {loading ? (
+                  <p className="text-muted-foreground text-center text-sm">Загрузка…</p>
+                ) : dayGroups.length === 0 ? (
+                  <div className="pt-12">
+                    <EmptyState
+                      compact
+                      icon={<MessageCircle />}
+                      title="Сообщений пока нет"
+                      description="Будьте первым — поздоровайтесь с командой!"
+                    />
+                  </div>
+                ) : (
+                  dayGroups.map((g) => (
+                    <div key={g.iso} className="space-y-2">
+                      <div className="z-1 sticky top-0 flex items-center justify-center">
+                        <span className="border-border bg-card text-muted-foreground shadow-xs rounded-full border px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                          {g.label}
+                        </span>
+                      </div>
+                      <ul className="space-y-3">
+                        {clusterMessages(g.messages).map((cluster) => (
+                          <MessageCluster key={cluster.id} cluster={cluster} />
+                        ))}
+                      </ul>
+                    </div>
+                  ))
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+            </ScrollArea>
+
+            <form onSubmit={send} className="border-border bg-card border-t p-3">
+              <div className="border-border bg-background focus-within:border-primary-500 focus-within:ring-ring/30 flex items-end gap-2 rounded-md border px-3 py-2 focus-within:ring-2">
+                <textarea
+                  ref={composerRef}
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={onComposerKeyDown}
+                  placeholder={`Сообщение в #${activeChannel.name ?? "channel"}`}
+                  rows={1}
+                  className="placeholder:text-muted-foreground flex-1 resize-none bg-transparent py-1.5 text-sm leading-snug focus:outline-none"
+                  style={{ maxHeight: 120 }}
+                />
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="icon-sm"
+                  disabled={!draft.trim()}
+                  aria-label="Отправить"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-muted-foreground mt-1 px-1 text-[10px]">
+                Enter — отправить · Shift+Enter — перенос строки
+              </p>
+            </form>
+          </>
+        ) : (
+          <div className="flex h-full items-center justify-center p-6">
+            <EmptyState
+              icon={<MessageCircle />}
+              title="Выберите чат слева"
+              description="Каналы команды и личные сообщения"
+            />
+          </div>
+        )}
       </section>
     </div>
   );
+}
+
+function ChannelSection({
+  title,
+  channels,
+  activeId,
+  onSelect,
+}: {
+  title: string;
+  channels: ChannelRow[];
+  activeId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  if (channels.length === 0) return null;
+  return (
+    <div className="px-1 py-2">
+      <p className="text-muted-foreground px-3 pb-1 text-[10px] font-bold uppercase tracking-wider">
+        {title}
+      </p>
+      <ul className="space-y-0.5">
+        {channels.map((channel) => {
+          const isActive = channel.id === activeId;
+          const hasUnread = channel.unreadCount > 0 && !isActive;
+          return (
+            <li key={channel.id}>
+              <button
+                type="button"
+                onClick={() => onSelect(channel.id)}
+                aria-current={isActive ? "true" : undefined}
+                className={cn(
+                  "focus-ring group flex h-8 w-full items-center gap-2 rounded-sm px-3 text-sm transition-colors",
+                  isActive
+                    ? "bg-primary-500/15 text-primary-700 font-bold"
+                    : hasUnread
+                      ? "text-foreground hover:bg-muted font-bold"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+              >
+                <ChannelIcon
+                  type={channel.type}
+                  className={cn("h-3.5 w-3.5", isActive ? "text-primary-700" : "")}
+                />
+                <span className="flex-1 truncate text-left">{channel.name ?? "—"}</span>
+                {hasUnread && (
+                  <span className="bg-primary-500 rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums leading-none text-white">
+                    {channel.unreadCount > 99 ? "99+" : channel.unreadCount}
+                  </span>
+                )}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+function ChannelIcon({ type, className }: { type: ChannelRow["type"]; className?: string }) {
+  if (type === "CHANNEL") return <Hash className={className} aria-hidden="true" />;
+  return <Lock className={className} aria-hidden="true" />;
+}
+
+interface MessageClusterT {
+  id: string;
+  authorId: string;
+  authorName: string;
+  startedAt: string;
+  messages: Message[];
+}
+
+function MessageCluster({ cluster }: { cluster: MessageClusterT }) {
+  const time = new Date(cluster.startedAt).toLocaleTimeString("ru-RU", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return (
+    <li className="hover:bg-muted/40 -mx-2 flex items-start gap-3 rounded-sm px-2 py-1 transition-colors">
+      <Avatar className="mt-0.5 h-9 w-9 shrink-0">
+        <AvatarFallback className="bg-gradient-primary text-xs font-bold text-white">
+          {initials(cluster.authorName)}
+        </AvatarFallback>
+      </Avatar>
+      <div className="min-w-0 flex-1">
+        <p className="flex items-center gap-2">
+          <span className="text-foreground text-sm font-bold">{cluster.authorName}</span>
+          <span className="text-muted-foreground text-[10px] tabular-nums">{time}</span>
+        </p>
+        <div className="space-y-0.5">
+          {cluster.messages.map((m) => (
+            <p
+              key={m.id}
+              className="text-foreground whitespace-pre-wrap break-words text-sm leading-relaxed"
+            >
+              {m.body}
+            </p>
+          ))}
+        </div>
+      </div>
+    </li>
+  );
+}
+
+function groupByDay(messages: Message[]): DayGroup[] {
+  const groups = new Map<string, Message[]>();
+  for (const m of messages) {
+    const iso = m.createdAt.slice(0, 10);
+    if (!groups.has(iso)) groups.set(iso, []);
+    groups.get(iso)!.push(m);
+  }
+  const sorted = Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b));
+  return sorted.map(([iso, msgs]) => ({
+    iso,
+    label: formatDayLabel(iso),
+    messages: msgs,
+  }));
+}
+
+/** Группирует подряд идущие сообщения одного автора (с разрывом ≤5 минут) в кластер. */
+function clusterMessages(messages: Message[]): MessageClusterT[] {
+  const clusters: MessageClusterT[] = [];
+  for (const m of messages) {
+    const last = clusters[clusters.length - 1];
+    if (
+      last &&
+      last.authorId === m.authorId &&
+      new Date(m.createdAt).getTime() - new Date(last.startedAt).getTime() < 5 * 60_000
+    ) {
+      last.messages.push(m);
+    } else {
+      clusters.push({
+        id: m.id,
+        authorId: m.authorId,
+        authorName: m.authorName,
+        startedAt: m.createdAt,
+        messages: [m],
+      });
+    }
+  }
+  return clusters;
+}
+
+function formatDayLabel(iso: string): string {
+  const today = new Date();
+  const todayIso = today.toISOString().slice(0, 10);
+  const yesterdayIso = new Date(today.getTime() - 86_400_000).toISOString().slice(0, 10);
+  if (iso === todayIso) return "Сегодня";
+  if (iso === yesterdayIso) return "Вчера";
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return iso;
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "long",
+    weekday: "long",
+    timeZone: "UTC",
+  });
+}
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  return ((parts[0]?.charAt(0) ?? "") + (parts[parts.length - 1]?.charAt(0) ?? "")).toUpperCase();
 }
