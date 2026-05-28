@@ -1,23 +1,20 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  SafeAreaView,
-  View,
-  Text,
-  Pressable,
-  ActivityIndicator,
-  ScrollView,
-  RefreshControl,
-} from "react-native";
+import { FlatList, Pressable, RefreshControl, Text, View } from "react-native";
 import { router } from "expo-router";
+import { Calendar, MessageCircle } from "lucide-react-native";
 import { api } from "@/lib/api-client";
+import { Badge, EmptyState, Screen, Skeleton } from "@/components/ui";
 
 type Scope = "today" | "my" | "overdue";
+
+type TaskStatus = "NEW" | "IN_PROGRESS" | "DONE" | "REJECTED";
+type TaskPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
 
 interface TaskRow {
   id: string;
   title: string;
-  status: "NEW" | "IN_PROGRESS" | "DONE" | "REJECTED";
-  priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+  status: TaskStatus;
+  priority: TaskPriority;
   deadline: string | null;
   assigneeName: string | null;
   commentsCount: number;
@@ -56,104 +53,187 @@ export default function TasksScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50">
-      <View className="px-6 pt-6">
-        <Text className="text-2xl font-extrabold text-neutral-900">Задачи</Text>
+    <Screen background="default" edges={["top"]} padded={false}>
+      {/* === Header === */}
+      <View className="px-5 pb-4 pt-4">
+        <Text className="text-foreground text-2xl font-extrabold">Задачи</Text>
+        <Text className="text-muted-foreground mt-1 text-sm">
+          {tasks.length === 0
+            ? "Нет задач в этой вкладке"
+            : tasks.length === 1
+              ? "1 задача"
+              : tasks.length < 5
+                ? `${tasks.length} задачи`
+                : `${tasks.length} задач`}
+        </Text>
+      </View>
 
-        <View className="mt-4 flex-row gap-2">
-          {TABS.map((tab) => (
-            <Pressable
-              key={tab.id}
-              onPress={() => setScope(tab.id)}
-              className={`rounded-pill px-4 py-2 ${
-                scope === tab.id ? "bg-primary-500" : "bg-white border border-neutral-200"
-              }`}
-            >
-              <Text
-                className={`text-sm font-semibold ${
-                  scope === tab.id ? "text-white" : "text-neutral-700"
+      {/* === Tabs === */}
+      <View className="px-5 pb-3">
+        <View className="flex-row gap-2">
+          {TABS.map((tab) => {
+            const isActive = scope === tab.id;
+            return (
+              <Pressable
+                key={tab.id}
+                onPress={() => setScope(tab.id)}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: isActive }}
+                className={`rounded-full px-4 py-2 active:opacity-80 ${
+                  isActive ? "bg-primary-500" : "bg-card border-border border"
                 }`}
               >
-                {tab.label}
-              </Text>
-            </Pressable>
-          ))}
+                <Text
+                  className={`text-sm font-bold ${
+                    isActive ? "text-white" : "text-muted-foreground"
+                  }`}
+                >
+                  {tab.label}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
       </View>
 
       {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#5B4FE2" />
+        <View className="gap-3 px-5 pt-2">
+          <Skeleton className="h-24 w-full rounded-md" />
+          <Skeleton className="h-24 w-full rounded-md" />
+          <Skeleton className="h-24 w-full rounded-md" />
+        </View>
+      ) : tasks.length === 0 ? (
+        <View className="px-5 pt-6">
+          <EmptyState
+            emoji="🎯"
+            title="Всё закрыто!"
+            description="В этой вкладке нет задач. Откройте другую вкладку или попросите менеджера назначить новую."
+          />
         </View>
       ) : (
-        <ScrollView
-          className="flex-1 px-6 pt-4"
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        >
-          {tasks.length === 0 ? (
-            <View className="items-center pt-20">
-              <Text className="text-5xl">🐼</Text>
-              <Text className="mt-4 text-center text-sm text-neutral-500">
-                Здесь пусто. Все задачи завершены или вам ничего не назначено.
+        <FlatList
+          data={tasks}
+          keyExtractor={(item) => item.id}
+          contentContainerClassName="px-5 pb-6 gap-3"
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#5B4FE2" />
+          }
+          renderItem={({ item }) => <TaskCard task={item} />}
+        />
+      )}
+    </Screen>
+  );
+}
+
+function TaskCard({ task }: { task: TaskRow }) {
+  const priorityBar = priorityBarColor(task.priority);
+  const overdue =
+    task.deadline && new Date(task.deadline).getTime() < Date.now() && task.status !== "DONE";
+
+  return (
+    <Pressable
+      onPress={() => router.push(`/tasks/${task.id}`)}
+      accessibilityRole="button"
+      accessibilityLabel={`Задача ${task.title}`}
+      className="bg-card flex-row overflow-hidden rounded-md shadow-sm active:opacity-80"
+    >
+      {/* Цветная полоса слева по приоритету */}
+      <View className={`w-1 ${priorityBar}`} />
+
+      <View className="flex-1 gap-2 p-4">
+        <View className="flex-row items-start justify-between gap-2">
+          <Text className="text-foreground flex-1 text-base font-bold" numberOfLines={2}>
+            {task.title}
+          </Text>
+          <StatusBadge status={task.status} />
+        </View>
+
+        <View className="flex-row flex-wrap items-center gap-x-3 gap-y-1">
+          <PriorityBadge priority={task.priority} />
+          {task.assigneeName ? (
+            <Text className="text-muted-foreground text-xs">{task.assigneeName}</Text>
+          ) : null}
+        </View>
+
+        <View className="mt-1 flex-row items-center justify-between">
+          {task.deadline ? (
+            <View className="flex-row items-center gap-1">
+              <Calendar size={12} color={overdue ? "#ED7280" : "#6B7080"} />
+              <Text
+                className={`text-xs font-semibold ${
+                  overdue ? "text-danger" : "text-muted-foreground"
+                }`}
+              >
+                {new Date(task.deadline).toLocaleString("ru-RU", {
+                  day: "2-digit",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+                {overdue ? " · просрочено" : ""}
               </Text>
             </View>
           ) : (
-            tasks.map((task) => (
-              <Pressable
-                key={task.id}
-                onPress={() => router.push(`/tasks/${task.id}`)}
-                className="mb-3 rounded-lg bg-white p-4 shadow-sm active:bg-neutral-50"
-              >
-                <View className="flex-row items-center justify-between">
-                  <PriorityChip priority={task.priority} />
-                  <StatusChip status={task.status} />
-                </View>
-                <Text className="mt-2 text-base font-semibold text-neutral-900">{task.title}</Text>
-                {task.deadline ? (
-                  <Text className="mt-1 text-xs text-neutral-500">
-                    📅 {new Date(task.deadline).toLocaleString("ru-RU", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </Text>
-                ) : null}
-              </Pressable>
-            ))
+            <View />
           )}
-        </ScrollView>
-      )}
-    </SafeAreaView>
+          {task.commentsCount > 0 ? (
+            <View className="flex-row items-center gap-1">
+              <MessageCircle size={12} color="#6B7080" />
+              <Text className="text-muted-foreground text-xs">{task.commentsCount}</Text>
+            </View>
+          ) : null}
+        </View>
+      </View>
+    </Pressable>
   );
 }
 
-function PriorityChip({ priority }: { priority: TaskRow["priority"] }) {
-  const map = {
-    LOW: { className: "bg-neutral-100 text-neutral-600", label: "Низкий" },
-    MEDIUM: { className: "bg-info-light text-info", label: "Средний" },
-    HIGH: { className: "bg-warning-light text-warning", label: "Высокий" },
-    URGENT: { className: "bg-danger-light text-danger", label: "🔥 Срочно" },
-  };
-  const cfg = map[priority];
-  return (
-    <Text className={`rounded-pill px-2 py-0.5 text-xs font-semibold ${cfg.className}`}>
-      {cfg.label}
-    </Text>
-  );
+function priorityBarColor(priority: TaskPriority): string {
+  switch (priority) {
+    case "URGENT":
+      return "bg-danger";
+    case "HIGH":
+      return "bg-warning";
+    case "MEDIUM":
+      return "bg-info";
+    case "LOW":
+      return "bg-neutral-200";
+  }
 }
 
-function StatusChip({ status }: { status: TaskRow["status"] }) {
-  const map = {
-    NEW: { className: "bg-primary-100 text-primary-700", label: "Новая" },
-    IN_PROGRESS: { className: "bg-warning-light text-warning", label: "В работе" },
-    DONE: { className: "bg-success-light text-success", label: "Готово" },
-    REJECTED: { className: "bg-danger-light text-danger", label: "Отклонена" },
+function StatusBadge({ status }: { status: TaskStatus }) {
+  const map: Record<
+    TaskStatus,
+    { variant: "secondary" | "warning" | "success" | "danger"; label: string }
+  > = {
+    NEW: { variant: "secondary", label: "Новая" },
+    IN_PROGRESS: { variant: "warning", label: "В работе" },
+    DONE: { variant: "success", label: "Готово" },
+    REJECTED: { variant: "danger", label: "Отклонена" },
   };
   const cfg = map[status];
   return (
-    <Text className={`rounded-pill px-2 py-0.5 text-xs font-semibold ${cfg.className}`}>
+    <Badge variant={cfg.variant} size="sm" dot>
       {cfg.label}
-    </Text>
+    </Badge>
+  );
+}
+
+function PriorityBadge({ priority }: { priority: TaskPriority }) {
+  const map: Record<
+    TaskPriority,
+    { variant: "secondary" | "info" | "warning" | "danger"; label: string }
+  > = {
+    LOW: { variant: "secondary", label: "Низкий" },
+    MEDIUM: { variant: "info", label: "Средний" },
+    HIGH: { variant: "warning", label: "Высокий" },
+    URGENT: { variant: "danger", label: "🔥 Срочно" },
+  };
+  const cfg = map[priority];
+  return (
+    <Badge variant={cfg.variant} size="sm">
+      {cfg.label}
+    </Badge>
   );
 }

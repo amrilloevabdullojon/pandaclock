@@ -1,16 +1,19 @@
 import { useEffect, useState } from "react";
-import {
-  SafeAreaView,
-  View,
-  Text,
-  Pressable,
-  ActivityIndicator,
-  TextInput,
-  Alert,
-} from "react-native";
+import { Alert, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
+import {
+  Bell,
+  ChevronRight,
+  HelpCircle,
+  LogOut,
+  Mail,
+  Pencil,
+  Phone,
+  Shield,
+} from "lucide-react-native";
 import { api } from "@/lib/api-client";
 import { useAuthStore } from "@/lib/auth-store";
+import { Avatar, Badge, Button, Card, Divider, Input, Screen, Skeleton } from "@/components/ui";
 
 interface Me {
   id: string;
@@ -21,8 +24,16 @@ interface Me {
   emailVerified: boolean;
 }
 
+const ROLE_LABEL: Record<string, string> = {
+  OWNER: "Владелец",
+  HR: "HR-менеджер",
+  MANAGER: "Менеджер",
+  EMPLOYEE: "Сотрудник",
+};
+
 export default function ProfileScreen() {
   const logout = useAuthStore((state) => state.logout);
+  const tenantSlug = useAuthStore((state) => state.tenantSlug);
   const [me, setMe] = useState<Me | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -67,89 +78,200 @@ export default function ProfileScreen() {
   }
 
   async function handleLogout() {
-    await logout();
-    router.replace("/");
-  }
-
-  if (loading) {
-    return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-neutral-50">
-        <ActivityIndicator color="#5B4FE2" />
-      </SafeAreaView>
-    );
+    Alert.alert("Выйти из аккаунта?", "Все локальные данные будут очищены.", [
+      { text: "Отмена", style: "cancel" },
+      {
+        text: "Выйти",
+        style: "destructive",
+        onPress: async () => {
+          await logout();
+          router.replace("/");
+        },
+      },
+    ]);
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50">
-      <View className="flex-1 px-6 pt-12">
-        <View className="mb-8 items-center">
-          <View className="h-24 w-24 items-center justify-center rounded-full bg-primary-100">
-            <Text className="text-3xl font-extrabold text-primary-700">
-              {me?.firstName.charAt(0) ?? "?"}
-              {me?.lastName.charAt(0) ?? ""}
-            </Text>
-          </View>
-          <Text className="mt-4 text-xl font-extrabold text-neutral-900">
-            {me ? `${me.firstName} ${me.lastName}` : "Pandaclock"}
-          </Text>
-          <Text className="text-sm text-neutral-500">{me?.email ?? ""}</Text>
-        </View>
-
-        {editing ? (
-          <View className="space-y-3">
-            <TextInput
-              value={firstName}
-              onChangeText={setFirstName}
-              placeholder="Имя"
-              className="rounded-md border border-neutral-200 bg-white px-4 py-3 text-base text-neutral-900"
-            />
-            <TextInput
-              value={lastName}
-              onChangeText={setLastName}
-              placeholder="Фамилия"
-              className="rounded-md border border-neutral-200 bg-white px-4 py-3 text-base text-neutral-900"
-            />
-            <TextInput
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
-              placeholder="+998 90 123 45 67"
-              className="rounded-md border border-neutral-200 bg-white px-4 py-3 text-base text-neutral-900"
-            />
-            <Pressable
-              onPress={handleSave}
-              disabled={saving}
-              className="rounded-md bg-primary-500 py-4 active:bg-primary-600 disabled:opacity-60"
-            >
-              {saving ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text className="text-center text-base font-bold text-white">Сохранить</Text>
-              )}
-            </Pressable>
-            <Pressable onPress={() => setEditing(false)} className="py-3">
-              <Text className="text-center text-sm text-neutral-500">Отмена</Text>
-            </Pressable>
-          </View>
+    <Screen background="default" edges={["top"]} scroll>
+      {/* === Profile header === */}
+      <View className="items-center pb-8 pt-6">
+        {loading ? (
+          <>
+            <Skeleton className="h-24 w-24 rounded-full" />
+            <Skeleton className="mt-4 h-5 w-40" />
+            <Skeleton className="mt-2 h-4 w-32" />
+          </>
         ) : (
-          <View className="space-y-3">
-            <Pressable
-              onPress={() => setEditing(true)}
-              className="rounded-md border border-neutral-200 bg-white py-4 active:bg-neutral-50"
-            >
-              <Text className="text-center text-base font-semibold text-primary-500">
-                Изменить профиль
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={handleLogout}
-              className="rounded-md border border-danger/40 py-4 active:bg-danger/10"
-            >
-              <Text className="text-center text-base font-semibold text-danger">Выйти</Text>
-            </Pressable>
-          </View>
+          <>
+            <Avatar
+              size="2xl"
+              gradient
+              fallback={`${me?.firstName.charAt(0) ?? "?"}${me?.lastName.charAt(0) ?? ""}`}
+            />
+            <Text className="text-foreground mt-4 text-xl font-extrabold">
+              {me ? `${me.firstName} ${me.lastName}` : "—"}
+            </Text>
+            {me ? (
+              <Badge variant="secondary" size="md" className="mt-2">
+                {ROLE_LABEL[me.role] ?? me.role}
+              </Badge>
+            ) : null}
+          </>
         )}
       </View>
-    </SafeAreaView>
+
+      {editing ? (
+        <Card padding="lg" className="gap-3">
+          <Input label="Имя" value={firstName} onChangeText={setFirstName} placeholder="Имя" />
+          <Input
+            label="Фамилия"
+            value={lastName}
+            onChangeText={setLastName}
+            placeholder="Фамилия"
+          />
+          <Input
+            label="Телефон"
+            value={phone}
+            onChangeText={setPhone}
+            keyboardType="phone-pad"
+            placeholder="+998 90 123 45 67"
+            prefix={<Phone size={18} color="#6B7080" />}
+          />
+          <Button onPress={handleSave} loading={saving} loadingText="Сохраняем…" fullWidth>
+            Сохранить
+          </Button>
+          <Button onPress={() => setEditing(false)} variant="ghost" fullWidth>
+            Отмена
+          </Button>
+        </Card>
+      ) : (
+        <>
+          {/* === Info card === */}
+          <Card padding="none" className="overflow-hidden">
+            <ProfileRow
+              icon={<Mail size={18} color="#5B4FE2" />}
+              label="Email"
+              value={me?.email ?? ""}
+              trailing={
+                me?.emailVerified ? (
+                  <Badge variant="success" size="sm" dot>
+                    Подтверждён
+                  </Badge>
+                ) : (
+                  <Badge variant="warning" size="sm">
+                    Не подтверждён
+                  </Badge>
+                )
+              }
+            />
+            <Divider />
+            <ProfileRow
+              icon={<Shield size={18} color="#5B4FE2" />}
+              label="Компания"
+              value={tenantSlug ? `${tenantSlug}.pandaclock.uz` : "—"}
+            />
+          </Card>
+
+          <View className="mt-4 gap-3">
+            <Button
+              variant="secondary"
+              size="lg"
+              fullWidth
+              onPress={() => setEditing(true)}
+              leftIcon={<Pencil size={18} color="#5B4FE2" />}
+              textClassName="text-primary-500"
+            >
+              Редактировать профиль
+            </Button>
+          </View>
+
+          {/* === Menu === */}
+          <View className="mt-6">
+            <Text className="text-muted-foreground mb-2 px-1 text-xs font-bold uppercase tracking-wider">
+              Настройки
+            </Text>
+            <Card padding="none" className="overflow-hidden">
+              <MenuRow
+                icon={<Bell size={18} color="#5B4FE2" />}
+                label="Уведомления"
+                onPress={() => Alert.alert("Скоро", "Настройки уведомлений в разработке")}
+              />
+              <Divider />
+              <MenuRow
+                icon={<HelpCircle size={18} color="#5B4FE2" />}
+                label="Помощь и поддержка"
+                onPress={() => Alert.alert("Связь с нами", "support@pandaclock.uz")}
+              />
+            </Card>
+          </View>
+
+          {/* === Logout === */}
+          <View className="mb-8 mt-6">
+            <Button
+              variant="ghost"
+              size="lg"
+              fullWidth
+              onPress={handleLogout}
+              leftIcon={<LogOut size={18} color="#ED7280" />}
+              textClassName="text-danger"
+            >
+              Выйти
+            </Button>
+            <Text className="text-muted-foreground mt-3 text-center text-xs">
+              Pandaclock · v0.0.1
+            </Text>
+          </View>
+        </>
+      )}
+    </Screen>
+  );
+}
+
+function ProfileRow({
+  icon,
+  label,
+  value,
+  trailing,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  trailing?: React.ReactNode;
+}) {
+  return (
+    <View className="flex-row items-center gap-3 p-4">
+      <View className="bg-primary-50 h-8 w-8 items-center justify-center rounded-md">{icon}</View>
+      <View className="flex-1">
+        <Text className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
+          {label}
+        </Text>
+        <Text className="text-foreground mt-0.5 text-sm font-semibold" numberOfLines={1}>
+          {value}
+        </Text>
+      </View>
+      {trailing}
+    </View>
+  );
+}
+
+function MenuRow({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      className="flex-row items-center gap-3 p-4 active:opacity-70"
+    >
+      <View className="bg-primary-50 h-8 w-8 items-center justify-center rounded-md">{icon}</View>
+      <Text className="text-foreground flex-1 text-sm font-semibold">{label}</Text>
+      <ChevronRight size={18} color="#9CA0B0" />
+    </Pressable>
   );
 }
