@@ -9,16 +9,17 @@ import {
   Nunito_800ExtraBold,
 } from "@expo-google-fonts/nunito";
 import { StatusBar } from "expo-status-bar";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, Text, View } from "react-native";
 import { useAuthStore } from "@/lib/auth-store";
+import { useThemeStore, useThemeSystemSync } from "@/lib/theme-store";
 import { usePushRegistration } from "@/lib/use-push-notifications";
 import { useDailyReminder } from "@/lib/use-daily-reminder";
 import { useNetworkStatus } from "@/lib/use-network-status";
-import { Text } from "react-native";
 
 export default function RootLayout() {
   usePushRegistration();
   useDailyReminder();
+  useThemeSystemSync();
   const online = useNetworkStatus();
   const [fontsLoaded] = useFonts({
     Nunito_400Regular,
@@ -29,13 +30,18 @@ export default function RootLayout() {
   const hydrated = useAuthStore((state) => state.hydrated);
   const hydrate = useAuthStore((state) => state.hydrate);
 
+  const themeHydrated = useThemeStore((state) => state.hydrated);
+  const hydrateTheme = useThemeStore((state) => state.hydrate);
+  const resolvedTheme = useThemeStore((state) => state.resolved);
+
   useEffect(() => {
     void hydrate();
-  }, [hydrate]);
+    void hydrateTheme();
+  }, [hydrate, hydrateTheme]);
 
-  if (!fontsLoaded || !hydrated) {
+  if (!fontsLoaded || !hydrated || !themeHydrated) {
     return (
-      <View className="flex-1 items-center justify-center bg-neutral-50">
+      <View className="bg-background flex-1 items-center justify-center">
         <ActivityIndicator size="large" color="#5B4FE2" />
       </View>
     );
@@ -43,7 +49,7 @@ export default function RootLayout() {
 
   return (
     <>
-      <StatusBar style="dark" />
+      <StatusBar style={resolvedTheme === "dark" ? "light" : "dark"} />
       {!online ? (
         <View className="bg-warning px-4 py-1">
           <Text className="text-center text-xs font-semibold text-white">

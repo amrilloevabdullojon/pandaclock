@@ -33,8 +33,8 @@ export function Screen({
     background === "primary"
       ? "bg-primary-500"
       : background === "card"
-        ? "bg-card"
-        : "bg-background";
+        ? "bg-card dark:bg-neutral-800"
+        : "bg-background dark:bg-neutral-900";
 
   const content = (
     <View className={cn("flex-1", padded && "px-5", className)} {...props}>

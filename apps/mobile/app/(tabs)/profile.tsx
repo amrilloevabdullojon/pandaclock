@@ -7,12 +7,16 @@ import {
   HelpCircle,
   LogOut,
   Mail,
+  Monitor,
+  Moon,
   Pencil,
   Phone,
   Shield,
+  Sun,
 } from "lucide-react-native";
 import { api } from "@/lib/api-client";
 import { useAuthStore } from "@/lib/auth-store";
+import { useThemeStore, type ThemePreference } from "@/lib/theme-store";
 import { Avatar, Badge, Button, Card, Divider, Input, Screen, Skeleton } from "@/components/ui";
 
 interface Me {
@@ -185,6 +189,14 @@ export default function ProfileScreen() {
             </Button>
           </View>
 
+          {/* === Theme === */}
+          <View className="mt-6">
+            <Text className="text-muted-foreground mb-2 px-1 text-xs font-bold uppercase tracking-wider">
+              Внешний вид
+            </Text>
+            <ThemePicker />
+          </View>
+
           {/* === Menu === */}
           <View className="mt-6">
             <Text className="text-muted-foreground mb-2 px-1 text-xs font-bold uppercase tracking-wider">
@@ -273,5 +285,56 @@ function MenuRow({
       <Text className="text-foreground flex-1 text-sm font-semibold">{label}</Text>
       <ChevronRight size={18} color="#9CA0B0" />
     </Pressable>
+  );
+}
+
+function ThemePicker() {
+  const preference = useThemeStore((s) => s.preference);
+  const setPreference = useThemeStore((s) => s.setPreference);
+
+  const options: { value: ThemePreference; label: string; icon: React.ReactNode }[] = [
+    {
+      value: "light",
+      label: "Светлая",
+      icon: <Sun size={16} color={preference === "light" ? "#5B4FE2" : "#9CA0B0"} />,
+    },
+    {
+      value: "dark",
+      label: "Тёмная",
+      icon: <Moon size={16} color={preference === "dark" ? "#5B4FE2" : "#9CA0B0"} />,
+    },
+    {
+      value: "system",
+      label: "Система",
+      icon: <Monitor size={16} color={preference === "system" ? "#5B4FE2" : "#9CA0B0"} />,
+    },
+  ];
+
+  return (
+    <Card padding="sm" className="flex-row gap-1">
+      {options.map((opt) => {
+        const active = preference === opt.value;
+        return (
+          <Pressable
+            key={opt.value}
+            onPress={() => void setPreference(opt.value)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
+            className={`flex-1 flex-row items-center justify-center gap-1.5 rounded-sm py-2.5 active:opacity-70 ${
+              active ? "bg-primary-50 dark:bg-primary-900" : ""
+            }`}
+          >
+            {opt.icon}
+            <Text
+              className={`text-xs font-bold ${
+                active ? "text-primary-700 dark:text-primary-200" : "text-muted-foreground"
+              }`}
+            >
+              {opt.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </Card>
   );
 }

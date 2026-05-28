@@ -28,8 +28,8 @@ export const Input = React.forwardRef<TextInput, InputProps>(
         )}
         <View
           className={cn(
-            "bg-card flex-row items-center rounded-md border px-3",
-            error ? "border-danger" : "border-border",
+            "bg-card flex-row items-center rounded-md border px-3 dark:bg-neutral-800",
+            error ? "border-danger" : "border-border dark:border-neutral-700",
           )}
         >
           {prefix && <View className="mr-2">{prefix}</View>}

@@ -3,25 +3,28 @@ import { Pressable, type PressableProps, Text, View, type ViewProps } from "reac
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "./utils";
 
-const cardVariants = cva("rounded-md bg-card border border-border", {
-  variants: {
-    variant: {
-      default: "shadow-sm",
-      flat: "",
-      elevated: "shadow-md",
-      ghost: "border-transparent bg-transparent",
-      gradient: "border-transparent",
+const cardVariants = cva(
+  "rounded-md bg-card border border-border dark:bg-neutral-800 dark:border-neutral-700",
+  {
+    variants: {
+      variant: {
+        default: "shadow-sm",
+        flat: "",
+        elevated: "shadow-md",
+        ghost: "border-transparent bg-transparent dark:bg-transparent",
+        gradient: "border-transparent",
+      },
+      padding: {
+        none: "",
+        sm: "p-3",
+        md: "p-4",
+        lg: "p-5",
+        xl: "p-6",
+      },
     },
-    padding: {
-      none: "",
-      sm: "p-3",
-      md: "p-4",
-      lg: "p-5",
-      xl: "p-6",
-    },
+    defaultVariants: { variant: "default", padding: "md" },
   },
-  defaultVariants: { variant: "default", padding: "md" },
-});
+);
 
 interface CardProps extends ViewProps, VariantProps<typeof cardVariants> {
   className?: string;

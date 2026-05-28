@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  SafeAreaView,
-  View,
-  Text,
-  Pressable,
-  ActivityIndicator,
-  ScrollView,
-  RefreshControl,
-  Modal,
-  TextInput,
   Alert,
+  FlatList,
+  Modal,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Text,
+  View,
 } from "react-native";
+import { Plus, X } from "lucide-react-native";
 import { api } from "@/lib/api-client";
+import { Badge, Button, Card, EmptyState, Input, Screen, Skeleton } from "@/components/ui";
 
 type LeaveType = "VACATION" | "SICK" | "TIME_OFF" | "OTHER";
 type Status = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
@@ -26,10 +26,11 @@ interface LeaveRow {
   reason: string | null;
 }
 
-const TYPES: { value: LeaveType; label: string }[] = [
-  { value: "VACATION", label: "✈️ Отпуск" },
-  { value: "SICK", label: "🤒 Больничный" },
-  { value: "TIME_OFF", label: "🎂 Отгул" },
+const TYPES: { value: LeaveType; label: string; emoji: string }[] = [
+  { value: "VACATION", label: "Отпуск", emoji: "✈️" },
+  { value: "SICK", label: "Больничный", emoji: "🤒" },
+  { value: "TIME_OFF", label: "Отгул", emoji: "🎂" },
+  { value: "OTHER", label: "Другое", emoji: "📝" },
 ];
 
 export default function RequestsScreen() {
@@ -59,52 +60,60 @@ export default function RequestsScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-50">
-      <View className="flex-row items-center justify-between px-6 pt-6">
-        <Text className="text-2xl font-extrabold text-neutral-900">Заявки</Text>
-        <Pressable
+    <Screen background="default" edges={["top"]} padded={false}>
+      {/* === Header === */}
+      <View className="flex-row items-center justify-between px-5 pb-3 pt-4">
+        <View className="flex-1">
+          <Text className="text-foreground text-2xl font-extrabold">Заявки</Text>
+          <Text className="text-muted-foreground mt-1 text-sm">
+            {items.length === 0
+              ? "Нет заявок"
+              : items.length === 1
+                ? "1 заявка"
+                : items.length < 5
+                  ? `${items.length} заявки`
+                  : `${items.length} заявок`}
+          </Text>
+        </View>
+        <Button
+          size="sm"
+          leftIcon={<Plus size={16} color="#fff" />}
           onPress={() => setModalOpen(true)}
-          className="rounded-md bg-primary-500 px-4 py-2 active:bg-primary-600"
         >
-          <Text className="text-sm font-bold text-white">+ Создать</Text>
-        </Pressable>
+          Создать
+        </Button>
       </View>
 
       {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#5B4FE2" />
+        <View className="gap-3 px-5 pt-2">
+          <Skeleton className="h-28 w-full rounded-md" />
+          <Skeleton className="h-28 w-full rounded-md" />
+          <Skeleton className="h-28 w-full rounded-md" />
+        </View>
+      ) : items.length === 0 ? (
+        <View className="px-5 pt-6">
+          <EmptyState
+            emoji="📋"
+            title="У вас пока нет заявок"
+            description="Нажмите «Создать», чтобы запросить отпуск, больничный или отгул."
+            action={
+              <Button onPress={() => setModalOpen(true)} leftIcon={<Plus size={16} color="#fff" />}>
+                Создать заявку
+              </Button>
+            }
+          />
         </View>
       ) : (
-        <ScrollView
-          className="flex-1 px-6 pt-4"
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        >
-          {items.length === 0 ? (
-            <View className="items-center pt-16">
-              <Text className="text-5xl">🐼</Text>
-              <Text className="mt-4 text-center text-sm text-neutral-500">
-                У вас пока нет заявок. Нажмите «Создать», чтобы запросить отпуск или отгул.
-              </Text>
-            </View>
-          ) : (
-            items.map((req) => (
-              <View key={req.id} className="mb-3 rounded-lg bg-white p-4 shadow-sm">
-                <View className="flex-row items-center justify-between">
-                  <Text className="text-base font-semibold text-neutral-900">
-                    {typeLabel(req.type)}
-                  </Text>
-                  <StatusChip status={req.status} />
-                </View>
-                <Text className="mt-1 text-sm text-neutral-500">
-                  {req.startDate} — {req.endDate} ({req.daysCount} р. дней)
-                </Text>
-                {req.reason ? (
-                  <Text className="mt-2 text-sm text-neutral-700">{req.reason}</Text>
-                ) : null}
-              </View>
-            ))
-          )}
-        </ScrollView>
+        <FlatList
+          data={items}
+          keyExtractor={(item) => item.id}
+          contentContainerClassName="px-5 pb-6 gap-3"
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#5B4FE2" />
+          }
+          renderItem={({ item }) => <RequestCard request={item} />}
+        />
       )}
 
       <CreateRequestModal
@@ -115,8 +124,58 @@ export default function RequestsScreen() {
           void load();
         }}
       />
-    </SafeAreaView>
+    </Screen>
   );
+}
+
+function RequestCard({ request }: { request: LeaveRow }) {
+  const typeInfo = TYPES.find((t) => t.value === request.type);
+  return (
+    <Card padding="md">
+      <View className="flex-row items-start justify-between gap-2">
+        <View className="flex-1 flex-row items-center gap-2">
+          <Text className="text-2xl">{typeInfo?.emoji ?? "📝"}</Text>
+          <View className="flex-1">
+            <Text className="text-foreground text-base font-bold">
+              {typeInfo?.label ?? "Заявка"}
+            </Text>
+            <Text className="text-muted-foreground mt-0.5 text-xs">
+              {formatDate(request.startDate)} — {formatDate(request.endDate)} · {request.daysCount}{" "}
+              р. дн.
+            </Text>
+          </View>
+        </View>
+        <StatusBadge status={request.status} />
+      </View>
+      {request.reason ? (
+        <View className="border-border mt-3 border-t pt-3">
+          <Text className="text-foreground text-sm">{request.reason}</Text>
+        </View>
+      ) : null}
+    </Card>
+  );
+}
+
+function StatusBadge({ status }: { status: Status }) {
+  const map: Record<
+    Status,
+    { variant: "warning" | "success" | "danger" | "secondary"; label: string }
+  > = {
+    PENDING: { variant: "warning", label: "Ждёт решения" },
+    APPROVED: { variant: "success", label: "Утверждена" },
+    REJECTED: { variant: "danger", label: "Отклонена" },
+    CANCELLED: { variant: "secondary", label: "Отменена" },
+  };
+  const cfg = map[status];
+  return (
+    <Badge variant={cfg.variant} size="sm" dot>
+      {cfg.label}
+    </Badge>
+  );
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("ru-RU", { day: "2-digit", month: "short" });
 }
 
 function CreateRequestModal({
@@ -133,12 +192,15 @@ function CreateRequestModal({
   const [end, setEnd] = useState("");
   const [reason, setReason] = useState("");
   const [pending, setPending] = useState(false);
+  const [errors, setErrors] = useState<{ start?: string; end?: string }>({});
 
   async function submit() {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end)) {
-      Alert.alert("Введите даты в формате YYYY-MM-DD");
-      return;
-    }
+    const newErrors: typeof errors = {};
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(start)) newErrors.start = "Формат: YYYY-MM-DD";
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(end)) newErrors.end = "Формат: YYYY-MM-DD";
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
+
     setPending(true);
     try {
       await api("/requests", {
@@ -150,7 +212,7 @@ function CreateRequestModal({
       setEnd("");
       setReason("");
     } catch {
-      Alert.alert("Не удалось отправить заявку");
+      Alert.alert("Не удалось отправить заявку", "Попробуйте позже");
     } finally {
       setPending(false);
     }
@@ -158,92 +220,110 @@ function CreateRequestModal({
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <SafeAreaView className="flex-1 bg-neutral-50">
-        <View className="flex-row items-center justify-between border-b border-neutral-200 px-6 py-4">
-          <Pressable onPress={onClose}>
-            <Text className="text-sm text-neutral-500">Отмена</Text>
+      <View className="bg-background flex-1 dark:bg-neutral-900">
+        {/* === Modal header === */}
+        <View className="border-border flex-row items-center justify-between border-b px-5 py-4 dark:border-neutral-700">
+          <Pressable onPress={onClose} accessibilityLabel="Закрыть" hitSlop={8}>
+            <X size={22} color="#6B7080" />
           </Pressable>
-          <Text className="text-base font-bold text-neutral-900">Новая заявка</Text>
-          <Pressable onPress={submit} disabled={pending}>
-            <Text className="text-sm font-bold text-primary-500">
+          <Text className="text-foreground text-base font-bold">Новая заявка</Text>
+          <Pressable onPress={submit} disabled={pending} hitSlop={8}>
+            <Text
+              className={`text-sm font-bold ${
+                pending ? "text-muted-foreground" : "text-primary-500"
+              }`}
+            >
               {pending ? "..." : "Отправить"}
             </Text>
           </Pressable>
         </View>
 
-        <ScrollView className="flex-1 px-6 py-6">
-          <Text className="mb-2 text-sm font-semibold text-neutral-700">Тип</Text>
-          <View className="mb-4 flex-row flex-wrap gap-2">
-            {TYPES.map((option) => (
-              <Pressable
-                key={option.value}
-                onPress={() => setType(option.value)}
-                className={`rounded-pill px-3 py-2 ${
-                  type === option.value ? "bg-primary-500" : "border border-neutral-200 bg-white"
-                }`}
-              >
-                <Text
-                  className={`text-sm font-semibold ${
-                    type === option.value ? "text-white" : "text-neutral-700"
+        <ScrollView className="flex-1 px-5 pt-5" showsVerticalScrollIndicator={false}>
+          {/* === Type picker === */}
+          <Text className="text-foreground mb-2 text-sm font-semibold">Тип заявки</Text>
+          <View className="mb-5 flex-row flex-wrap gap-2">
+            {TYPES.map((option) => {
+              const active = type === option.value;
+              return (
+                <Pressable
+                  key={option.value}
+                  onPress={() => setType(option.value)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: active }}
+                  className={`flex-row items-center gap-1.5 rounded-full px-3 py-2 active:opacity-70 ${
+                    active
+                      ? "bg-primary-500"
+                      : "border-border bg-card border dark:border-neutral-700 dark:bg-neutral-800"
                   }`}
                 >
-                  {option.label}
-                </Text>
-              </Pressable>
-            ))}
+                  <Text className="text-base">{option.emoji}</Text>
+                  <Text
+                    className={`text-sm font-bold ${
+                      active ? "text-white" : "text-muted-foreground"
+                    }`}
+                  >
+                    {option.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
 
-          <Text className="mb-2 text-sm font-semibold text-neutral-700">С (YYYY-MM-DD)</Text>
-          <TextInput
-            value={start}
-            onChangeText={setStart}
-            placeholder="2026-06-01"
-            className="mb-4 rounded-md border border-neutral-200 bg-white px-4 py-3 text-base text-neutral-900"
-          />
+          {/* === Dates === */}
+          <View className="mb-4 flex-row gap-3">
+            <View className="flex-1">
+              <Input
+                label="Дата начала"
+                value={start}
+                onChangeText={(v) => {
+                  setStart(v);
+                  setErrors((e) => ({ ...e, start: undefined }));
+                }}
+                placeholder="2026-06-01"
+                error={errors.start}
+                required
+              />
+            </View>
+            <View className="flex-1">
+              <Input
+                label="Дата окончания"
+                value={end}
+                onChangeText={(v) => {
+                  setEnd(v);
+                  setErrors((e) => ({ ...e, end: undefined }));
+                }}
+                placeholder="2026-06-05"
+                error={errors.end}
+                required
+              />
+            </View>
+          </View>
 
-          <Text className="mb-2 text-sm font-semibold text-neutral-700">По (YYYY-MM-DD)</Text>
-          <TextInput
-            value={end}
-            onChangeText={setEnd}
-            placeholder="2026-06-05"
-            className="mb-4 rounded-md border border-neutral-200 bg-white px-4 py-3 text-base text-neutral-900"
-          />
-
-          <Text className="mb-2 text-sm font-semibold text-neutral-700">Причина (опционально)</Text>
-          <TextInput
+          {/* === Reason === */}
+          <Input
+            label="Причина"
             value={reason}
             onChangeText={setReason}
+            placeholder="Опишите причину (опционально)"
             multiline
             numberOfLines={4}
-            className="rounded-md border border-neutral-200 bg-white px-4 py-3 text-base text-neutral-900"
+            hint="HR увидит это сообщение"
+            className="min-h-24"
           />
+
+          <View className="mt-6">
+            <Button
+              fullWidth
+              size="lg"
+              onPress={submit}
+              loading={pending}
+              loadingText="Отправляем…"
+            >
+              Отправить заявку
+            </Button>
+          </View>
         </ScrollView>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
-}
-
-function StatusChip({ status }: { status: Status }) {
-  const map = {
-    PENDING: { className: "bg-warning-light text-warning", label: "Ждёт" },
-    APPROVED: { className: "bg-success-light text-success", label: "Утв." },
-    REJECTED: { className: "bg-danger-light text-danger", label: "Откл." },
-    CANCELLED: { className: "bg-neutral-100 text-neutral-500", label: "Отм." },
-  };
-  const cfg = map[status];
-  return (
-    <Text className={`rounded-pill px-2 py-0.5 text-xs font-semibold ${cfg.className}`}>
-      {cfg.label}
-    </Text>
-  );
-}
-
-function typeLabel(type: LeaveType): string {
-  return type === "VACATION"
-    ? "✈️ Отпуск"
-    : type === "SICK"
-      ? "🤒 Больничный"
-      : type === "TIME_OFF"
-        ? "🎂 Отгул"
-        : "📝 Другое";
 }

@@ -27,6 +27,7 @@ export function EmptyState({
       accessibilityRole="text"
       className={cn(
         "border-border bg-card items-center justify-center gap-3 rounded-md border border-dashed",
+        "dark:border-neutral-700 dark:bg-neutral-800",
         compact ? "p-6" : "p-10",
         className,
       )}
