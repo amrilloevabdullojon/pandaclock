@@ -1,5 +1,17 @@
 import { CreditCard } from "lucide-react";
-import { Badge, Card, CardContent, EmptyState, PageHeader } from "@pandaclock/ui";
+import {
+  Badge,
+  Card,
+  CardContent,
+  EmptyState,
+  PageHeader,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@pandaclock/ui";
 import { serverFetch } from "@/lib/server-api";
 import { PageBreadcrumbs } from "../../_components/page-breadcrumbs";
 import { ChangePlanButton } from "./_components/change-plan-button";
@@ -146,7 +158,7 @@ export default async function BillingPage() {
       ) : null}
 
       <section>
-        <h2 className="mb-3 text-lg font-bold text-neutral-900">История платежей</h2>
+        <h2 className="text-foreground mb-3 text-lg font-bold">История платежей</h2>
         <Card>
           <CardContent className="p-0">
             {transactions.length === 0 ? (
@@ -159,26 +171,26 @@ export default async function BillingPage() {
                 />
               </div>
             ) : (
-              <table className="w-full text-sm">
-                <thead className="border-b border-neutral-200 bg-neutral-50 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                  <tr>
-                    <th className="px-6 py-3">Дата</th>
-                    <th className="px-6 py-3">Сумма</th>
-                    <th className="px-6 py-3">Провайдер</th>
-                    <th className="px-6 py-3">Статус</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-200">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Дата</TableHead>
+                    <TableHead>Сумма</TableHead>
+                    <TableHead>Провайдер</TableHead>
+                    <TableHead>Статус</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {transactions.map((tx) => (
-                    <tr key={tx.id}>
-                      <td className="px-6 py-3 text-neutral-900">
+                    <TableRow key={tx.id}>
+                      <TableCell className="text-foreground font-medium tabular-nums">
                         {new Date(tx.createdAt).toLocaleDateString("ru-RU")}
-                      </td>
-                      <td className="px-6 py-3 font-semibold text-neutral-900">
+                      </TableCell>
+                      <TableCell className="text-foreground font-semibold tabular-nums">
                         {Number(tx.amount).toLocaleString("ru-RU")} {tx.currency}
-                      </td>
-                      <td className="px-6 py-3 text-neutral-600">{tx.provider}</td>
-                      <td className="px-6 py-3">
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{tx.provider}</TableCell>
+                      <TableCell>
                         <Badge
                           variant={
                             tx.status === "SUCCEEDED"
@@ -187,14 +199,15 @@ export default async function BillingPage() {
                                 ? "danger"
                                 : "warning"
                           }
+                          dot
                         >
-                          {tx.status}
+                          {transactionStatusLabel(tx.status)}
                         </Badge>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             )}
           </CardContent>
         </Card>
@@ -214,4 +227,19 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 
 function formatPrice(amount: number, currency: string): string {
   return `${amount.toLocaleString("ru-RU")} ${currency}`;
+}
+
+function transactionStatusLabel(status: string): string {
+  switch (status) {
+    case "SUCCEEDED":
+      return "Успешно";
+    case "FAILED":
+      return "Ошибка";
+    case "PENDING":
+      return "В обработке";
+    case "REFUNDED":
+      return "Возврат";
+    default:
+      return status;
+  }
 }

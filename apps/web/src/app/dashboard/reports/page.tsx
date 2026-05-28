@@ -1,6 +1,17 @@
 import Link from "next/link";
 import { BarChart3 } from "lucide-react";
-import { Card, CardContent, EmptyState, PageHeader } from "@pandaclock/ui";
+import {
+  Card,
+  CardContent,
+  EmptyState,
+  PageHeader,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@pandaclock/ui";
 import { serverFetch } from "@/lib/server-api";
 import { PageBreadcrumbs } from "../_components/page-breadcrumbs";
 import { ReportControls } from "./_components/report-controls";
@@ -132,84 +143,108 @@ function ReportTable({
 }) {
   if (type === "attendance") {
     return (
-      <table className="w-full text-sm">
-        <thead className="border-b border-neutral-200 bg-neutral-50 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
-          <tr>
-            <th className="px-6 py-3">Сотрудник</th>
-            <th className="px-6 py-3">Отдел</th>
-            <th className="px-6 py-3 text-right">Дней</th>
-            <th className="px-6 py-3 text-right">Опозданий</th>
-            <th className="px-6 py-3 text-right">Часов</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-neutral-200">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Сотрудник</TableHead>
+            <TableHead>Отдел</TableHead>
+            <TableHead className="text-right">Дней</TableHead>
+            <TableHead className="text-right">Опозданий</TableHead>
+            <TableHead className="text-right">Часов</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {(rows as AttendanceRow[]).map((row) => (
-            <tr key={row.userId}>
-              <td className="px-6 py-3 font-semibold text-neutral-900">{row.fullName}</td>
-              <td className="px-6 py-3 text-neutral-600">{row.departmentName ?? "—"}</td>
-              <td className="px-6 py-3 text-right text-neutral-900">{row.daysWorked}</td>
-              <td className="px-6 py-3 text-right text-neutral-900">{row.lateCount}</td>
-              <td className="px-6 py-3 text-right text-neutral-900">
+            <TableRow key={row.userId}>
+              <TableCell className="text-foreground font-semibold">{row.fullName}</TableCell>
+              <TableCell className="text-muted-foreground">{row.departmentName ?? "—"}</TableCell>
+              <TableCell className="text-right tabular-nums">{row.daysWorked}</TableCell>
+              <TableCell className="text-right tabular-nums">
+                {row.lateCount > 0 ? (
+                  <span className="text-warning font-semibold">{row.lateCount}</span>
+                ) : (
+                  <span className="text-muted-foreground">0</span>
+                )}
+              </TableCell>
+              <TableCell className="text-right font-semibold tabular-nums">
                 {Math.round((row.totalMinutes / 60) * 10) / 10}
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     );
   }
 
   if (type === "hours") {
     return (
-      <table className="w-full text-sm">
-        <thead className="border-b border-neutral-200 bg-neutral-50 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
-          <tr>
-            <th className="px-6 py-3">Сотрудник</th>
-            <th className="px-6 py-3 text-right">Дней</th>
-            <th className="px-6 py-3 text-right">Всего часов</th>
-            <th className="px-6 py-3 text-right">Среднее</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-neutral-200">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Сотрудник</TableHead>
+            <TableHead className="text-right">Дней</TableHead>
+            <TableHead className="text-right">Всего часов</TableHead>
+            <TableHead className="text-right">Среднее</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {(rows as HoursRow[]).map((row) => (
-            <tr key={row.userId}>
-              <td className="px-6 py-3 font-semibold text-neutral-900">{row.fullName}</td>
-              <td className="px-6 py-3 text-right text-neutral-900">{row.daysCount}</td>
-              <td className="px-6 py-3 text-right text-neutral-900">
+            <TableRow key={row.userId}>
+              <TableCell className="text-foreground font-semibold">{row.fullName}</TableCell>
+              <TableCell className="text-right tabular-nums">{row.daysCount}</TableCell>
+              <TableCell className="text-right font-semibold tabular-nums">
                 {Math.round((row.totalMinutes / 60) * 10) / 10}
-              </td>
-              <td className="px-6 py-3 text-right text-neutral-900">
+              </TableCell>
+              <TableCell className="text-muted-foreground text-right tabular-nums">
                 {Math.round((row.averageMinutes / 60) * 10) / 10}
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     );
   }
 
   return (
-    <table className="w-full text-sm">
-      <thead className="border-b border-neutral-200 bg-neutral-50 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
-        <tr>
-          <th className="px-6 py-3">Сотрудник</th>
-          <th className="px-6 py-3 text-right">Назначено</th>
-          <th className="px-6 py-3 text-right">Выполнено</th>
-          <th className="px-6 py-3 text-right">% выполн.</th>
-          <th className="px-6 py-3 text-right">Просрочено</th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-neutral-200">
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Сотрудник</TableHead>
+          <TableHead className="text-right">Назначено</TableHead>
+          <TableHead className="text-right">Выполнено</TableHead>
+          <TableHead className="text-right">% выполн.</TableHead>
+          <TableHead className="text-right">Просрочено</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
         {(rows as TasksRow[]).map((row) => (
-          <tr key={row.userId}>
-            <td className="px-6 py-3 font-semibold text-neutral-900">{row.fullName}</td>
-            <td className="px-6 py-3 text-right text-neutral-900">{row.assigned}</td>
-            <td className="px-6 py-3 text-right text-neutral-900">{row.completed}</td>
-            <td className="px-6 py-3 text-right text-neutral-900">{row.completionRate}%</td>
-            <td className="text-danger px-6 py-3 text-right">{row.overdue}</td>
-          </tr>
+          <TableRow key={row.userId}>
+            <TableCell className="text-foreground font-semibold">{row.fullName}</TableCell>
+            <TableCell className="text-right tabular-nums">{row.assigned}</TableCell>
+            <TableCell className="text-right tabular-nums">{row.completed}</TableCell>
+            <TableCell className="text-right">
+              <span
+                className={`font-semibold tabular-nums ${
+                  row.completionRate >= 80
+                    ? "text-success"
+                    : row.completionRate >= 50
+                      ? "text-warning"
+                      : "text-destructive"
+                }`}
+              >
+                {row.completionRate}%
+              </span>
+            </TableCell>
+            <TableCell className="text-right tabular-nums">
+              {row.overdue > 0 ? (
+                <span className="text-destructive font-semibold">{row.overdue}</span>
+              ) : (
+                <span className="text-muted-foreground">0</span>
+              )}
+            </TableCell>
+          </TableRow>
         ))}
-      </tbody>
-    </table>
+      </TableBody>
+    </Table>
   );
 }

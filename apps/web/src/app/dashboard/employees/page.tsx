@@ -1,14 +1,32 @@
 import Link from "next/link";
-import { Users } from "lucide-react";
-import { Badge, Card, CardContent, EmptyState, PageHeader } from "@pandaclock/ui";
+import { ArrowRight, Users } from "lucide-react";
+import {
+  Avatar,
+  AvatarFallback,
+  Badge,
+  Card,
+  CardContent,
+  EmptyState,
+  PageHeader,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@pandaclock/ui";
 import { serverFetch } from "@/lib/server-api";
 import { PageBreadcrumbs } from "../_components/page-breadcrumbs";
+import { TablePagination } from "../_components/table-pagination";
+import { EmployeesFilters } from "./_components/employees-filters";
 import { InviteEmployees } from "./_components/invite-modal";
 
 interface EmployeesQuery {
   search?: string;
   departmentId?: string;
   status?: string;
+  page?: string;
+  pageSize?: string;
 }
 
 interface EmployeeRow {
@@ -29,6 +47,25 @@ interface EmployeesResponse {
   pageSize: number;
 }
 
+interface DepartmentNode {
+  id: string;
+  name: string;
+  children: DepartmentNode[];
+}
+
+function flattenDepartments(nodes: DepartmentNode[]): { id: string; name: string }[] {
+  const out: { id: string; name: string }[] = [];
+  function walk(arr: DepartmentNode[], prefix = "") {
+    arr.forEach((n) => {
+      const name = prefix ? `${prefix} / ${n.name}` : n.name;
+      out.push({ id: n.id, name });
+      if (n.children.length) walk(n.children, name);
+    });
+  }
+  walk(nodes);
+  return out;
+}
+
 export default async function EmployeesPage({
   searchParams,
 }: {
@@ -39,10 +76,21 @@ export default async function EmployeesPage({
   if (params.search) qs.set("search", params.search);
   if (params.departmentId) qs.set("departmentId", params.departmentId);
   if (params.status) qs.set("status", params.status);
+  if (params.page) qs.set("page", params.page);
+  if (params.pageSize) qs.set("pageSize", params.pageSize);
 
-  const employees = await serverFetch<EmployeesResponse>(
-    `/employees${qs.size ? `?${qs.toString()}` : ""}`,
-  ).catch(() => ({ items: [], total: 0, page: 1, pageSize: 20 }));
+  const [employees, departmentTree] = await Promise.all([
+    serverFetch<EmployeesResponse>(`/employees${qs.size ? `?${qs.toString()}` : ""}`).catch(() => ({
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: 20,
+    })),
+    serverFetch<DepartmentNode[]>("/departments/tree").catch(() => [] as DepartmentNode[]),
+  ]);
+
+  const departments = flattenDepartments(departmentTree);
+  const hasFilters = !!(params.search || params.departmentId || params.status);
 
   return (
     <>
@@ -56,65 +104,88 @@ export default async function EmployeesPage({
         actions={<InviteEmployees />}
       />
 
+      <EmployeesFilters departments={departments} />
+
       <Card>
         <CardContent className="p-0">
           {employees.items.length === 0 ? (
             <div className="p-6">
               <EmptyState
                 icon={<Users />}
-                title="Пока нет сотрудников"
-                description="Пригласите первого участника команды — он получит письмо со ссылкой для входа"
-                action={<InviteEmployees />}
+                title={hasFilters ? "Ничего не найдено" : "Пока нет сотрудников"}
+                description={
+                  hasFilters
+                    ? "Попробуйте сменить фильтры или сбросить их"
+                    : "Пригласите первого участника команды — он получит письмо со ссылкой для входа"
+                }
+                action={hasFilters ? undefined : <InviteEmployees />}
               />
             </div>
           ) : (
-            <table className="w-full text-sm">
-              <thead className="border-b border-neutral-200 bg-neutral-50 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                <tr>
-                  <th className="px-6 py-3">Сотрудник</th>
-                  <th className="px-6 py-3">Должность</th>
-                  <th className="px-6 py-3">Отдел</th>
-                  <th className="px-6 py-3">Статус</th>
-                  <th aria-hidden />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-200">
-                {employees.items.map((employee) => (
-                  <tr key={employee.id} className="hover:bg-neutral-50">
-                    <td className="px-6 py-3">
-                      <Link
-                        href={`/dashboard/employees/${employee.id}`}
-                        className="flex items-center gap-3"
-                      >
-                        <span className="bg-primary-100 text-primary-700 flex h-9 w-9 items-center justify-center rounded-full text-xs font-extrabold">
-                          {employee.firstName.charAt(0)}
-                          {employee.lastName.charAt(0)}
-                        </span>
-                        <span>
-                          <span className="block font-semibold text-neutral-900">
-                            {employee.firstName} {employee.lastName}
-                          </span>
-                          <span className="text-xs text-neutral-500">{employee.email}</span>
-                        </span>
-                      </Link>
-                    </td>
-                    <td className="px-6 py-3 text-neutral-600">{employee.position ?? "—"}</td>
-                    <td className="px-6 py-3 text-neutral-600">{employee.departmentName ?? "—"}</td>
-                    <td className="px-6 py-3">
-                      <StatusBadge status={employee.status} />
-                    </td>
-                    <td className="px-6 py-3 text-right">
-                      <Link
-                        href={`/dashboard/employees/${employee.id}`}
-                        className="text-primary-500 hover:underline"
-                      >
-                        Открыть →
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Сотрудник</TableHead>
+                    <TableHead>Должность</TableHead>
+                    <TableHead>Отдел</TableHead>
+                    <TableHead>Статус</TableHead>
+                    <TableHead aria-hidden />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {employees.items.map((employee) => (
+                    <TableRow key={employee.id}>
+                      <TableCell>
+                        <Link
+                          href={`/dashboard/employees/${employee.id}`}
+                          className="focus-ring group flex items-center gap-3 rounded-sm"
+                        >
+                          <Avatar className="h-9 w-9">
+                            <AvatarFallback className="bg-gradient-primary text-xs font-bold text-white">
+                              {employee.firstName.charAt(0)}
+                              {employee.lastName.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <p className="text-foreground group-hover:text-primary-600 truncate font-semibold">
+                              {employee.firstName} {employee.lastName}
+                            </p>
+                            <p className="text-muted-foreground truncate text-xs">
+                              {employee.email}
+                            </p>
+                          </div>
+                        </Link>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {employee.position ?? "—"}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {employee.departmentName ?? "—"}
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge status={employee.status} />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Link
+                          href={`/dashboard/employees/${employee.id}`}
+                          aria-label={`Открыть ${employee.firstName} ${employee.lastName}`}
+                          className="text-muted-foreground hover:bg-muted hover:text-foreground focus-ring inline-flex h-7 w-7 items-center justify-center rounded-sm transition-colors"
+                        >
+                          <ArrowRight className="h-4 w-4" />
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              <TablePagination
+                page={employees.page}
+                pageSize={employees.pageSize}
+                total={employees.total}
+              />
+            </>
           )}
         </CardContent>
       </Card>
@@ -125,13 +196,25 @@ export default async function EmployeesPage({
 function StatusBadge({ status }: { status: string }) {
   switch (status) {
     case "ACTIVE":
-      return <Badge variant="success">Активен</Badge>;
+      return (
+        <Badge variant="success" dot>
+          Активен
+        </Badge>
+      );
     case "PENDING":
-      return <Badge variant="warning">Приглашён</Badge>;
+      return (
+        <Badge variant="warning" dot>
+          Приглашён
+        </Badge>
+      );
     case "SUSPENDED":
       return <Badge variant="secondary">Деактивирован</Badge>;
     case "TERMINATED":
-      return <Badge variant="danger">Уволен</Badge>;
+      return (
+        <Badge variant="danger" dot>
+          Уволен
+        </Badge>
+      );
     default:
       return <Badge variant="outline">{status}</Badge>;
   }

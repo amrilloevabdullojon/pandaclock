@@ -1,5 +1,19 @@
 import { Clock } from "lucide-react";
-import { Badge, Card, CardContent, EmptyState, PageHeader } from "@pandaclock/ui";
+import {
+  Avatar,
+  AvatarFallback,
+  Badge,
+  Card,
+  CardContent,
+  EmptyState,
+  PageHeader,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@pandaclock/ui";
 import { serverFetch } from "@/lib/server-api";
 import { PageBreadcrumbs } from "../_components/page-breadcrumbs";
 
@@ -37,7 +51,10 @@ export default async function TimePage() {
 
       <Card>
         <CardContent className="p-6">
-          <h2 className="text-foreground mb-4 text-lg font-bold">Сейчас на работе</h2>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-foreground text-lg font-bold">Сейчас на работе</h2>
+            <span className="text-muted-foreground text-xs">{working.length} активных</span>
+          </div>
           {working.length === 0 ? (
             <EmptyState
               compact
@@ -46,22 +63,34 @@ export default async function TimePage() {
               description="Сотрудники появятся здесь после клик-ина в мобильном приложении"
             />
           ) : (
-            <ul className="space-y-2">
+            <ul className="divide-border divide-y">
               {working.map((p) => (
                 <li
                   key={p.userId}
-                  className="flex items-center justify-between rounded-md bg-neutral-50 px-4 py-2 text-sm"
+                  className="hover:bg-muted/40 -mx-3 flex items-center gap-3 rounded-sm px-3 py-2.5 transition-colors"
                 >
-                  <span className="font-semibold text-neutral-900">
-                    {p.firstName} {p.lastName}
-                  </span>
-                  <span className="text-neutral-500">
+                  <Avatar className="h-9 w-9">
+                    <AvatarFallback className="bg-gradient-primary text-xs font-bold text-white">
+                      {p.firstName.charAt(0)}
+                      {p.lastName.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-foreground truncate font-semibold">
+                      {p.firstName} {p.lastName}
+                    </p>
+                    {p.departmentName && (
+                      <p className="text-muted-foreground truncate text-xs">{p.departmentName}</p>
+                    )}
+                  </div>
+                  <span className="text-muted-foreground text-xs tabular-nums">
+                    с{" "}
                     {new Date(p.startedAt).toLocaleTimeString("ru-RU", {
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
                   </span>
-                  <Badge variant={p.status === "WORKING" ? "success" : "warning"}>
+                  <Badge variant={p.status === "WORKING" ? "success" : "warning"} dot>
                     {p.status === "WORKING" ? "Работает" : "Перерыв"}
                   </Badge>
                 </li>
@@ -72,63 +101,87 @@ export default async function TimePage() {
       </Card>
 
       <Card>
-        <CardContent className="p-6">
-          <h2 className="text-foreground mb-4 text-lg font-bold">Моя история за 2 недели</h2>
+        <CardContent className="p-0">
+          <div className="flex items-center justify-between p-6 pb-4">
+            <div>
+              <h2 className="text-foreground text-lg font-bold">Моя история</h2>
+              <p className="text-muted-foreground text-xs">за последние 14 дней</p>
+            </div>
+          </div>
           {history.length === 0 ? (
-            <EmptyState
-              compact
-              icon={<Clock />}
-              title="Пока нет записей"
-              description="История клик-инов появится после первой отметки"
-            />
+            <div className="px-6 pb-6">
+              <EmptyState
+                compact
+                icon={<Clock />}
+                title="Пока нет записей"
+                description="История клик-инов появится после первой отметки"
+              />
+            </div>
           ) : (
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs font-semibold uppercase text-neutral-500">
-                <tr>
-                  <th className="py-2">Дата</th>
-                  <th>Начало</th>
-                  <th>Окончание</th>
-                  <th>Часов</th>
-                  <th>Статус</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-200">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Дата</TableHead>
+                  <TableHead>Начало</TableHead>
+                  <TableHead>Окончание</TableHead>
+                  <TableHead className="text-right">Часов</TableHead>
+                  <TableHead>Статус</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {history.map((entry) => (
-                  <tr key={entry.date}>
-                    <td className="py-2 font-semibold text-neutral-900">{entry.date}</td>
-                    <td className="text-neutral-600">
+                  <TableRow key={entry.date}>
+                    <TableCell className="text-foreground font-semibold tabular-nums">
+                      {formatDate(entry.date)}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground tabular-nums">
                       {new Date(entry.startedAt).toLocaleTimeString("ru-RU", {
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
-                    </td>
-                    <td className="text-neutral-600">
+                    </TableCell>
+                    <TableCell className="text-muted-foreground tabular-nums">
                       {entry.finishedAt
                         ? new Date(entry.finishedAt).toLocaleTimeString("ru-RU", {
                             hour: "2-digit",
                             minute: "2-digit",
                           })
                         : "—"}
-                    </td>
-                    <td className="text-neutral-900">
+                    </TableCell>
+                    <TableCell className="text-foreground text-right font-semibold tabular-nums">
                       {entry.totalMinutes !== null
                         ? `${Math.floor(entry.totalMinutes / 60)}ч ${entry.totalMinutes % 60}м`
                         : "—"}
-                    </td>
-                    <td>
+                    </TableCell>
+                    <TableCell>
                       {entry.isLate ? (
-                        <Badge variant="danger">Опоздание</Badge>
+                        <Badge variant="danger" dot>
+                          Опоздание
+                        </Badge>
                       ) : (
-                        <Badge variant="success">Вовремя</Badge>
+                        <Badge variant="success" dot>
+                          Вовремя
+                        </Badge>
                       )}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>
     </>
   );
+}
+
+function formatDate(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return iso;
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "short",
+    weekday: "short",
+    timeZone: "UTC",
+  });
 }

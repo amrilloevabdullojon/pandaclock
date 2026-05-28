@@ -1,10 +1,18 @@
-import Link from "next/link";
-import { FileText } from "lucide-react";
-import { Badge, Card, CardContent, EmptyState, PageHeader } from "@pandaclock/ui";
+import { Calendar, FileText, Palmtree, ThermometerSun, Wallet } from "lucide-react";
+import {
+  Avatar,
+  AvatarFallback,
+  Badge,
+  Card,
+  CardContent,
+  EmptyState,
+  PageHeader,
+} from "@pandaclock/ui";
 import { serverFetch } from "@/lib/server-api";
 import { PageBreadcrumbs } from "../_components/page-breadcrumbs";
 import { CreateRequestButton } from "./_components/create-request";
 import { DecisionButtons } from "./_components/decision-buttons";
+import { RequestsTabs } from "./_components/requests-tabs";
 
 type Status = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
 type LeaveType = "VACATION" | "SICK" | "TIME_OFF" | "OTHER";
@@ -32,11 +40,8 @@ interface Balance {
   remaining: number;
 }
 
-const SCOPES = [
-  { id: "my", label: "Мои" },
-  { id: "team", label: "Команда" },
-  { id: "all", label: "Все" },
-] as const;
+const SCOPES = ["my", "team", "all"] as const;
+type Scope = (typeof SCOPES)[number];
 
 export default async function RequestsPage({
   searchParams,
@@ -44,13 +49,19 @@ export default async function RequestsPage({
   searchParams: Promise<{ scope?: string; status?: Status }>;
 }) {
   const { scope: scopeParam, status: statusFilter } = await searchParams;
-  const scope = (SCOPES.find((s) => s.id === scopeParam)?.id ?? "my") as "my" | "team" | "all";
+  const scope: Scope = SCOPES.includes(scopeParam as Scope) ? (scopeParam as Scope) : "my";
 
   const [items, balance] = await Promise.all([
     serverFetch<LeaveRequest[]>(`/requests?scope=${scope}`).catch(() => []),
     serverFetch<Balance>("/requests/balance").catch(() => null),
   ]);
 
+  const counts = {
+    all: items.length,
+    pending: items.filter((r) => r.status === "PENDING").length,
+    approved: items.filter((r) => r.status === "APPROVED").length,
+    rejected: items.filter((r) => r.status === "REJECTED").length,
+  };
   const filtered = statusFilter ? items.filter((r) => r.status === statusFilter) : items;
 
   return (
@@ -59,55 +70,40 @@ export default async function RequestsPage({
         breadcrumbs={<PageBreadcrumbs />}
         icon={<FileText className="h-6 w-6" />}
         title="Заявки"
-        description="Отпуска, больничные, отгулы"
+        description="Отпуска, больничные и отгулы"
         actions={<CreateRequestButton balance={balance} />}
       />
 
       {balance ? (
-        <div className="grid gap-4 md:grid-cols-4">
-          <Stat label="Накоплено дней" value={balance.accrued} />
-          <Stat label="Использовано" value={balance.used} />
-          <Stat label="Ждут утверждения" value={balance.pending} accent="warning" />
-          <Stat label="Остаток" value={balance.remaining} accent="success" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <BalanceCard
+            icon={<Wallet className="h-5 w-5" />}
+            label="Накоплено дней"
+            value={balance.accrued}
+            tone="primary"
+          />
+          <BalanceCard
+            icon={<Palmtree className="h-5 w-5" />}
+            label="Использовано"
+            value={balance.used}
+            tone="info"
+          />
+          <BalanceCard
+            icon={<ThermometerSun className="h-5 w-5" />}
+            label="Ждут утверждения"
+            value={balance.pending}
+            tone="warning"
+          />
+          <BalanceCard
+            icon={<Calendar className="h-5 w-5" />}
+            label="Остаток"
+            value={balance.remaining}
+            tone="success"
+          />
         </div>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-2">
-        {SCOPES.map((s) => (
-          <Link
-            key={s.id}
-            href={`/dashboard/requests?scope=${s.id}`}
-            className={[
-              "rounded-pill px-4 py-1.5 text-sm font-semibold transition-colors",
-              scope === s.id
-                ? "bg-primary-500 text-white"
-                : "border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50",
-            ].join(" ")}
-          >
-            {s.label}
-          </Link>
-        ))}
-
-        <div className="ml-auto flex gap-2 text-sm">
-          {(["PENDING", "APPROVED", "REJECTED"] as const).map((status) => (
-            <Link
-              key={status}
-              href={{
-                pathname: "/dashboard/requests",
-                query: { scope, status: statusFilter === status ? undefined : status },
-              }}
-              className={[
-                "rounded-pill px-3 py-1 text-xs font-semibold",
-                statusFilter === status
-                  ? "bg-primary-100 text-primary-700"
-                  : "text-neutral-500 hover:text-neutral-900",
-              ].join(" ")}
-            >
-              {statusLabel(status)}
-            </Link>
-          ))}
-        </div>
-      </div>
+      <RequestsTabs scope={scope} status={statusFilter} counts={counts} />
 
       <Card>
         <CardContent className="p-0">
@@ -115,37 +111,56 @@ export default async function RequestsPage({
             <div className="p-6">
               <EmptyState
                 icon={<FileText />}
-                title="Нет заявок"
-                description="В выбранном фильтре ничего не найдено. Попробуйте сменить фильтр или создать новую заявку."
+                title={statusFilter ? "Нет заявок с таким статусом" : "Пока нет заявок"}
+                description={
+                  statusFilter
+                    ? "Снимите фильтр статуса или попробуйте другую вкладку"
+                    : "Создайте первую заявку на отпуск — кнопка справа сверху"
+                }
               />
             </div>
           ) : (
-            <ul className="divide-y divide-neutral-200">
+            <ul className="divide-border divide-y">
               {filtered.map((req) => (
-                <li key={req.id} className="px-6 py-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-semibold text-neutral-900">
-                        {typeIcon(req.type)} {typeLabel(req.type)} · {req.userName}
+                <li
+                  key={req.id}
+                  className="hover:bg-muted/40 flex items-start justify-between gap-4 px-6 py-4 transition-colors"
+                >
+                  <div className="flex flex-1 items-start gap-3">
+                    <Avatar className="mt-0.5 h-9 w-9">
+                      <AvatarFallback className="bg-gradient-primary text-xs font-bold text-white">
+                        {initialsOf(req.userName)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-foreground text-sm font-bold">{req.userName}</span>
+                        <Badge variant="outline" className="gap-1">
+                          <span aria-hidden="true">{typeIcon(req.type)}</span>
+                          {typeLabel(req.type)}
+                        </Badge>
+                      </div>
+                      <p className="text-muted-foreground text-xs">
+                        {formatDate(req.startDate)} — {formatDate(req.endDate)} ·{" "}
+                        <span className="text-foreground font-semibold">{req.daysCount}</span> раб.{" "}
+                        {pluralizeDays(req.daysCount)}
                       </p>
-                      <p className="mt-1 text-xs text-neutral-500">
-                        {req.startDate} — {req.endDate} ({req.daysCount} раб. дней)
-                      </p>
-                      {req.reason ? (
-                        <p className="mt-2 text-sm text-neutral-600">{req.reason}</p>
-                      ) : null}
-                      {req.approverComment ? (
-                        <p className="mt-1 text-xs italic text-neutral-500">
-                          {req.approverName}: {req.approverComment}
+                      {req.reason && (
+                        <p className="text-muted-foreground text-sm leading-snug">{req.reason}</p>
+                      )}
+                      {req.approverComment && (
+                        <p className="text-muted-foreground text-xs italic">
+                          <span className="font-semibold not-italic">{req.approverName}:</span>{" "}
+                          {req.approverComment}
                         </p>
-                      ) : null}
+                      )}
                     </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <StatusBadge status={req.status} />
-                      {req.status === "PENDING" && (scope === "team" || scope === "all") ? (
-                        <DecisionButtons requestId={req.id} />
-                      ) : null}
-                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <StatusBadge status={req.status} />
+                    {req.status === "PENDING" && (scope === "team" || scope === "all") ? (
+                      <DecisionButtons requestId={req.id} />
+                    ) : null}
                   </div>
                 </li>
               ))}
@@ -157,26 +172,42 @@ export default async function RequestsPage({
   );
 }
 
-function Stat({
+type Tone = "primary" | "success" | "warning" | "info";
+
+const TONE_STYLES: Record<Tone, { icon: string; value: string; bg: string }> = {
+  primary: { icon: "text-primary-500", value: "text-foreground", bg: "bg-primary-50" },
+  success: { icon: "text-success", value: "text-success", bg: "bg-success-light" },
+  warning: { icon: "text-warning", value: "text-warning", bg: "bg-warning-light" },
+  info: { icon: "text-info", value: "text-info", bg: "bg-info-light" },
+};
+
+function BalanceCard({
+  icon,
   label,
   value,
-  accent,
+  tone,
 }: {
+  icon: React.ReactNode;
   label: string;
   value: number;
-  accent?: "success" | "warning";
+  tone: Tone;
 }) {
-  const colorClass =
-    accent === "success"
-      ? "text-success"
-      : accent === "warning"
-        ? "text-warning"
-        : "text-neutral-900";
+  const t = TONE_STYLES[tone];
   return (
-    <Card>
-      <CardContent className="p-6">
-        <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">{label}</p>
-        <p className={`mt-2 text-3xl font-extrabold ${colorClass}`}>{value}</p>
+    <Card className="transition-shadow hover:shadow-md">
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between">
+          <p className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
+            {label}
+          </p>
+          <span
+            className={`flex h-9 w-9 items-center justify-center rounded-sm ${t.bg} ${t.icon}`}
+            aria-hidden="true"
+          >
+            {icon}
+          </span>
+        </div>
+        <p className={`mt-3 text-3xl font-extrabold tabular-nums ${t.value}`}>{value}</p>
       </CardContent>
     </Card>
   );
@@ -185,18 +216,26 @@ function Stat({
 function StatusBadge({ status }: { status: Status }) {
   switch (status) {
     case "PENDING":
-      return <Badge variant="warning">Ждёт решения</Badge>;
+      return (
+        <Badge variant="warning" dot>
+          Ждёт решения
+        </Badge>
+      );
     case "APPROVED":
-      return <Badge variant="success">Утверждена</Badge>;
+      return (
+        <Badge variant="success" dot>
+          Утверждена
+        </Badge>
+      );
     case "REJECTED":
-      return <Badge variant="danger">Отклонена</Badge>;
+      return (
+        <Badge variant="danger" dot>
+          Отклонена
+        </Badge>
+      );
     case "CANCELLED":
       return <Badge variant="secondary">Отменена</Badge>;
   }
-}
-
-function statusLabel(status: Status): string {
-  return status === "PENDING" ? "Ждут" : status === "APPROVED" ? "Утв." : "Откл.";
 }
 
 function typeLabel(type: LeaveType): string {
@@ -211,4 +250,28 @@ function typeLabel(type: LeaveType): string {
 
 function typeIcon(type: LeaveType): string {
   return type === "VACATION" ? "✈️" : type === "SICK" ? "🤒" : type === "TIME_OFF" ? "🎂" : "📝";
+}
+
+function pluralizeDays(n: number): string {
+  if (n % 10 === 1 && n % 100 !== 11) return "день";
+  if ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100)) return "дня";
+  return "дней";
+}
+
+function initialsOf(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  const first = parts[0]?.charAt(0) ?? "?";
+  const last = parts[parts.length - 1]?.charAt(0) ?? "";
+  return (first + last).toUpperCase();
+}
+
+function formatDate(iso: string): string {
+  // Ожидаем "YYYY-MM-DD". Отдаём "31 мая".
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return iso;
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
 }
