@@ -104,8 +104,8 @@ export default async function ReportsPage({
               className={selected?.id === rt.id ? "ring-primary-500 ring-2" : "hover:shadow-md"}
             >
               <CardContent className="p-6">
-                <p className="text-lg font-bold text-neutral-900">{rt.title}</p>
-                <p className="mt-1 text-sm text-neutral-500">{rt.description}</p>
+                <p className="text-foreground text-lg font-bold">{rt.title}</p>
+                <p className="text-muted-foreground mt-1 text-sm">{rt.description}</p>
               </CardContent>
             </Card>
           </Link>

@@ -27,15 +27,15 @@ export function ReportControls({
   }
 
   return (
-    <div className="flex flex-wrap items-end gap-4 rounded-lg border border-neutral-200 bg-white p-4">
+    <div className="border-border bg-card flex flex-wrap items-end gap-4 rounded-lg border p-4">
       <div className="space-y-1">
-        <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+        <label className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
           Начало
         </label>
         <Input type="date" value={start} onChange={(e) => setStart(e.target.value)} />
       </div>
       <div className="space-y-1">
-        <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+        <label className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
           Конец
         </label>
         <Input type="date" value={end} onChange={(e) => setEnd(e.target.value)} />

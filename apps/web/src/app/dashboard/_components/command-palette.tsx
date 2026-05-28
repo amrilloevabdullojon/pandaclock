@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import {
   CommandDialog,
   CommandEmpty,
@@ -12,7 +13,7 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@pandaclock/ui";
-import { LogOut, Moon, Plus, UserCircle } from "lucide-react";
+import { LogOut, Monitor, Moon, Plus, Sun, UserCircle } from "lucide-react";
 import { useUiStore } from "@/lib/stores/ui-store";
 import { NAV_FLAT } from "./nav-config";
 
@@ -22,6 +23,7 @@ import { NAV_FLAT } from "./nav-config";
  */
 export function CommandPalette() {
   const router = useRouter();
+  const { setTheme } = useTheme();
   const open = useUiStore((s) => s.commandOpen);
   const setOpen = useUiStore((s) => s.setCommandOpen);
 
@@ -106,11 +108,25 @@ export function CommandPalette() {
             <span>Профиль</span>
           </CommandItem>
           <CommandItem
+            value="светлая тема light"
+            onSelect={() => runAndClose(() => setTheme("light"))}
+          >
+            <Sun />
+            <span>Светлая тема</span>
+          </CommandItem>
+          <CommandItem
             value="тёмная тема dark mode"
-            onSelect={() => runAndClose(() => document.documentElement.classList.toggle("dark"))}
+            onSelect={() => runAndClose(() => setTheme("dark"))}
           >
             <Moon />
-            <span>Переключить тёмную тему</span>
+            <span>Тёмная тема</span>
+          </CommandItem>
+          <CommandItem
+            value="системная тема system auto"
+            onSelect={() => runAndClose(() => setTheme("system"))}
+          >
+            <Monitor />
+            <span>Системная тема</span>
           </CommandItem>
           <CommandItem
             value="выйти logout"

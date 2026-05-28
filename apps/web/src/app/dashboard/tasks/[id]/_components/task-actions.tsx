@@ -6,7 +6,10 @@ import { Button, Card, CardContent } from "@pandaclock/ui";
 
 type Status = "NEW" | "IN_PROGRESS" | "DONE" | "REJECTED";
 
-const TRANSITIONS: Record<Status, { status: Status; label: string; variant: "primary" | "success" | "danger" | "secondary" }[]> = {
+const TRANSITIONS: Record<
+  Status,
+  { status: Status; label: string; variant: "primary" | "success" | "danger" | "secondary" }[]
+> = {
   NEW: [
     { status: "IN_PROGRESS", label: "Взять в работу", variant: "primary" },
     { status: "REJECTED", label: "Отклонить", variant: "danger" },
@@ -40,7 +43,7 @@ export function TaskActions({ taskId, currentStatus }: { taskId: string; current
   return (
     <Card>
       <CardContent className="space-y-2 p-6">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-neutral-500">
+        <h3 className="text-muted-foreground text-sm font-semibold uppercase tracking-wider">
           Действия
         </h3>
         {TRANSITIONS[currentStatus].map((action) => (

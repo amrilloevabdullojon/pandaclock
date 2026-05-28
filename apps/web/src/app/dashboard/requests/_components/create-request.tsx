@@ -53,8 +53,7 @@ export function CreateRequestButton({ balance }: { balance: Balance | null }) {
   const [error, setError] = useState<string | null>(null);
 
   const days = useMemo(() => countWorkingDays(startDate, endDate), [startDate, endDate]);
-  const remainingAfter =
-    balance && type === "VACATION" ? balance.remaining - days : null;
+  const remainingAfter = balance && type === "VACATION" ? balance.remaining - days : null;
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -101,7 +100,7 @@ export function CreateRequestButton({ balance }: { balance: Balance | null }) {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-neutral-700">Тип</label>
+            <label className="text-foreground text-sm font-semibold">Тип</label>
             <div className="grid grid-cols-2 gap-2">
               {TYPES.map((option) => (
                 <button
@@ -112,7 +111,7 @@ export function CreateRequestButton({ balance }: { balance: Balance | null }) {
                     "rounded-md border px-3 py-2 text-sm font-semibold transition-colors",
                     type === option.value
                       ? "border-primary-500 bg-primary-50 text-primary-700"
-                      : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50",
+                      : "border-border bg-card text-foreground hover:bg-muted",
                   ].join(" ")}
                 >
                   {option.label}
@@ -123,7 +122,7 @@ export function CreateRequestButton({ balance }: { balance: Balance | null }) {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-neutral-700">С</label>
+              <label className="text-foreground text-sm font-semibold">С</label>
               <Input
                 type="date"
                 required
@@ -132,7 +131,7 @@ export function CreateRequestButton({ balance }: { balance: Balance | null }) {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-neutral-700">По</label>
+              <label className="text-foreground text-sm font-semibold">По</label>
               <Input
                 type="date"
                 required
@@ -143,27 +142,30 @@ export function CreateRequestButton({ balance }: { balance: Balance | null }) {
           </div>
 
           {days > 0 ? (
-            <div className="rounded-md bg-primary-50 px-3 py-2 text-sm text-primary-700">
+            <div className="bg-primary-50 text-primary-700 rounded-md px-3 py-2 text-sm">
               {days} рабочих дней
               {remainingAfter !== null ? (
-                <> · остаток после: <strong>{remainingAfter}</strong></>
+                <>
+                  {" "}
+                  · остаток после: <strong>{remainingAfter}</strong>
+                </>
               ) : null}
             </div>
           ) : null}
 
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-neutral-700">Причина</label>
+            <label className="text-foreground text-sm font-semibold">Причина</label>
             <textarea
               rows={3}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Опционально"
-              className="block w-full rounded-md border border-neutral-200 bg-white px-4 py-2 text-sm focus-ring focus-visible:border-primary-500"
+              className="border-border bg-card focus-ring focus-visible:border-primary-500 block w-full rounded-md border px-4 py-2 text-sm"
             />
           </div>
 
           {error ? (
-            <p className="rounded-md bg-danger-light px-3 py-2 text-sm text-danger">{error}</p>
+            <p className="bg-danger-light text-danger rounded-md px-3 py-2 text-sm">{error}</p>
           ) : null}
 
           <DialogFooter>

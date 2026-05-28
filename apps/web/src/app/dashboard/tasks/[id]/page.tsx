@@ -37,12 +37,12 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
 
   return (
     <div className="space-y-6">
-      <Link href="/dashboard/tasks" className="text-sm text-primary-500 hover:underline">
+      <Link href="/dashboard/tasks" className="text-primary-500 text-sm hover:underline">
         ← Назад к доске
       </Link>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-4">
+        <div className="space-y-4 lg:col-span-2">
           <header>
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <PriorityBadge priority={task.priority} />
@@ -50,31 +50,31 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
               {task.labels.map((label) => (
                 <span
                   key={label}
-                  className="rounded-pill bg-neutral-100 px-2 py-0.5 text-xs text-neutral-600"
+                  className="rounded-pill bg-muted text-muted-foreground px-2 py-0.5 text-xs"
                 >
                   #{label}
                 </span>
               ))}
             </div>
-            <h1 className="text-3xl font-extrabold text-neutral-900">{task.title}</h1>
+            <h1 className="text-foreground text-3xl font-extrabold">{task.title}</h1>
           </header>
 
           <Card>
             <CardContent className="p-6">
-              <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-neutral-500">
+              <h2 className="text-muted-foreground mb-2 text-sm font-semibold uppercase tracking-wider">
                 Описание
               </h2>
               {task.description ? (
-                <p className="whitespace-pre-wrap text-sm text-neutral-700">{task.description}</p>
+                <p className="text-foreground whitespace-pre-wrap text-sm">{task.description}</p>
               ) : (
-                <p className="text-sm text-neutral-400">Без описания.</p>
+                <p className="text-muted-foreground text-sm">Без описания.</p>
               )}
             </CardContent>
           </Card>
 
           <Card>
             <CardContent className="p-6">
-              <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-neutral-500">
+              <h2 className="text-muted-foreground mb-4 text-sm font-semibold uppercase tracking-wider">
                 Комментарии · {comments.length}
               </h2>
               <CommentList taskId={task.id} initial={comments} />
@@ -90,13 +90,9 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
               <Row label="Дедлайн">
                 {task.deadline ? new Date(task.deadline).toLocaleString("ru-RU") : "—"}
               </Row>
-              <Row label="Создана">
-                {new Date(task.createdAt).toLocaleDateString("ru-RU")}
-              </Row>
+              <Row label="Создана">{new Date(task.createdAt).toLocaleDateString("ru-RU")}</Row>
               {task.completedAt ? (
-                <Row label="Завершена">
-                  {new Date(task.completedAt).toLocaleString("ru-RU")}
-                </Row>
+                <Row label="Завершена">{new Date(task.completedAt).toLocaleString("ru-RU")}</Row>
               ) : null}
             </CardContent>
           </Card>
@@ -111,8 +107,8 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-2">
-      <dt className="text-neutral-500">{label}</dt>
-      <dd className="text-right font-semibold text-neutral-900">{children}</dd>
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="text-foreground text-right font-semibold">{children}</dd>
     </div>
   );
 }

@@ -71,13 +71,13 @@ export default async function BillingPage() {
           <CardContent className="space-y-4 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                <p className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
                   Текущий тариф
                 </p>
-                <p className="mt-1 text-2xl font-extrabold text-neutral-900">
+                <p className="text-foreground mt-1 text-2xl font-extrabold">
                   ⭐ {subscription.planName}
                 </p>
-                <p className="mt-1 text-sm text-neutral-500">
+                <p className="text-muted-foreground mt-1 text-sm">
                   {subscription.activeEmployees} активных сотрудников
                   {subscription.employeesLimit > 0
                     ? ` · лимит ${String(subscription.employeesLimit)}`
@@ -88,13 +88,13 @@ export default async function BillingPage() {
                 <p className="text-primary-500 text-3xl font-extrabold">
                   {formatPrice(subscription.priceAmount, subscription.priceCurrency)}
                 </p>
-                <p className="text-xs text-neutral-500">
+                <p className="text-muted-foreground text-xs">
                   / {subscription.billingPeriod === "MONTHLY" ? "месяц" : "год"}
                 </p>
               </div>
             </div>
 
-            <dl className="grid grid-cols-2 gap-4 border-t border-neutral-200 pt-4 text-sm">
+            <dl className="border-border grid grid-cols-2 gap-4 border-t pt-4 text-sm">
               <Row label="Начало периода">
                 {new Date(subscription.startedAt).toLocaleDateString("ru-RU")}
               </Row>
@@ -122,7 +122,7 @@ export default async function BillingPage() {
 
       {plans && subscription ? (
         <section>
-          <h2 className="mb-3 text-lg font-bold text-neutral-900">Сменить тариф</h2>
+          <h2 className="text-foreground mb-3 text-lg font-bold">Сменить тариф</h2>
           <div className="grid gap-3 md:grid-cols-4">
             {(Object.values(plans) as PlanDefinition[]).map((plan) => (
               <Card
@@ -130,17 +130,17 @@ export default async function BillingPage() {
                 className={plan.code === subscription.plan ? "ring-primary-500 ring-2" : ""}
               >
                 <CardContent className="space-y-3 p-4">
-                  <p className="text-sm font-bold uppercase tracking-wider text-neutral-500">
+                  <p className="text-muted-foreground text-sm font-bold uppercase tracking-wider">
                     {plan.name}
                   </p>
-                  <p className="text-2xl font-extrabold text-neutral-900">
+                  <p className="text-foreground text-2xl font-extrabold">
                     {plan.baseMonthly > 0
                       ? `${plan.baseMonthly.toLocaleString("ru-RU")} +${plan.perEmployeeMonthly.toLocaleString("ru-RU")}/сотр.`
                       : plan.perEmployeeMonthly > 0
                         ? `${plan.perEmployeeMonthly.toLocaleString("ru-RU")} UZS / сотр.`
                         : "Бесплатно"}
                   </p>
-                  <p className="text-xs text-neutral-500">
+                  <p className="text-muted-foreground text-xs">
                     {plan.employeesLimit > 0
                       ? `до ${String(plan.employeesLimit)} сотрудников`
                       : "без лимита"}
@@ -219,8 +219,8 @@ export default async function BillingPage() {
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <dt className="text-neutral-500">{label}</dt>
-      <dd className="mt-1 font-semibold text-neutral-900">{children}</dd>
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="text-foreground mt-1 font-semibold">{children}</dd>
     </div>
   );
 }

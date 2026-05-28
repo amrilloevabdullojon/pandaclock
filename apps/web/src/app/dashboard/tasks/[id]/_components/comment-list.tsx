@@ -36,16 +36,16 @@ export function CommentList({ taskId, initial }: { taskId: string; initial: Comm
   return (
     <div className="space-y-4">
       {initial.length === 0 ? (
-        <p className="text-sm text-neutral-400">Пока нет комментариев.</p>
+        <p className="text-muted-foreground text-sm">Пока нет комментариев.</p>
       ) : (
         <ul className="space-y-3">
           {initial.map((comment) => (
-            <li key={comment.id} className="rounded-md bg-neutral-50 p-3">
-              <div className="flex items-center justify-between text-xs text-neutral-500">
-                <span className="font-semibold text-neutral-700">{comment.authorName}</span>
+            <li key={comment.id} className="bg-muted rounded-md p-3">
+              <div className="text-muted-foreground flex items-center justify-between text-xs">
+                <span className="text-foreground font-semibold">{comment.authorName}</span>
                 <span>{new Date(comment.createdAt).toLocaleString("ru-RU")}</span>
               </div>
-              <p className="mt-2 whitespace-pre-wrap text-sm text-neutral-700">{comment.body}</p>
+              <p className="text-foreground mt-2 whitespace-pre-wrap text-sm">{comment.body}</p>
             </li>
           ))}
         </ul>
@@ -57,7 +57,7 @@ export function CommentList({ taskId, initial }: { taskId: string; initial: Comm
           value={body}
           onChange={(e) => setBody(e.target.value)}
           placeholder="Напишите комментарий..."
-          className="block w-full rounded-md border border-neutral-200 bg-white px-4 py-2 text-sm focus-ring focus-visible:border-primary-500"
+          className="border-border bg-card focus-ring focus-visible:border-primary-500 block w-full rounded-md border px-4 py-2 text-sm"
         />
         <Button type="submit" size="sm" disabled={pending || !body.trim()}>
           {pending ? "..." : "Добавить"}

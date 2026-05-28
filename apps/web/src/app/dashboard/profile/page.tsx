@@ -32,20 +32,20 @@ export default async function ProfilePage() {
               {me.lastName.charAt(0)}
             </div>
             <div>
-              <p className="text-xl font-extrabold text-neutral-900">
+              <p className="text-foreground text-xl font-extrabold">
                 {me.firstName} {me.lastName}
               </p>
-              <p className="text-sm text-neutral-500">{me.email}</p>
+              <p className="text-muted-foreground text-sm">{me.email}</p>
             </div>
           </div>
 
-          <dl className="grid grid-cols-2 gap-4 border-t border-neutral-200 pt-4 text-sm">
+          <dl className="border-border grid grid-cols-2 gap-4 border-t pt-4 text-sm">
             <div>
-              <dt className="text-neutral-500">Роль</dt>
-              <dd className="font-semibold text-neutral-900">{me.role}</dd>
+              <dt className="text-muted-foreground">Роль</dt>
+              <dd className="text-foreground font-semibold">{me.role}</dd>
             </div>
             <div>
-              <dt className="text-neutral-500">Email подтверждён</dt>
+              <dt className="text-muted-foreground">Email подтверждён</dt>
               <dd>
                 {me.emailVerified ? (
                   <Badge variant="success">Да</Badge>

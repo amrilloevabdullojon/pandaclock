@@ -46,10 +46,10 @@ function Tree({ nodes, depth }: { nodes: DepartmentNode[]; depth: number }) {
     <ul className="space-y-2">
       {nodes.map((node) => (
         <li key={node.id} style={{ paddingLeft: depth * 24 }}>
-          <div className="flex items-center justify-between rounded-md bg-neutral-50 px-4 py-2">
-            <span className="font-semibold text-neutral-900">{node.name}</span>
+          <div className="bg-muted flex items-center justify-between rounded-md px-4 py-2">
+            <span className="text-foreground font-semibold">{node.name}</span>
             {node.description ? (
-              <span className="text-xs text-neutral-500">{node.description}</span>
+              <span className="text-muted-foreground text-xs">{node.description}</span>
             ) : null}
           </div>
           {node.children.length > 0 ? (

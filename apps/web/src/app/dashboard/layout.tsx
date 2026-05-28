@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { Toaster } from "@pandaclock/ui";
 import { CommandPalette } from "./_components/command-palette";
+import { PageTransition } from "./_components/page-transition";
 import { Sidebar } from "./_components/sidebar";
 import { TopBar } from "./_components/top-bar";
 import { serverFetch } from "@/lib/server-api";
@@ -26,8 +27,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar user={me} tenantSlug={tenantSlug} />
         <main className="flex-1 overflow-x-hidden px-4 py-6 sm:px-6 lg:px-8">
-          <div className="animate-fade-in-up mx-auto w-full max-w-screen-2xl space-y-6">
-            {children}
+          <div className="mx-auto w-full max-w-screen-2xl">
+            <PageTransition>{children}</PageTransition>
           </div>
         </main>
       </div>

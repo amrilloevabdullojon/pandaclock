@@ -5,6 +5,7 @@ import { CommandTrigger } from "./command-trigger";
 import { LocaleSwitcher } from "./locale-switcher";
 import { MobileNav } from "./mobile-nav";
 import { NotificationsBell } from "./notifications-bell";
+import { ThemeToggle } from "./theme-toggle";
 import { UserMenu } from "./user-menu";
 
 interface TopBarProps {
@@ -36,6 +37,7 @@ export function TopBar({ user, tenantSlug }: TopBarProps) {
             <span className="font-mono">{tenantSlug}</span>
           </span>
         )}
+        <ThemeToggle />
         <LocaleSwitcher />
         <NotificationsBell />
         <Separator orientation="vertical" className="mx-1 hidden h-8 sm:block" />

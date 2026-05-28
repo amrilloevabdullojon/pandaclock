@@ -45,21 +45,21 @@ export default async function EmployeeDetailPage({
 
   return (
     <div className="space-y-6">
-      <Link href="/dashboard/employees" className="text-sm text-primary-500 hover:underline">
+      <Link href="/dashboard/employees" className="text-primary-500 text-sm hover:underline">
         ← Назад к списку
       </Link>
 
       <Card>
         <CardContent className="flex items-center gap-6 p-6">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary-100 text-2xl font-extrabold text-primary-700">
+          <div className="bg-primary-100 text-primary-700 flex h-20 w-20 items-center justify-center rounded-full text-2xl font-extrabold">
             {employee.firstName.charAt(0)}
             {employee.lastName.charAt(0)}
           </div>
           <div className="flex-1">
-            <h1 className="text-2xl font-extrabold text-neutral-900">
+            <h1 className="text-foreground text-2xl font-extrabold">
               {employee.firstName} {employee.middleName ?? ""} {employee.lastName}
             </h1>
-            <p className="text-sm text-neutral-500">
+            <p className="text-muted-foreground text-sm">
               {employee.position ?? "Без должности"} · {employee.departmentName ?? "Без отдела"}
             </p>
             <div className="mt-2 flex items-center gap-2">
@@ -77,7 +77,7 @@ export default async function EmployeeDetailPage({
         </CardContent>
       </Card>
 
-      <nav className="border-b border-neutral-200">
+      <nav className="border-border border-b">
         <ul className="flex gap-6">
           {TABS.map((t) => (
             <li key={t.id}>
@@ -85,8 +85,8 @@ export default async function EmployeeDetailPage({
                 href={`/dashboard/employees/${id}?tab=${t.id}`}
                 className={
                   t.id === activeTab
-                    ? "block border-b-2 border-primary-500 px-1 pb-3 text-sm font-semibold text-primary-700"
-                    : "block px-1 pb-3 text-sm font-semibold text-neutral-500 hover:text-neutral-900"
+                    ? "border-primary-500 text-primary-700 block border-b-2 px-1 pb-3 text-sm font-semibold"
+                    : "text-muted-foreground hover:text-foreground block px-1 pb-3 text-sm font-semibold"
                 }
               >
                 {t.label}
@@ -104,7 +104,7 @@ export default async function EmployeeDetailPage({
         <Card>
           <CardContent className="px-6 py-16 text-center">
             <p className="text-4xl">📂</p>
-            <p className="mt-4 text-sm text-neutral-500">
+            <p className="text-muted-foreground mt-4 text-sm">
               Документы появятся в следующем релизе.
             </p>
           </CardContent>
@@ -117,20 +117,26 @@ export default async function EmployeeDetailPage({
 async function TimeTab({ userId }: { userId: string }) {
   void userId; // история фильтруется на стороне API через JWT; для админа добавим в Sprint 7
   const history = await serverFetch<
-    { date: string; startedAt: string; finishedAt: string | null; totalMinutes: number | null; isLate: boolean }[]
+    {
+      date: string;
+      startedAt: string;
+      finishedAt: string | null;
+      totalMinutes: number | null;
+      isLate: boolean;
+    }[]
   >("/time/history?days=30").catch(() => []);
 
   return (
     <Card>
       <CardContent className="p-6">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-neutral-500">
+        <h2 className="text-muted-foreground mb-4 text-sm font-semibold uppercase tracking-wider">
           История за 30 дней
         </h2>
         {history.length === 0 ? (
-          <p className="py-8 text-center text-sm text-neutral-500">Нет записей.</p>
+          <p className="text-muted-foreground py-8 text-center text-sm">Нет записей.</p>
         ) : (
           <table className="w-full text-sm">
-            <thead className="text-left text-xs font-semibold uppercase text-neutral-500">
+            <thead className="text-muted-foreground text-left text-xs font-semibold uppercase">
               <tr>
                 <th className="py-2">Дата</th>
                 <th>Начало</th>
@@ -139,10 +145,10 @@ async function TimeTab({ userId }: { userId: string }) {
                 <th>Статус</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-200">
+            <tbody className="divide-border divide-y">
               {history.map((entry) => (
                 <tr key={entry.date}>
-                  <td className="py-2 font-semibold text-neutral-900">{entry.date}</td>
+                  <td className="text-foreground py-2 font-semibold">{entry.date}</td>
                   <td>{formatTime(entry.startedAt)}</td>
                   <td>{entry.finishedAt ? formatTime(entry.finishedAt) : "—"}</td>
                   <td>
@@ -175,21 +181,21 @@ async function TasksTab({ userId }: { userId: string }) {
   return (
     <Card>
       <CardContent className="p-6">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-neutral-500">
+        <h2 className="text-muted-foreground mb-4 text-sm font-semibold uppercase tracking-wider">
           Назначенные задачи · {items.length}
         </h2>
         {items.length === 0 ? (
-          <p className="py-8 text-center text-sm text-neutral-500">Нет активных задач.</p>
+          <p className="text-muted-foreground py-8 text-center text-sm">Нет активных задач.</p>
         ) : (
           <ul className="space-y-2">
             {items.map((task) => (
               <li
                 key={task.id}
-                className="flex items-center justify-between rounded-md border border-neutral-200 px-3 py-2 text-sm"
+                className="border-border flex items-center justify-between rounded-md border px-3 py-2 text-sm"
               >
                 <Link
                   href={`/dashboard/tasks/${task.id}`}
-                  className="font-semibold text-neutral-900 hover:text-primary-500"
+                  className="text-foreground hover:text-primary-500 font-semibold"
                 >
                   {task.title}
                 </Link>
@@ -232,21 +238,21 @@ async function RequestsTab({ userId }: { userId: string }) {
   return (
     <Card>
       <CardContent className="p-6">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-neutral-500">
+        <h2 className="text-muted-foreground mb-4 text-sm font-semibold uppercase tracking-wider">
           Заявки · {filtered.length}
         </h2>
         {filtered.length === 0 ? (
-          <p className="py-8 text-center text-sm text-neutral-500">Заявок нет.</p>
+          <p className="text-muted-foreground py-8 text-center text-sm">Заявок нет.</p>
         ) : (
           <ul className="space-y-2">
             {filtered.map((req) => (
               <li
                 key={req.id}
-                className="flex items-center justify-between rounded-md border border-neutral-200 px-3 py-2 text-sm"
+                className="border-border flex items-center justify-between rounded-md border px-3 py-2 text-sm"
               >
                 <span>
-                  <span className="font-semibold text-neutral-900">{req.type}</span>{" "}
-                  <span className="text-neutral-500">
+                  <span className="text-foreground font-semibold">{req.type}</span>{" "}
+                  <span className="text-muted-foreground">
                     {req.startDate} → {req.endDate} ({req.daysCount} д.)
                   </span>
                 </span>
@@ -281,7 +287,7 @@ function ProfileTab({ employee }: { employee: EmployeeDetail }) {
     <div className="grid gap-4 md:grid-cols-2">
       <Card>
         <CardContent className="p-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-neutral-500">
+          <h2 className="text-muted-foreground text-sm font-semibold uppercase tracking-wider">
             Основная информация
           </h2>
           <dl className="mt-4 space-y-3 text-sm">
@@ -295,7 +301,7 @@ function ProfileTab({ employee }: { employee: EmployeeDetail }) {
 
       <Card>
         <CardContent className="p-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-neutral-500">
+          <h2 className="text-muted-foreground text-sm font-semibold uppercase tracking-wider">
             Работа
           </h2>
           <dl className="mt-4 space-y-3 text-sm">
@@ -313,9 +319,9 @@ function ProfileTab({ employee }: { employee: EmployeeDetail }) {
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-neutral-100 pb-2 last:border-0">
-      <dt className="text-neutral-500">{label}</dt>
-      <dd className="font-semibold text-neutral-900">{children}</dd>
+    <div className="border-border/60 flex items-center justify-between gap-4 border-b pb-2 last:border-0">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="text-foreground font-semibold">{children}</dd>
     </div>
   );
 }
