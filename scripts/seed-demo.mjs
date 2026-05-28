@@ -106,21 +106,22 @@ async function ensureTenant(tenant, pgClient) {
 async function seedTenantInternals(tenant, schemaName, passwordHash, pgClient) {
   await pgClient.query(`SET search_path TO "${schemaName}", public`);
 
-  // Departments
+  // Departments — manual upsert (нет UNIQUE constraint на name → ON CONFLICT не сработает)
   const deptIds = {};
   for (const name of tenant.departments) {
-    const r = await pgClient.query(
-      `INSERT INTO departments (name) VALUES ($1)
-         ON CONFLICT DO NOTHING
-         RETURNING id, name`,
+    const existing = await pgClient.query(
+      "SELECT id FROM departments WHERE name = $1::text LIMIT 1",
       [name],
     );
-    if (r.rowCount > 0) {
-      deptIds[name] = r.rows[0].id;
-    } else {
-      const existing = await pgClient.query("SELECT id FROM departments WHERE name = $1", [name]);
-      deptIds[name] = existing.rows[0]?.id;
+    if (existing.rowCount > 0) {
+      deptIds[name] = existing.rows[0].id;
+      continue;
     }
+    const r = await pgClient.query(
+      `INSERT INTO departments (name) VALUES ($1::text) RETURNING id`,
+      [name],
+    );
+    deptIds[name] = r.rows[0].id;
   }
 
   // Extra users — без ON CONFLICT DO UPDATE (pg ругается на смену типов в plan cache)

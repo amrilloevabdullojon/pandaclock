@@ -7,8 +7,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const cookieStore = await cookies();
   const headerStore = await headers();
   const token = cookieStore.get(ACCESS_COOKIE)?.value;
+  const tenantFromCookie = cookieStore.get("pcl_tenant")?.value;
   const host = headerStore.get("host") ?? "";
-  const tenantSlug = host.split(".")[0] ?? "";
+  const tenantSlug = tenantFromCookie ?? (host.includes(".") ? (host.split(".")[0] ?? "") : "");
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
 
   const response = await fetch(`${apiUrl}/chats/channels/${id}/messages`, {

@@ -9,8 +9,9 @@ export async function GET() {
   if (!token) {
     return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
   }
+  const tenantFromCookie = cookieStore.get("pcl_tenant")?.value;
   const host = headerStore.get("host") ?? "";
-  const tenantSlug = host.split(".")[0] ?? "";
+  const tenantSlug = tenantFromCookie ?? (host.includes(".") ? (host.split(".")[0] ?? "") : "");
   return NextResponse.json({
     token,
     tenantSlug,

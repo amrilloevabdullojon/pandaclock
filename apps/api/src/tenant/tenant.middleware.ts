@@ -3,11 +3,13 @@ import type { Request, Response, NextFunction } from "express";
 import { prisma } from "@pandaclock/db";
 
 /**
- * Извлекает tenant slug из поддомена и кладёт tenant в request.
+ * Извлекает tenant slug по такому приоритету:
+ *   1. Заголовок `X-Tenant-Slug` (для CLI / mobile / тестов)
+ *   2. Cookie `pcl_tenant` (для локальной демо в браузере без поддомена)
+ *   3. Query `?tenant=` (для прямых API-ссылок и Swagger)
+ *   4. Поддомен `<slug>.pandaclock.uz` (production-режим)
  *
- * Примеры:
- *   acmebank.pandaclock.uz → slug = "acmebank"
- *   localhost:4000 → ищет header X-Tenant-Slug (для локальной разработки)
+ * И кладёт tenant в request.
  */
 @Injectable()
 export class TenantMiddleware implements NestMiddleware {
@@ -27,27 +29,33 @@ export class TenantMiddleware implements NestMiddleware {
   }
 
   private extractTenantSlug(req: Request): string | null {
-    // 1. Локальная разработка: явный заголовок
+    // 1. Заголовок (CLI, mobile, тесты)
     const headerSlug = req.headers["x-tenant-slug"];
     if (typeof headerSlug === "string" && headerSlug.length > 0) {
-      return headerSlug;
+      return headerSlug.toLowerCase();
     }
 
-    // 2. Поддомен
+    // 2. Cookie (локальная демо в браузере)
+    const cookieJar = (req as Request & { cookies?: Record<string, string> }).cookies;
+    if (cookieJar && typeof cookieJar.pcl_tenant === "string" && cookieJar.pcl_tenant.length > 0) {
+      return cookieJar.pcl_tenant.toLowerCase();
+    }
+
+    // 3. Query string ?tenant=
+    const queryTenant = req.query.tenant;
+    if (typeof queryTenant === "string" && queryTenant.length > 0) {
+      return queryTenant.toLowerCase();
+    }
+
+    // 4. Поддомен
     const host = req.headers.host ?? "";
     const hostWithoutPort = host.split(":")[0] ?? "";
     const parts = hostWithoutPort.split(".");
-
-    // Минимум 3 уровня: <slug>.pandaclock.uz
     if (parts.length < 3) {
       return null;
     }
-
-    const slug = parts[0];
-    // Игнорируем технические поддомены
-    if (slug === "www" || slug === "api" || slug === "app") {
-      return null;
-    }
-    return slug ?? null;
+    const sub = parts[0];
+    if (sub === "www" || sub === "api" || sub === "app") return null;
+    return sub ?? null;
   }
 }

@@ -6,11 +6,13 @@ async function proxy(request: Request, taskId: string): Promise<Response> {
   const cookieStore = await cookies();
   const headerStore = await headers();
   const token = cookieStore.get(ACCESS_COOKIE)?.value;
+  const tenantFromCookie = cookieStore.get("pcl_tenant")?.value;
   const host = headerStore.get("host") ?? "";
-  const tenantSlug = host.split(".")[0] ?? "";
+  const tenantSlug = tenantFromCookie ?? (host.includes(".") ? (host.split(".")[0] ?? "") : "");
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
 
-  const body = request.method === "GET" || request.method === "DELETE" ? undefined : await request.text();
+  const body =
+    request.method === "GET" || request.method === "DELETE" ? undefined : await request.text();
 
   const response = await fetch(`${apiUrl}/tasks/${taskId}`, {
     method: request.method,
