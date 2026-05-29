@@ -1,17 +1,9 @@
 import { Calendar, FileText, Palmtree, ThermometerSun, Wallet } from "lucide-react";
-import {
-  Avatar,
-  AvatarFallback,
-  Badge,
-  Card,
-  CardContent,
-  EmptyState,
-  PageHeader,
-} from "@pandaclock/ui";
+import { Card, CardContent, EmptyState, PageHeader } from "@pandaclock/ui";
 import { serverFetch } from "@/lib/server-api";
 import { PageBreadcrumbs } from "../_components/page-breadcrumbs";
 import { CreateRequestButton } from "./_components/create-request";
-import { DecisionButtons } from "./_components/decision-buttons";
+import { RequestsList } from "./_components/requests-list";
 import { RequestsTabs } from "./_components/requests-tabs";
 
 type Status = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
@@ -120,51 +112,7 @@ export default async function RequestsPage({
               />
             </div>
           ) : (
-            <ul className="divide-border divide-y">
-              {filtered.map((req) => (
-                <li
-                  key={req.id}
-                  className="hover:bg-muted/40 flex items-start justify-between gap-4 px-6 py-4 transition-colors"
-                >
-                  <div className="flex flex-1 items-start gap-3">
-                    <Avatar className="mt-0.5 h-9 w-9">
-                      <AvatarFallback className="bg-gradient-primary text-xs font-bold text-white">
-                        {initialsOf(req.userName)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-foreground text-sm font-bold">{req.userName}</span>
-                        <Badge variant="outline" className="gap-1">
-                          <span aria-hidden="true">{typeIcon(req.type)}</span>
-                          {typeLabel(req.type)}
-                        </Badge>
-                      </div>
-                      <p className="text-muted-foreground text-xs">
-                        {formatDate(req.startDate)} — {formatDate(req.endDate)} ·{" "}
-                        <span className="text-foreground font-semibold">{req.daysCount}</span> раб.{" "}
-                        {pluralizeDays(req.daysCount)}
-                      </p>
-                      {req.reason && (
-                        <p className="text-muted-foreground text-sm leading-snug">{req.reason}</p>
-                      )}
-                      {req.approverComment && (
-                        <p className="text-muted-foreground text-xs italic">
-                          <span className="font-semibold not-italic">{req.approverName}:</span>{" "}
-                          {req.approverComment}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <StatusBadge status={req.status} />
-                    {req.status === "PENDING" && (scope === "team" || scope === "all") ? (
-                      <DecisionButtons requestId={req.id} />
-                    ) : null}
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <RequestsList items={filtered} scope={scope} />
           )}
         </CardContent>
       </Card>
@@ -211,67 +159,4 @@ function BalanceCard({
       </CardContent>
     </Card>
   );
-}
-
-function StatusBadge({ status }: { status: Status }) {
-  switch (status) {
-    case "PENDING":
-      return (
-        <Badge variant="warning" dot>
-          Ждёт решения
-        </Badge>
-      );
-    case "APPROVED":
-      return (
-        <Badge variant="success" dot>
-          Утверждена
-        </Badge>
-      );
-    case "REJECTED":
-      return (
-        <Badge variant="danger" dot>
-          Отклонена
-        </Badge>
-      );
-    case "CANCELLED":
-      return <Badge variant="secondary">Отменена</Badge>;
-  }
-}
-
-function typeLabel(type: LeaveType): string {
-  return type === "VACATION"
-    ? "Отпуск"
-    : type === "SICK"
-      ? "Больничный"
-      : type === "TIME_OFF"
-        ? "Отгул"
-        : "Другое";
-}
-
-function typeIcon(type: LeaveType): string {
-  return type === "VACATION" ? "✈️" : type === "SICK" ? "🤒" : type === "TIME_OFF" ? "🎂" : "📝";
-}
-
-function pluralizeDays(n: number): string {
-  if (n % 10 === 1 && n % 100 !== 11) return "день";
-  if ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100)) return "дня";
-  return "дней";
-}
-
-function initialsOf(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  const first = parts[0]?.charAt(0) ?? "?";
-  const last = parts[parts.length - 1]?.charAt(0) ?? "";
-  return (first + last).toUpperCase();
-}
-
-function formatDate(iso: string): string {
-  // Ожидаем "YYYY-MM-DD". Отдаём "31 мая".
-  const [y, m, d] = iso.split("-").map(Number);
-  if (!y || !m || !d) return iso;
-  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("ru-RU", {
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-  });
 }

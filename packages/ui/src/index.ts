@@ -41,6 +41,8 @@ export * from "./components/form";
 
 // === Списки / таблицы ===
 export * from "./components/table";
+export * from "./components/row-selection";
+export * from "./components/editable-field";
 
 // === cmdk / command-palette ===
 export * from "./components/command";

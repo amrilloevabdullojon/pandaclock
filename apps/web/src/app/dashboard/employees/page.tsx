@@ -1,24 +1,10 @@
-import Link from "next/link";
-import { ArrowRight, Users } from "lucide-react";
-import {
-  Avatar,
-  AvatarFallback,
-  Badge,
-  Card,
-  CardContent,
-  EmptyState,
-  PageHeader,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@pandaclock/ui";
+import { Users } from "lucide-react";
+import { Card, CardContent, EmptyState, PageHeader } from "@pandaclock/ui";
 import { serverFetch } from "@/lib/server-api";
 import { PageBreadcrumbs } from "../_components/page-breadcrumbs";
 import { TablePagination } from "../_components/table-pagination";
 import { EmployeesFilters } from "./_components/employees-filters";
+import { EmployeesTable } from "./_components/employees-table";
 import { InviteEmployees } from "./_components/invite-modal";
 
 interface EmployeesQuery {
@@ -123,63 +109,7 @@ export default async function EmployeesPage({
             </div>
           ) : (
             <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Сотрудник</TableHead>
-                    <TableHead>Должность</TableHead>
-                    <TableHead>Отдел</TableHead>
-                    <TableHead>Статус</TableHead>
-                    <TableHead aria-hidden />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {employees.items.map((employee) => (
-                    <TableRow key={employee.id}>
-                      <TableCell>
-                        <Link
-                          href={`/dashboard/employees/${employee.id}`}
-                          className="focus-ring group flex items-center gap-3 rounded-sm"
-                        >
-                          <Avatar className="h-9 w-9">
-                            <AvatarFallback className="bg-gradient-primary text-xs font-bold text-white">
-                              {employee.firstName.charAt(0)}
-                              {employee.lastName.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="min-w-0">
-                            <p className="text-foreground group-hover:text-primary-600 truncate font-semibold">
-                              {employee.firstName} {employee.lastName}
-                            </p>
-                            <p className="text-muted-foreground truncate text-xs">
-                              {employee.email}
-                            </p>
-                          </div>
-                        </Link>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {employee.position ?? "—"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {employee.departmentName ?? "—"}
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={employee.status} />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Link
-                          href={`/dashboard/employees/${employee.id}`}
-                          aria-label={`Открыть ${employee.firstName} ${employee.lastName}`}
-                          className="text-muted-foreground hover:bg-muted hover:text-foreground focus-ring inline-flex h-7 w-7 items-center justify-center rounded-sm transition-colors"
-                        >
-                          <ArrowRight className="h-4 w-4" />
-                        </Link>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-
+              <EmployeesTable items={employees.items} />
               <TablePagination
                 page={employees.page}
                 pageSize={employees.pageSize}
@@ -191,31 +121,4 @@ export default async function EmployeesPage({
       </Card>
     </>
   );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  switch (status) {
-    case "ACTIVE":
-      return (
-        <Badge variant="success" dot>
-          Активен
-        </Badge>
-      );
-    case "PENDING":
-      return (
-        <Badge variant="warning" dot>
-          Приглашён
-        </Badge>
-      );
-    case "SUSPENDED":
-      return <Badge variant="secondary">Деактивирован</Badge>;
-    case "TERMINATED":
-      return (
-        <Badge variant="danger" dot>
-          Уволен
-        </Badge>
-      );
-    default:
-      return <Badge variant="outline">{status}</Badge>;
-  }
 }

@@ -178,6 +178,32 @@ export class EmployeesService {
       id,
     );
   }
+
+  /**
+   * Массовая смена статуса. Защищает от изменения OWNER-аккаунтов
+   * — их перевести в SUSPENDED/TERMINATED через bulk нельзя.
+   */
+  async bulkSetStatus(
+    ids: string[],
+    status: "ACTIVE" | "SUSPENDED" | "TERMINATED",
+  ): Promise<{ updated: number }> {
+    if (ids.length === 0) return { updated: 0 };
+    const client = await this.tenantDb.getClient();
+    interface CountRow {
+      count: bigint;
+    }
+    const rows = await client.$queryRawUnsafe<CountRow[]>(
+      `WITH upd AS (
+         UPDATE users SET status = $2::varchar, updated_at = NOW()
+         WHERE id = ANY($1::uuid[]) AND role != 'OWNER'
+         RETURNING id
+       )
+       SELECT COUNT(*)::bigint AS count FROM upd`,
+      ids,
+      status,
+    );
+    return { updated: Number(rows[0]?.count ?? 0) };
+  }
 }
 
 function toListItem(row: RowList): EmployeeListItem {

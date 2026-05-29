@@ -237,6 +237,51 @@ export class RequestsService {
     return updated;
   }
 
+  /**
+   * Массово одобряет/отклоняет PENDING заявки. Только эти попадают в
+   * UPDATE — остальные молча игнорируются. Возвращает кол-во применённых
+   * + отправляет notify по каждой обработанной (для деки).
+   */
+  async bulkDecide(
+    ids: string[],
+    approverId: string,
+    status: "APPROVED" | "REJECTED",
+    comment?: string,
+  ): Promise<{ updated: number; ids: string[] }> {
+    if (ids.length === 0) return { updated: 0, ids: [] };
+    const client = await this.tenantDb.getClient();
+    interface RetRow {
+      id: string;
+      user_id: string;
+    }
+    const rows = await client.$queryRawUnsafe<RetRow[]>(
+      `UPDATE leave_requests
+         SET status = $2::varchar, approver_id = $3::uuid, approver_comment = $4,
+             decided_at = NOW(), updated_at = NOW()
+       WHERE id = ANY($1::uuid[]) AND status = 'PENDING'
+       RETURNING id, user_id`,
+      ids,
+      status,
+      approverId,
+      comment ?? null,
+    );
+
+    // Notify в фоне по каждому
+    for (const row of rows) {
+      void this.notifications
+        .notify([row.user_id], {
+          type: "leave_decided",
+          title: status === "APPROVED" ? "Заявка утверждена ✅" : "Заявка отклонена ❌",
+          body: comment ?? "",
+          link: `/dashboard/requests?scope=my`,
+          payload: { requestId: row.id, status },
+        })
+        .catch(() => undefined);
+    }
+
+    return { updated: rows.length, ids: rows.map((r) => r.id) };
+  }
+
   private async findManagerId(userId: string): Promise<string | null> {
     const client = await this.tenantDb.getClient();
     const rows = await client.$queryRawUnsafe<{ manager_id: string | null }[]>(

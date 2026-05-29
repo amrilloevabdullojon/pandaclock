@@ -71,4 +71,22 @@ export class RequestsController {
   cancel(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: AuthRequestUser) {
     return this.requests.cancel(id, user.id);
   }
+
+  @Post("bulk/approve")
+  @Roles("OWNER", "ADMIN", "HR", "MANAGER")
+  bulkApprove(
+    @Body() dto: { ids: string[]; comment?: string },
+    @CurrentUser() user: AuthRequestUser,
+  ) {
+    return this.requests.bulkDecide(dto.ids, user.id, "APPROVED", dto.comment);
+  }
+
+  @Post("bulk/reject")
+  @Roles("OWNER", "ADMIN", "HR", "MANAGER")
+  bulkReject(
+    @Body() dto: { ids: string[]; comment?: string },
+    @CurrentUser() user: AuthRequestUser,
+  ) {
+    return this.requests.bulkDecide(dto.ids, user.id, "REJECTED", dto.comment);
+  }
 }

@@ -64,6 +64,12 @@ export class EmployeesController {
     return this.employees.deactivate(id);
   }
 
+  @Patch("bulk/status")
+  @Roles("OWNER", "ADMIN", "HR")
+  bulkStatus(@Body() dto: { ids: string[]; status: "ACTIVE" | "SUSPENDED" | "TERMINATED" }) {
+    return this.employees.bulkSetStatus(dto.ids, dto.status);
+  }
+
   @Post("invite")
   @Roles("OWNER", "ADMIN", "HR", "MANAGER")
   @HttpCode(201)

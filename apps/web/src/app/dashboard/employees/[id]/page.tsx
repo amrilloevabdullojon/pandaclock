@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Badge, Card, CardContent } from "@pandaclock/ui";
 import { serverFetch } from "@/lib/server-api";
+import { EmployeeProfileTab } from "./_components/employee-profile-tab";
 
 interface EmployeeDetail {
   id: string;
@@ -96,7 +97,7 @@ export default async function EmployeeDetailPage({
         </ul>
       </nav>
 
-      {activeTab === "profile" ? <ProfileTab employee={employee} /> : null}
+      {activeTab === "profile" ? <EmployeeProfileTab employee={employee} /> : null}
       {activeTab === "time" ? <TimeTab userId={id} /> : null}
       {activeTab === "tasks" ? <TasksTab userId={id} /> : null}
       {activeTab === "requests" ? <RequestsTab userId={id} /> : null}
@@ -280,48 +281,4 @@ async function RequestsTab({ userId }: { userId: string }) {
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
-}
-
-function ProfileTab({ employee }: { employee: EmployeeDetail }) {
-  return (
-    <div className="grid gap-4 md:grid-cols-2">
-      <Card>
-        <CardContent className="p-6">
-          <h2 className="text-muted-foreground text-sm font-semibold uppercase tracking-wider">
-            Основная информация
-          </h2>
-          <dl className="mt-4 space-y-3 text-sm">
-            <Row label="Email">{employee.email}</Row>
-            <Row label="Телефон">{employee.phone ?? "—"}</Row>
-            <Row label="Дата рождения">{employee.birthDate ?? "—"}</Row>
-            <Row label="Гражданство">{employee.citizenship ?? "—"}</Row>
-          </dl>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="p-6">
-          <h2 className="text-muted-foreground text-sm font-semibold uppercase tracking-wider">
-            Работа
-          </h2>
-          <dl className="mt-4 space-y-3 text-sm">
-            <Row label="Должность">{employee.position ?? "—"}</Row>
-            <Row label="Отдел">{employee.departmentName ?? "—"}</Row>
-            <Row label="Тип занятости">{employee.employmentType ?? "—"}</Row>
-            <Row label="Дата найма">{employee.hireDate ?? "—"}</Row>
-            <Row label="Роль">{employee.role}</Row>
-          </dl>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="border-border/60 flex items-center justify-between gap-4 border-b pb-2 last:border-0">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="text-foreground font-semibold">{children}</dd>
-    </div>
-  );
 }
