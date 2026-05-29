@@ -7,11 +7,7 @@ import {
 } from "@nestjs/common";
 import { TenantPrismaService } from "../tenant/tenant-prisma.service.js";
 import { NotificationsService } from "../notifications/notifications.service.js";
-import {
-  accruedDays,
-  countWorkingDays,
-  rangesOverlap,
-} from "./leave-utils.js";
+import { accruedDays, countWorkingDays, rangesOverlap } from "./leave-utils.js";
 import type { CreateLeaveRequestDto, LeaveType } from "./dto/leave-request.dto.js";
 
 export type LeaveStatus = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
@@ -137,29 +133,23 @@ export class RequestsService {
     const managerId = await this.findManagerId(userId);
     if (managerId) {
       void this.notifications
-        .pushToUsers([managerId], {
-          title: `📩 Заявка на ${labelForType(request.type)}`,
+        .notify([managerId], {
+          type: "leave_requested",
+          title: `Заявка на ${labelForType(request.type)}`,
           body: `${request.userName}: ${request.startDate} — ${request.endDate}`,
-          data: { type: "REQUEST_PENDING", requestId: request.id },
+          link: `/dashboard/requests?scope=team`,
+          payload: { requestId: request.id },
         })
         .catch(() => undefined);
     }
     return request;
   }
 
-  async approve(
-    id: string,
-    approverId: string,
-    comment?: string,
-  ): Promise<LeaveRequestRow> {
+  async approve(id: string, approverId: string, comment?: string): Promise<LeaveRequestRow> {
     return this.decide(id, approverId, "APPROVED", comment);
   }
 
-  async reject(
-    id: string,
-    approverId: string,
-    comment?: string,
-  ): Promise<LeaveRequestRow> {
+  async reject(id: string, approverId: string, comment?: string): Promise<LeaveRequestRow> {
     return this.decide(id, approverId, "REJECTED", comment);
   }
 
@@ -194,9 +184,7 @@ export class RequestsService {
     const hireDateIso = hireDate ? hireDate.toISOString() : null;
     const accrued = accruedDays(hireDateIso);
 
-    const aggregates = await client.$queryRawUnsafe<
-      { used: number; pending: number }[]
-    >(
+    const aggregates = await client.$queryRawUnsafe<{ used: number; pending: number }[]>(
       `SELECT
          COALESCE(SUM(CASE WHEN status = 'APPROVED' AND type = 'VACATION' THEN days_count ELSE 0 END), 0)::int AS used,
          COALESCE(SUM(CASE WHEN status = 'PENDING' AND type = 'VACATION' THEN days_count ELSE 0 END), 0)::int AS pending
@@ -238,10 +226,12 @@ export class RequestsService {
     );
     const updated = await this.getById(id);
     void this.notifications
-      .pushToUsers([updated.userId], {
-        title: status === "APPROVED" ? "✅ Заявка утверждена" : "❌ Заявка отклонена",
+      .notify([updated.userId], {
+        type: "leave_decided",
+        title: status === "APPROVED" ? "Заявка утверждена ✅" : "Заявка отклонена ❌",
         body: `${labelForType(updated.type)} ${updated.startDate} — ${updated.endDate}`,
-        data: { type: "REQUEST_DECIDED", requestId: updated.id, status },
+        link: `/dashboard/requests?scope=my`,
+        payload: { requestId: updated.id, status },
       })
       .catch(() => undefined);
     return updated;

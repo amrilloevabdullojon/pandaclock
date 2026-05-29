@@ -73,8 +73,10 @@ export class TasksService {
     };
 
     if (query.search) {
-      push((p) => `(LOWER(t.title) LIKE ${p} OR LOWER(t.description) LIKE ${p})`,
-        `%${query.search.toLowerCase()}%`);
+      push(
+        (p) => `(LOWER(t.title) LIKE ${p} OR LOWER(t.description) LIKE ${p})`,
+        `%${query.search.toLowerCase()}%`,
+      );
     }
     if (query.assigneeId) push((p) => `t.assignee_id = ${p}::uuid`, query.assigneeId);
     if (query.status) push((p) => `t.status = ${p}`, query.status);
@@ -160,10 +162,12 @@ export class TasksService {
     const task = await this.getById(id);
     if (task.assigneeId && task.assigneeId !== createdById) {
       void this.notifications
-        .pushToUsers([task.assigneeId], {
-          title: `📋 Новая задача от ${task.createdByName}`,
+        .notify([task.assigneeId], {
+          type: "task_assigned",
+          title: `Новая задача от ${task.createdByName}`,
           body: task.title,
-          data: { type: "TASK_ASSIGNED", taskId: task.id },
+          link: `/dashboard/tasks/${task.id}`,
+          payload: { taskId: task.id },
         })
         .catch(() => undefined);
     }
@@ -219,10 +223,12 @@ export class TasksService {
     const updated = await this.getById(id);
     if (input.status === "DONE" && updated.createdById !== currentUserId) {
       void this.notifications
-        .pushToUsers([updated.createdById], {
-          title: `✅ Задача выполнена`,
+        .notify([updated.createdById], {
+          type: "task_status_changed",
+          title: "Задача выполнена ✅",
           body: `${updated.assigneeName ?? "Сотрудник"} закрыл «${updated.title}»`,
-          data: { type: "TASK_DONE", taskId: updated.id },
+          link: `/dashboard/tasks/${updated.id}`,
+          payload: { taskId: updated.id, newStatus: "DONE" },
         })
         .catch(() => undefined);
     }
@@ -238,7 +244,7 @@ export class TasksService {
   /* --- Comments --- */
 
   async addComment(taskId: string, authorId: string, body: string): Promise<void> {
-    await this.getById(taskId);
+    const task = await this.getById(taskId);
     const client = await this.tenantDb.getClient();
     await client.$executeRawUnsafe(
       `INSERT INTO task_comments (task_id, author_id, body) VALUES ($1::uuid, $2::uuid, $3)`,
@@ -246,9 +252,39 @@ export class TasksService {
       authorId,
       body,
     );
+
+    // Уведомляем всех заинтересованных (assignee + автор), кроме самого комментатора.
+    const recipients = new Set<string>();
+    if (task.assigneeId && task.assigneeId !== authorId) recipients.add(task.assigneeId);
+    if (task.createdById && task.createdById !== authorId) recipients.add(task.createdById);
+    if (recipients.size > 0) {
+      const authorName = await this.getUserName(authorId);
+      const preview = body.length > 80 ? body.slice(0, 80) + "…" : body;
+      void this.notifications
+        .notify([...recipients], {
+          type: "task_commented",
+          title: `${authorName} прокомментировал «${task.title}»`,
+          body: preview,
+          link: `/dashboard/tasks/${task.id}`,
+          payload: { taskId: task.id },
+        })
+        .catch(() => undefined);
+    }
   }
 
-  async listComments(taskId: string): Promise<
+  private async getUserName(userId: string): Promise<string> {
+    const client = await this.tenantDb.getClient();
+    const rows = await client.$queryRawUnsafe<{ first_name: string; last_name: string }[]>(
+      `SELECT first_name, last_name FROM users WHERE id = $1::uuid LIMIT 1`,
+      userId,
+    );
+    const row = rows[0];
+    return row ? `${row.first_name} ${row.last_name}` : "Сотрудник";
+  }
+
+  async listComments(
+    taskId: string,
+  ): Promise<
     { id: string; body: string; createdAt: Date; authorId: string; authorName: string }[]
   > {
     const client = await this.tenantDb.getClient();

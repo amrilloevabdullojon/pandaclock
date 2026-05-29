@@ -7,6 +7,7 @@ import {
   FileText,
   MessageCircle,
   BarChart3,
+  Bell,
   Settings,
   CreditCard,
   Building2,
@@ -74,6 +75,12 @@ export const NAV: NavItem[] = [
     href: "/dashboard/reports",
     icon: BarChart3,
     description: "Аналитика и экспорт в Excel/PDF",
+  },
+  {
+    label: "Уведомления",
+    href: "/dashboard/notifications",
+    icon: Bell,
+    description: "События из задач, заявок и команды",
   },
   {
     label: "Настройки",
