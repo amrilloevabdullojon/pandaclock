@@ -2,6 +2,7 @@ import { User } from "lucide-react";
 import { Badge, Card, CardContent, PageHeader } from "@pandaclock/ui";
 import { serverFetch } from "@/lib/server-api";
 import { PageBreadcrumbs } from "../_components/page-breadcrumbs";
+import { AvatarUploader } from "./_components/avatar-uploader";
 
 interface MeResponse {
   id: string;
@@ -10,6 +11,7 @@ interface MeResponse {
   lastName: string;
   role: string;
   emailVerified: boolean;
+  avatarUrl: string | null;
 }
 
 export default async function ProfilePage() {
@@ -27,10 +29,10 @@ export default async function ProfilePage() {
       <Card>
         <CardContent className="space-y-4 p-6">
           <div className="flex items-center gap-4">
-            <div className="bg-primary-100 text-primary-700 flex h-16 w-16 items-center justify-center rounded-full text-2xl font-extrabold">
-              {me.firstName.charAt(0)}
-              {me.lastName.charAt(0)}
-            </div>
+            <AvatarUploader
+              initialAvatarUrl={me.avatarUrl}
+              fallback={`${me.firstName.charAt(0)}${me.lastName.charAt(0)}`}
+            />
             <div>
               <p className="text-foreground text-xl font-extrabold">
                 {me.firstName} {me.lastName}

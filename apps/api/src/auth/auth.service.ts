@@ -31,6 +31,7 @@ interface UserRow {
   role: string;
   status: string;
   email_verified_at: Date | null;
+  avatar_url: string | null;
 }
 
 interface RefreshRow {
@@ -100,7 +101,11 @@ export class AuthService {
 
   /* ---------- Refresh ---------- */
 
-  async refresh(refreshToken: string, tenantSlug: string, ctx: SessionContext = {}): Promise<AuthTokens> {
+  async refresh(
+    refreshToken: string,
+    tenantSlug: string,
+    ctx: SessionContext = {},
+  ): Promise<AuthTokens> {
     const payload = await this.verifyRefreshToken(refreshToken, tenantSlug);
     const tokenHash = this.hash(refreshToken);
 
@@ -152,10 +157,12 @@ export class AuthService {
     lastName: string;
     role: string;
     emailVerified: boolean;
+    avatarUrl: string | null;
   }> {
     const client = await this.tenantDb.getClient();
     const rows = await client.$queryRawUnsafe<UserRow[]>(
-      `SELECT id, email, password_hash, first_name, last_name, role, status, email_verified_at
+      `SELECT id, email, password_hash, first_name, last_name, role, status,
+              email_verified_at, avatar_url
        FROM users WHERE id = $1::uuid LIMIT 1`,
       userId,
     );
@@ -168,6 +175,7 @@ export class AuthService {
       lastName: user.last_name,
       role: user.role,
       emailVerified: user.email_verified_at !== null,
+      avatarUrl: user.avatar_url,
     };
   }
 

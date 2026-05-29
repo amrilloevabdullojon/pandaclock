@@ -13,19 +13,50 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@pandaclock/ui";
-import { LogOut, Monitor, Moon, Plus, Sun, UserCircle } from "lucide-react";
+import {
+  CheckSquare,
+  FileText,
+  LogOut,
+  Monitor,
+  Moon,
+  Plus,
+  Search,
+  Sun,
+  User as UserIcon,
+  UserCircle,
+} from "lucide-react";
 import { useUiStore } from "@/lib/stores/ui-store";
 import { NAV_FLAT } from "./nav-config";
 
+interface SearchHit {
+  id: string;
+  type: "employee" | "task" | "request";
+  title: string;
+  subtitle: string;
+  link: string;
+}
+
+interface SearchResponse {
+  employees: SearchHit[];
+  tasks: SearchHit[];
+  requests: SearchHit[];
+}
+
+const EMPTY_RESULTS: SearchResponse = { employees: [], tasks: [], requests: [] };
+
 /**
  * Командная палитра (cmd+K / ctrl+K).
- * Содержит: переход к разделам, быстрые действия, аккаунт.
+ * Глобальный поиск через /api/search + переходы + быстрые действия.
  */
 export function CommandPalette() {
   const router = useRouter();
   const { setTheme } = useTheme();
   const open = useUiStore((s) => s.commandOpen);
   const setOpen = useUiStore((s) => s.setCommandOpen);
+
+  const [query, setQuery] = React.useState("");
+  const [results, setResults] = React.useState<SearchResponse>(EMPTY_RESULTS);
+  const [searching, setSearching] = React.useState(false);
 
   React.useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -38,17 +69,119 @@ export function CommandPalette() {
     return () => document.removeEventListener("keydown", onKey);
   }, [open, setOpen]);
 
+  // Debounced search
+  React.useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2) {
+      setResults(EMPTY_RESULTS);
+      return;
+    }
+    setSearching(true);
+    const ctrl = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/search?q=${encodeURIComponent(q)}&limit=5`, {
+          cache: "no-store",
+          signal: ctrl.signal,
+        });
+        if (response.ok) {
+          const data = (await response.json()) as SearchResponse;
+          setResults(data);
+        }
+      } catch {
+        // ignore abort
+      } finally {
+        setSearching(false);
+      }
+    }, 250);
+    return () => {
+      ctrl.abort();
+      clearTimeout(timer);
+    };
+  }, [query]);
+
+  // Сброс при закрытии
+  React.useEffect(() => {
+    if (!open) {
+      setQuery("");
+      setResults(EMPTY_RESULTS);
+    }
+  }, [open]);
+
   function runAndClose(fn: () => void) {
     setOpen(false);
     fn();
   }
 
+  const hasResults = results.employees.length + results.tasks.length + results.requests.length > 0;
+  const showSearchGroups = query.trim().length >= 2;
+
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
-      <CommandInput placeholder="Поиск по приложению…" />
+      <CommandInput placeholder="Поиск или команда…" value={query} onValueChange={setQuery} />
       <CommandList>
-        <CommandEmpty>Ничего не найдено.</CommandEmpty>
+        <CommandEmpty>
+          {searching ? "Ищем…" : showSearchGroups ? "Ничего не найдено." : "Начните печатать…"}
+        </CommandEmpty>
 
+        {/* === Реальные результаты поиска === */}
+        {showSearchGroups && results.employees.length > 0 && (
+          <CommandGroup heading="Сотрудники">
+            {results.employees.map((hit) => (
+              <CommandItem
+                key={`emp-${hit.id}`}
+                value={`employee ${hit.title} ${hit.subtitle}`}
+                onSelect={() => runAndClose(() => router.push(hit.link))}
+              >
+                <UserIcon />
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate">{hit.title}</span>
+                  <span className="text-muted-foreground truncate text-xs">{hit.subtitle}</span>
+                </div>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+
+        {showSearchGroups && results.tasks.length > 0 && (
+          <CommandGroup heading="Задачи">
+            {results.tasks.map((hit) => (
+              <CommandItem
+                key={`task-${hit.id}`}
+                value={`task ${hit.title} ${hit.subtitle}`}
+                onSelect={() => runAndClose(() => router.push(hit.link))}
+              >
+                <CheckSquare />
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate">{hit.title}</span>
+                  <span className="text-muted-foreground truncate text-xs">{hit.subtitle}</span>
+                </div>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+
+        {showSearchGroups && results.requests.length > 0 && (
+          <CommandGroup heading="Заявки">
+            {results.requests.map((hit) => (
+              <CommandItem
+                key={`req-${hit.id}`}
+                value={`request ${hit.title} ${hit.subtitle}`}
+                onSelect={() => runAndClose(() => router.push(hit.link))}
+              >
+                <FileText />
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate">{hit.title}</span>
+                  <span className="text-muted-foreground truncate text-xs">{hit.subtitle}</span>
+                </div>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+
+        {showSearchGroups && hasResults ? <CommandSeparator /> : null}
+
+        {/* === Навигация === */}
         <CommandGroup heading="Навигация">
           {NAV_FLAT.map((item) => {
             const Icon = item.icon;

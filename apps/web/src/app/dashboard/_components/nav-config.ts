@@ -11,6 +11,7 @@ import {
   Settings,
   CreditCard,
   Building2,
+  Shield,
   User,
   type LucideIcon,
 } from "lucide-react";
@@ -105,6 +106,12 @@ export const NAV: NavItem[] = [
         href: "/dashboard/settings/billing",
         icon: CreditCard,
         description: "Тариф, история платежей",
+      },
+      {
+        label: "Журнал действий",
+        href: "/dashboard/settings/audit",
+        icon: Shield,
+        description: "История изменений (только OWNER/HR)",
       },
     ],
   },

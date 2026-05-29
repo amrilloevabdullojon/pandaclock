@@ -19,6 +19,8 @@ import { BillingModule } from "./billing/billing.module.js";
 import { ChatsModule } from "./chats/chats.module.js";
 import { SchedulerModule } from "./scheduler/scheduler.module.js";
 import { AuditModule } from "./audit/audit.module.js";
+import { SearchModule } from "./search/search.module.js";
+import { UploadsModule } from "./uploads/uploads.module.js";
 import { TenantMiddleware } from "./tenant/tenant.middleware.js";
 
 @Module({
@@ -50,6 +52,8 @@ import { TenantMiddleware } from "./tenant/tenant.middleware.js";
     ChatsModule,
     SchedulerModule,
     AuditModule,
+    SearchModule,
+    UploadsModule,
     HealthModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

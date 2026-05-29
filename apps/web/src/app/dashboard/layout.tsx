@@ -13,6 +13,7 @@ interface MeResponse {
   lastName: string;
   role: string;
   emailVerified: boolean;
+  avatarUrl: string | null;
 }
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {

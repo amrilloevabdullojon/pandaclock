@@ -5,6 +5,7 @@ import { ChevronDown, LogOut, Settings, User as UserIcon, CreditCard } from "luc
 import {
   Avatar,
   AvatarFallback,
+  AvatarImage,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -19,6 +20,7 @@ interface User {
   lastName: string;
   email: string;
   role: string;
+  avatarUrl?: string | null;
 }
 
 const ROLE_LABEL: Record<string, string> = {
@@ -50,6 +52,9 @@ export function UserMenu({ user }: { user: User | null }) {
         aria-label="Меню пользователя"
       >
         <Avatar className="h-8 w-8">
+          {user.avatarUrl ? (
+            <AvatarImage src={user.avatarUrl} alt={`${user.firstName} ${user.lastName}`} />
+          ) : null}
           <AvatarFallback className="bg-gradient-primary text-xs font-bold text-white">
             {initials}
           </AvatarFallback>
