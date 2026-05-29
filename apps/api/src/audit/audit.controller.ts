@@ -4,8 +4,8 @@ import { IsOptional, IsString } from "class-validator";
 import { Type } from "class-transformer";
 import { AuditService } from "./audit.service.js";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard.js";
-import { RolesGuard } from "../auth/roles.guard.js";
-import { Roles } from "../auth/roles.decorator.js";
+import { PermissionsGuard } from "../auth/permissions.guard.js";
+import { RequirePermissions } from "../auth/permissions.decorator.js";
 
 class ListAuditQuery {
   @IsOptional()
@@ -31,8 +31,8 @@ class ListAuditQuery {
 
 @ApiTags("audit")
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles("OWNER", "HR")
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+@RequirePermissions("audit:read")
 @Controller("audit")
 export class AuditController {
   constructor(private readonly audit: AuditService) {}

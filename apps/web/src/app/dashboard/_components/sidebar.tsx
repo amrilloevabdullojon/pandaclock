@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 import { ChevronDown, ChevronsLeft, ChevronsRight, Sparkles } from "lucide-react";
 import { cn, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger, Tag } from "@pandaclock/ui";
 import { useUiStore } from "@/lib/stores/ui-store";
+import { useSession } from "@/lib/session-context";
+import { hasPermission } from "@pandaclock/types";
 import { NAV, type NavItem } from "./nav-config";
 
 interface SidebarProps {
@@ -18,6 +20,24 @@ export function Sidebar({ variant = "fixed", onItemClick }: SidebarProps) {
   const pathname = usePathname();
   const collapsed = useUiStore((s) => s.sidebarCollapsed) && variant === "fixed";
   const toggleCollapse = useUiStore((s) => s.toggleSidebar);
+  const session = useSession();
+
+  // Фильтруем пункты по permission текущего пользователя.
+  const visibleNav = React.useMemo(() => {
+    const isAllowed = (item: NavItem): boolean => {
+      if (!item.permission) return true;
+      if (!session) return false;
+      if (session.permissions?.length) return session.permissions.includes(item.permission);
+      return hasPermission(session.role, item.permission);
+    };
+    return NAV.map((item) => {
+      if (item.children) {
+        const kids = item.children.filter(isAllowed);
+        return { ...item, children: kids };
+      }
+      return item;
+    }).filter((item) => isAllowed(item) || (item.children && item.children.length > 0));
+  }, [session]);
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -57,7 +77,7 @@ export function Sidebar({ variant = "fixed", onItemClick }: SidebarProps) {
 
         {/* === Nav === */}
         <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
-          {NAV.map((item) => (
+          {visibleNav.map((item) => (
             <NavLink
               key={item.href}
               item={item}

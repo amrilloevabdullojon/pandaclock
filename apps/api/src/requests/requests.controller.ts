@@ -14,13 +14,14 @@ import { RequestsService } from "./requests.service.js";
 import { CreateLeaveRequestDto, DecideLeaveRequestDto } from "./dto/leave-request.dto.js";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard.js";
 import { RolesGuard } from "../auth/roles.guard.js";
-import { Roles } from "../auth/roles.decorator.js";
+import { PermissionsGuard } from "../auth/permissions.guard.js";
+import { RequirePermissions } from "../auth/permissions.decorator.js";
 import { CurrentUser } from "../auth/current-user.decorator.js";
 import type { AuthRequestUser } from "../auth/jwt.strategy.js";
 
 @ApiTags("requests")
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 @Controller("requests")
 export class RequestsController {
   constructor(private readonly requests: RequestsService) {}
@@ -43,12 +44,13 @@ export class RequestsController {
 
   @Post()
   @HttpCode(201)
+  @RequirePermissions("requests:create")
   create(@Body() dto: CreateLeaveRequestDto, @CurrentUser() user: AuthRequestUser) {
     return this.requests.create(dto, user.id);
   }
 
   @Post(":id/approve")
-  @Roles("OWNER", "ADMIN", "HR", "MANAGER")
+  @RequirePermissions("requests:approve")
   approve(
     @Param("id", ParseUUIDPipe) id: string,
     @Body() dto: DecideLeaveRequestDto,
@@ -58,7 +60,7 @@ export class RequestsController {
   }
 
   @Post(":id/reject")
-  @Roles("OWNER", "ADMIN", "HR", "MANAGER")
+  @RequirePermissions("requests:approve")
   reject(
     @Param("id", ParseUUIDPipe) id: string,
     @Body() dto: DecideLeaveRequestDto,
@@ -73,7 +75,7 @@ export class RequestsController {
   }
 
   @Post("bulk/approve")
-  @Roles("OWNER", "ADMIN", "HR", "MANAGER")
+  @RequirePermissions("requests:bulk_decide")
   bulkApprove(
     @Body() dto: { ids: string[]; comment?: string },
     @CurrentUser() user: AuthRequestUser,
@@ -82,7 +84,7 @@ export class RequestsController {
   }
 
   @Post("bulk/reject")
-  @Roles("OWNER", "ADMIN", "HR", "MANAGER")
+  @RequirePermissions("requests:bulk_decide")
   bulkReject(
     @Body() dto: { ids: string[]; comment?: string },
     @CurrentUser() user: AuthRequestUser,

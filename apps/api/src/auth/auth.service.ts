@@ -10,6 +10,8 @@ import * as crypto from "node:crypto";
 import { TenantService } from "../tenant/tenant.service.js";
 import { TenantPrismaService } from "../tenant/tenant-prisma.service.js";
 import { EmailService } from "../email/email.service.js";
+import type { Permission } from "@pandaclock/types";
+import { permissionsForRole } from "./permissions-catalog.js";
 
 export interface AuthTokens {
   accessToken: string;
@@ -158,6 +160,7 @@ export class AuthService {
     role: string;
     emailVerified: boolean;
     avatarUrl: string | null;
+    permissions: Permission[];
   }> {
     const client = await this.tenantDb.getClient();
     const rows = await client.$queryRawUnsafe<UserRow[]>(
@@ -176,6 +179,7 @@ export class AuthService {
       role: user.role,
       emailVerified: user.email_verified_at !== null,
       avatarUrl: user.avatar_url,
+      permissions: permissionsForRole(user.role),
     };
   }
 

@@ -25,13 +25,14 @@ import { UpdateEmployeeDto } from "./dto/update-employee.dto.js";
 import { InviteEmployeesDto } from "./dto/invite-employee.dto.js";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard.js";
 import { RolesGuard } from "../auth/roles.guard.js";
-import { Roles } from "../auth/roles.decorator.js";
+import { PermissionsGuard } from "../auth/permissions.guard.js";
+import { RequirePermissions } from "../auth/permissions.decorator.js";
 import { CurrentUser } from "../auth/current-user.decorator.js";
 import type { AuthRequestUser } from "../auth/jwt.strategy.js";
 
 @ApiTags("employees")
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 @Controller("employees")
 export class EmployeesController {
   constructor(
@@ -42,36 +43,38 @@ export class EmployeesController {
 
   @Get()
   @ApiOperation({ summary: "Список сотрудников tenant'а" })
+  @RequirePermissions("employees:read")
   list(@Query() query: EmployeesQueryDto) {
     return this.employees.list(query);
   }
 
   @Get(":id")
+  @RequirePermissions("employees:read")
   detail(@Param("id", ParseUUIDPipe) id: string) {
     return this.employees.getById(id);
   }
 
   @Patch(":id")
-  @Roles("OWNER", "ADMIN", "HR")
+  @RequirePermissions("employees:write")
   update(@Param("id", ParseUUIDPipe) id: string, @Body() dto: UpdateEmployeeDto) {
     return this.employees.update(id, dto);
   }
 
   @Delete(":id")
-  @Roles("OWNER", "ADMIN", "HR")
+  @RequirePermissions("employees:delete")
   @HttpCode(204)
   deactivate(@Param("id", ParseUUIDPipe) id: string): Promise<void> {
     return this.employees.deactivate(id);
   }
 
   @Patch("bulk/status")
-  @Roles("OWNER", "ADMIN", "HR")
+  @RequirePermissions("employees:bulk")
   bulkStatus(@Body() dto: { ids: string[]; status: "ACTIVE" | "SUSPENDED" | "TERMINATED" }) {
     return this.employees.bulkSetStatus(dto.ids, dto.status);
   }
 
   @Post("invite")
-  @Roles("OWNER", "ADMIN", "HR", "MANAGER")
+  @RequirePermissions("employees:invite")
   @HttpCode(201)
   invite(
     @Body() dto: InviteEmployeesDto,
@@ -86,7 +89,7 @@ export class EmployeesController {
   }
 
   @Post("import")
-  @Roles("OWNER", "ADMIN", "HR")
+  @RequirePermissions("employees:invite")
   @UseInterceptors(FileInterceptor("file", { limits: { fileSize: 5 * 1024 * 1024 } }))
   importExcel(
     @UploadedFile() file: { buffer: Buffer; originalname: string } | undefined,

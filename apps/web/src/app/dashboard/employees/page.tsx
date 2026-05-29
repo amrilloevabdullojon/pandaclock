@@ -1,5 +1,6 @@
 import { Users } from "lucide-react";
 import { Card, CardContent, EmptyState, PageHeader } from "@pandaclock/ui";
+import { hasPermission } from "@pandaclock/types";
 import { serverFetch } from "@/lib/server-api";
 import { PageBreadcrumbs } from "../_components/page-breadcrumbs";
 import { TablePagination } from "../_components/table-pagination";
@@ -65,7 +66,7 @@ export default async function EmployeesPage({
   if (params.page) qs.set("page", params.page);
   if (params.pageSize) qs.set("pageSize", params.pageSize);
 
-  const [employees, departmentTree] = await Promise.all([
+  const [employees, departmentTree, me] = await Promise.all([
     serverFetch<EmployeesResponse>(`/employees${qs.size ? `?${qs.toString()}` : ""}`).catch(() => ({
       items: [],
       total: 0,
@@ -73,10 +74,12 @@ export default async function EmployeesPage({
       pageSize: 20,
     })),
     serverFetch<DepartmentNode[]>("/departments/tree").catch(() => [] as DepartmentNode[]),
+    serverFetch<{ role: string }>("/auth/me").catch(() => null),
   ]);
 
   const departments = flattenDepartments(departmentTree);
   const hasFilters = !!(params.search || params.departmentId || params.status);
+  const canInvite = me ? hasPermission(me.role, "employees:invite") : false;
 
   return (
     <>
@@ -87,7 +90,7 @@ export default async function EmployeesPage({
         description={`В команде ${employees.total} ${
           employees.total === 1 ? "человек" : employees.total < 5 ? "человека" : "человек"
         }`}
-        actions={<InviteEmployees />}
+        actions={canInvite ? <InviteEmployees /> : undefined}
       />
 
       <EmployeesFilters departments={departments} />
@@ -104,7 +107,7 @@ export default async function EmployeesPage({
                     ? "Попробуйте сменить фильтры или сбросить их"
                     : "Пригласите первого участника команды — он получит письмо со ссылкой для входа"
                 }
-                action={hasFilters ? undefined : <InviteEmployees />}
+                action={hasFilters || !canInvite ? undefined : <InviteEmployees />}
               />
             </div>
           ) : (

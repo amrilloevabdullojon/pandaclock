@@ -1,5 +1,6 @@
 import { Shield } from "lucide-react";
 import { Card, CardContent, EmptyState, PageHeader } from "@pandaclock/ui";
+import { hasPermission } from "@pandaclock/types";
 import { serverFetch } from "@/lib/server-api";
 import { PageBreadcrumbs } from "../../_components/page-breadcrumbs";
 import { AuditTable } from "./_components/audit-table";
@@ -32,7 +33,7 @@ export default async function AuditPage({
   searchParams: Promise<{ entityType?: string; userId?: string; action?: string }>;
 }) {
   const me = await serverFetch<MeResponse>("/auth/me").catch(() => null);
-  const allowed = me && (me.role === "OWNER" || me.role === "HR");
+  const allowed = me ? hasPermission(me.role, "audit:read") : false;
 
   if (!allowed) {
     return (

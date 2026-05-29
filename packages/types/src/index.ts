@@ -5,3 +5,4 @@ export * from "./task.js";
 export * from "./time-entry.js";
 export * from "./leave-request.js";
 export * from "./api.js";
+export * from "./permissions.js";

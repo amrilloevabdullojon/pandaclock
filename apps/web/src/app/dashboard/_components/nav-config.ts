@@ -15,6 +15,7 @@ import {
   User,
   type LucideIcon,
 } from "lucide-react";
+import type { Permission } from "@pandaclock/types";
 
 export interface NavItem {
   label: string;
@@ -26,6 +27,8 @@ export interface NavItem {
   children?: NavItem[];
   /** Бейдж в сайдбаре справа от названия (число или строка). */
   badge?: string | number;
+  /** Permission, без которого пункт скрыт. */
+  permission?: Permission;
 }
 
 export const NAV: NavItem[] = [
@@ -40,6 +43,7 @@ export const NAV: NavItem[] = [
     href: "/dashboard/employees",
     icon: Users,
     description: "Управление командой и приглашения",
+    permission: "employees:read",
   },
   {
     label: "Учёт времени",
@@ -76,6 +80,7 @@ export const NAV: NavItem[] = [
     href: "/dashboard/reports",
     icon: BarChart3,
     description: "Аналитика и экспорт в Excel/PDF",
+    permission: "reports:read",
   },
   {
     label: "Уведомления",
@@ -100,18 +105,21 @@ export const NAV: NavItem[] = [
         href: "/dashboard/departments",
         icon: Building2,
         description: "Иерархия команды",
+        permission: "departments:read",
       },
       {
         label: "Биллинг",
         href: "/dashboard/settings/billing",
         icon: CreditCard,
         description: "Тариф, история платежей",
+        permission: "billing:read",
       },
       {
         label: "Журнал действий",
         href: "/dashboard/settings/audit",
         icon: Shield,
         description: "История изменений (только OWNER/HR)",
+        permission: "audit:read",
       },
     ],
   },
