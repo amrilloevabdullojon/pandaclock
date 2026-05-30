@@ -64,3 +64,8 @@ docker-data/
 
 # Storybook
 packages/ui/storybook-static/
+
+# Playwright
+apps/web/playwright-report/
+apps/web/test-results/
+apps/web/.playwright/
