@@ -1,11 +1,14 @@
+// Sentry instrumentation должен загружаться раньше всего, чтобы перехватить deps.
+import "./instrument.js";
 import "reflect-metadata";
-import { NestFactory } from "@nestjs/core";
+import { NestFactory, HttpAdapterHost } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
 import { NestExpressApplication } from "@nestjs/platform-express";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { Logger } from "nestjs-pino";
 import cookieParser from "cookie-parser";
 import { AppModule } from "./app.module.js";
+import { SentryExceptionFilter } from "./observability/sentry.filter.js";
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
@@ -17,6 +20,11 @@ async function bootstrap(): Promise<void> {
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }),
   );
+
+  // Sentry exception filter — должен быть глобальным, чтобы перехватывать
+  // ошибки из всех модулей. Если SENTRY_DSN не задан — filter работает как
+  // обычный JSON-формат для 5xx (Sentry-вызовы no-op).
+  app.useGlobalFilters(new SentryExceptionFilter(app.get(HttpAdapterHost)));
   app.enableCors({
     origin: [
       process.env.APP_URL ?? "http://localhost:3000",

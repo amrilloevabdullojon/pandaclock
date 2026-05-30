@@ -7,6 +7,7 @@ import { Sidebar } from "./_components/sidebar";
 import { TopBar } from "./_components/top-bar";
 import { serverFetch } from "@/lib/server-api";
 import { SessionProvider, type SessionUser } from "@/lib/session-context";
+import { AnalyticsProvider, IdentifyUser, PageViewTracker } from "@/lib/analytics";
 
 interface MeResponse {
   id: string;
@@ -35,19 +36,23 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <SessionProvider value={session}>
-      <div className="bg-background flex min-h-screen">
-        <Sidebar />
-        <div className="flex min-w-0 flex-1 flex-col">
-          <TopBar user={me} tenantSlug={tenantSlug} />
-          <main className="flex-1 overflow-x-hidden px-4 py-6 sm:px-6 lg:px-8">
-            <div className="mx-auto w-full max-w-screen-2xl">
-              <PageTransition>{children}</PageTransition>
-            </div>
-          </main>
+      <AnalyticsProvider>
+        <IdentifyUser />
+        <PageViewTracker />
+        <div className="bg-background flex min-h-screen">
+          <Sidebar />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <TopBar user={me} tenantSlug={tenantSlug} />
+            <main className="flex-1 overflow-x-hidden px-4 py-6 sm:px-6 lg:px-8">
+              <div className="mx-auto w-full max-w-screen-2xl">
+                <PageTransition>{children}</PageTransition>
+              </div>
+            </main>
+          </div>
+          <Toaster />
+          <CommandPalette />
         </div>
-        <Toaster />
-        <CommandPalette />
-      </div>
+      </AnalyticsProvider>
     </SessionProvider>
   );
 }
