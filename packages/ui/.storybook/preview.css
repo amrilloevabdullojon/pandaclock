@@ -1,0 +1,17 @@
+/* Background для preview iframe — повторяет токены из tailwind.config */
+:root {
+  --background: 0 0% 100%;
+  --foreground: 240 10% 4%;
+}
+html.dark {
+  --background: 240 10% 4%;
+  --foreground: 0 0% 98%;
+}
+body {
+  font-family:
+    "Inter",
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: hsl(var(--foreground));
+}

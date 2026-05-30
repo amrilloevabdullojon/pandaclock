@@ -61,3 +61,6 @@ temp/
 
 # Local docker volumes
 docker-data/
+
+# Storybook
+packages/ui/storybook-static/
