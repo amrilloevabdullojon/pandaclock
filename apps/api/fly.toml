@@ -1,0 +1,40 @@
+app = "pandaclock-api-staging"
+primary_region = "fra"  # Frankfurt — ближе всего к Neon eu-central-1
+
+[build]
+  dockerfile = "Dockerfile"
+  # Контекст билда — корень монорепо (Dockerfile это поддерживает)
+  build-target = "runtime"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "4000"
+  S3_REGION = "auto"
+  APP_URL = "https://pandaclock-api-staging.fly.dev"
+  EMAIL_FROM = "noreply@pandaclock.uz"
+
+[http_service]
+  internal_port = 4000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0  # экономим free-tier: машина выключается без нагрузки
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 200
+    hard_limit = 250
+
+  [[http_service.checks]]
+    grace_period = "20s"
+    interval = "15s"
+    method = "GET"
+    timeout = "5s"
+    path = "/api/v1/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1

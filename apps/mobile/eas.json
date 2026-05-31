@@ -26,7 +26,7 @@
       "extends": "base",
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://10.92.26.215:4000/api/v1"
+        "EXPO_PUBLIC_API_URL": "https://pandaclock-api-staging.fly.dev/api/v1"
       },
       "channel": "preview",
       "android": { "buildType": "apk" }

@@ -22,6 +22,18 @@ COPY apps/api ./apps/api
 RUN pnpm --filter @pandaclock/db prisma generate
 RUN pnpm --filter @pandaclock/api build
 
+# ----- Production-deploy stage -----
+# `pnpm deploy` создаёт self-contained директорию со всеми runtime-зависимостями,
+# распрямляя workspace-симлинки (без неё runtime не найдёт reflect-metadata и пр.).
+FROM build AS prod
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm --filter @pandaclock/api deploy --prod /prod/api
+# pnpm deploy не пересоздаёт .prisma/client (postinstall не запускается),
+# поэтому генерим клиент явно уже внутри bundle, передав schema.prisma.
+COPY packages/db/prisma /prod/api/prisma
+# prisma CLI попадает в bundle как dependency пакета @pandaclock/db
+RUN cd /prod/api && ./node_modules/.bin/prisma generate --schema=./prisma/schema.prisma
+
 # ----- Runtime stage -----
 FROM node:22-alpine AS runtime
 ENV NODE_ENV=production
@@ -31,15 +43,15 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 pandaclock \
  && adduser  --system --uid 1001 pandaclock
 
-COPY --from=build --chown=pandaclock:pandaclock /repo/apps/api/dist ./dist
-COPY --from=build --chown=pandaclock:pandaclock /repo/apps/api/package.json ./package.json
-COPY --from=build --chown=pandaclock:pandaclock /repo/node_modules ./node_modules
-COPY --from=build --chown=pandaclock:pandaclock /repo/packages ./packages
+# self-contained bundle: dist + node_modules + package.json
+COPY --from=prod --chown=pandaclock:pandaclock /prod/api ./
+# Prisma client (generated) — нужен для runtime
+COPY --from=build --chown=pandaclock:pandaclock /repo/packages/db ./packages/db
 
 USER pandaclock
 EXPOSE 4000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD wget --quiet --tries=1 --spider http://localhost:4000/api/v1/health || exit 1
 
 CMD ["node", "dist/main.js"]
