@@ -4,6 +4,7 @@ import { Coffee, MapPin, Pause, Play } from "lucide-react-native";
 import { useTimeTracking, type SessionStatus, type TodaySession } from "@/lib/use-time-tracking";
 import { api } from "@/lib/api-client";
 import { Badge, Button, Card, EmptyState, Screen, Skeleton } from "@/components/ui";
+import { OnboardingCard } from "@/components/onboarding-card";
 
 interface MeResponse {
   firstName: string;
@@ -49,6 +50,8 @@ export default function HomeScreen() {
         </Text>
         <Text className="text-muted-foreground mt-1 text-sm">{formattedToday()}</Text>
       </View>
+
+      <OnboardingCard />
 
       <StateView status={tracking.session.status} session={tracking.session} actions={tracking} />
     </Screen>

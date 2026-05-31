@@ -14,6 +14,14 @@ import {
   type ChartColor,
 } from "@pandaclock/ui";
 import { serverFetch } from "@/lib/server-api";
+import { OnboardingChecklist } from "./_components/onboarding-checklist";
+
+interface OnboardingResponse {
+  steps: { key: "departments" | "employees" | "tasks" | "time"; done: boolean }[];
+  completedCount: number;
+  totalCount: number;
+  dismissedAt: string | null;
+}
 
 interface DashboardCounts {
   totalEmployees: number;
@@ -45,7 +53,7 @@ interface DashboardTrends {
 }
 
 export default async function DashboardPage() {
-  const [counts, working, trends] = await Promise.all([
+  const [counts, working, trends, onboarding] = await Promise.all([
     serverFetch<DashboardCounts>("/time/dashboard").catch(() => ({
       totalEmployees: 0,
       workingNow: 0,
@@ -61,7 +69,13 @@ export default async function DashboardPage() {
           onLeavePerDay: { sparkline: [], current: 0, trend: 0 },
         }) as DashboardTrends,
     ),
+    serverFetch<OnboardingResponse>("/onboarding/status").catch(() => null),
   ]);
+
+  // Показываем onboarding-чеклист только если есть незавершённые шаги
+  // и пользователь его не скрывал.
+  const showOnboarding =
+    onboarding && !onboarding.dismissedAt && onboarding.completedCount < onboarding.totalCount;
 
   // BarChart по дням — для широкого виджета.
   const activityData =
@@ -84,6 +98,8 @@ export default async function DashboardPage() {
         title="Обзор команды"
         description="Что происходит в компании прямо сейчас"
       />
+
+      {showOnboarding ? <OnboardingChecklist initial={onboarding} /> : null}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard

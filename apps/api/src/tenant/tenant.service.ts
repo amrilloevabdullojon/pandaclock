@@ -93,6 +93,19 @@ export class TenantService {
     return prisma.tenant.findUnique({ where: { slug } });
   }
 
+  async updateMetadata(slug: string, metadata: Record<string, unknown>): Promise<void> {
+    // Prisma.Json типизирован узко (readonly array | object), кастуем чтобы
+    // не тащить Prisma-namespace в публичный API метода.
+    await prisma.tenant.update({
+      where: { slug },
+      data: {
+        metadata: metadata as unknown as Parameters<
+          typeof prisma.tenant.update
+        >[0]["data"]["metadata"],
+      },
+    });
+  }
+
   /**
    * Выполняет callback с активным search_path на указанной tenant-схеме.
    * Используется в эндпоинтах, где TenantMiddleware не сработал (например, в register-company).

@@ -21,6 +21,7 @@ import { SchedulerModule } from "./scheduler/scheduler.module.js";
 import { AuditModule } from "./audit/audit.module.js";
 import { SearchModule } from "./search/search.module.js";
 import { UploadsModule } from "./uploads/uploads.module.js";
+import { OnboardingModule } from "./onboarding/onboarding.module.js";
 import { TenantMiddleware } from "./tenant/tenant.middleware.js";
 
 @Module({
@@ -54,6 +55,7 @@ import { TenantMiddleware } from "./tenant/tenant.middleware.js";
     AuditModule,
     SearchModule,
     UploadsModule,
+    OnboardingModule,
     HealthModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
