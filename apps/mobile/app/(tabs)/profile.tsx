@@ -26,6 +26,8 @@ interface Me {
   lastName: string;
   role: string;
   emailVerified: boolean;
+  avatarUrl: string | null;
+  phone?: string | null;
 }
 
 const ROLE_LABEL: Record<string, string> = {
@@ -110,6 +112,7 @@ export default function ProfileScreen() {
             <Avatar
               size="2xl"
               gradient
+              src={me?.avatarUrl ?? undefined}
               fallback={`${me?.firstName.charAt(0) ?? "?"}${me?.lastName.charAt(0) ?? ""}`}
             />
             <Text className="text-foreground mt-4 text-xl font-extrabold">

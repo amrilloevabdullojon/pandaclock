@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Pressable, Text, View } from "react-native";
-import { Coffee, MapPin, Pause, Play } from "lucide-react-native";
+import { router } from "expo-router";
+import { Bell, Coffee, MapPin, Pause, Play } from "lucide-react-native";
 import { useTimeTracking, type SessionStatus, type TodaySession } from "@/lib/use-time-tracking";
 import { api } from "@/lib/api-client";
 import { Badge, Button, Card, EmptyState, Screen, Skeleton } from "@/components/ui";
@@ -27,6 +28,28 @@ export default function HomeScreen() {
     };
   }, []);
 
+  const [unreadCount, setUnreadCount] = React.useState(0);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    let timer: NodeJS.Timeout | undefined;
+    async function tick() {
+      try {
+        const res = await api<{ count: number }>("/notifications/unread-count");
+        if (!cancelled) setUnreadCount(res.count);
+      } catch {
+        // silent — bell просто без числа
+      }
+    }
+    void tick();
+    // Polling каждые 30 сек когда экран активен
+    timer = setInterval(() => void tick(), 30_000);
+    return () => {
+      cancelled = true;
+      if (timer) clearInterval(timer);
+    };
+  }, []);
+
   const greeting = getGreeting();
 
   if (tracking.loading) {
@@ -44,11 +67,28 @@ export default function HomeScreen() {
   return (
     <Screen background="default" edges={["top"]} scroll>
       {/* === Header === */}
-      <View className="pb-6 pt-4">
-        <Text className="text-foreground text-2xl font-extrabold">
-          {greeting}, {firstName} 👋
-        </Text>
-        <Text className="text-muted-foreground mt-1 text-sm">{formattedToday()}</Text>
+      <View className="flex-row items-start justify-between pb-6 pt-4">
+        <View className="flex-1">
+          <Text className="text-foreground text-2xl font-extrabold">
+            {greeting}, {firstName} 👋
+          </Text>
+          <Text className="text-muted-foreground mt-1 text-sm">{formattedToday()}</Text>
+        </View>
+        <Pressable
+          onPress={() => router.push("/notifications")}
+          hitSlop={12}
+          accessibilityLabel={`Уведомления${unreadCount > 0 ? `, ${unreadCount} непрочитанных` : ""}`}
+          className="relative h-10 w-10 items-center justify-center rounded-full"
+        >
+          <Bell size={22} color="#1F2233" />
+          {unreadCount > 0 ? (
+            <View className="bg-danger absolute right-1.5 top-1.5 h-4 min-w-[16px] items-center justify-center rounded-full px-1">
+              <Text className="text-xs font-bold text-white">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </Text>
+            </View>
+          ) : null}
+        </Pressable>
       </View>
 
       <OnboardingCard />
