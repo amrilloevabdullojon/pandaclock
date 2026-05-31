@@ -37,7 +37,8 @@ export class AuthController {
 
   @Post("register-company")
   @HttpCode(201)
-  @ApiOperation({ summary: "Регистрация новой компании-клиента" })
+  @Throttle({ default: { ttl: 60 * 60 * 1000, limit: 3 } })
+  @ApiOperation({ summary: "Регистрация новой компании-клиента (3/час)" })
   async registerCompany(@Body() dto: RegisterCompanyDto): Promise<{
     tenant: { id: string; slug: string; name: string };
     verificationSent: boolean;
@@ -61,7 +62,9 @@ export class AuthController {
     // TenantMiddleware на этом эндпоинте не работает (нет ещё subdomain), поэтому делаем явно.
     try {
       await this.tenantService.runInTenantSchema(tenant.schemaName, async (client) => {
-        const rows = await client.$queryRawUnsafe<{ id: string; email: string; first_name: string }[]>(
+        const rows = await client.$queryRawUnsafe<
+          { id: string; email: string; first_name: string }[]
+        >(
           `SELECT id, email, first_name FROM users WHERE email = $1 LIMIT 1`,
           dto.adminEmail.toLowerCase(),
         );
@@ -121,7 +124,8 @@ export class AuthController {
 
   @Post("resend-verification")
   @HttpCode(202)
-  @ApiOperation({ summary: "Повторно отправить письмо подтверждения" })
+  @Throttle({ default: { ttl: 60 * 60 * 1000, limit: 5 } })
+  @ApiOperation({ summary: "Повторно отправить письмо подтверждения (5/час)" })
   async resendVerification(@Body() dto: ResendVerificationDto): Promise<{ accepted: true }> {
     await this.authService.resendVerification(dto.email);
     return { accepted: true };
@@ -129,7 +133,8 @@ export class AuthController {
 
   @Post("forgot-password")
   @HttpCode(202)
-  @ApiOperation({ summary: "Запрос восстановления пароля" })
+  @Throttle({ default: { ttl: 60 * 60 * 1000, limit: 5 } })
+  @ApiOperation({ summary: "Запрос восстановления пароля (5/час)" })
   async forgotPassword(@Body() dto: ForgotPasswordDto): Promise<{ accepted: true }> {
     await this.authService.forgotPassword(dto.email);
     return { accepted: true };

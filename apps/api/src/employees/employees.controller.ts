@@ -16,6 +16,7 @@ import {
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
+import { Throttle } from "@nestjs/throttler";
 import type { Request } from "express";
 import { EmployeesService } from "./employees.service.js";
 import { InvitationsService } from "./invitations.service.js";
@@ -75,6 +76,7 @@ export class EmployeesController {
 
   @Post("invite")
   @RequirePermissions("employees:invite")
+  @Throttle({ default: { ttl: 60 * 60 * 1000, limit: 30 } })
   @HttpCode(201)
   invite(
     @Body() dto: InviteEmployeesDto,

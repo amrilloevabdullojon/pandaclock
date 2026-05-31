@@ -7,6 +7,7 @@ import { NestExpressApplication } from "@nestjs/platform-express";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { Logger } from "nestjs-pino";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";
 import { AppModule } from "./app.module.js";
 import { SentryExceptionFilter } from "./observability/sentry.filter.js";
 
@@ -14,6 +15,17 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
 
   app.useLogger(app.get(Logger));
+
+  // Helmet — стандартные security-заголовки (HSTS, X-Frame-Options, и пр).
+  // CSP отключаем: у нас JSON API без HTML-страниц, нечего политить.
+  // crossOriginResourcePolicy: cross-origin — для аватаров через CDN/R2.
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginResourcePolicy: { policy: "cross-origin" },
+    }),
+  );
+
   app.use(cookieParser());
   app.set("trust proxy", 1);
   app.setGlobalPrefix("api/v1");
@@ -30,8 +42,12 @@ async function bootstrap(): Promise<void> {
       process.env.APP_URL ?? "http://localhost:3000",
       process.env.MARKETING_URL ?? "http://localhost:3001",
       /^https?:\/\/.+\.pandaclock\.uz$/,
+      // Vercel previews и production
+      /^https:\/\/.+\.vercel\.app$/,
     ],
     credentials: true,
+    methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Tenant-Slug"],
   });
 
   if (process.env.NODE_ENV !== "production") {
