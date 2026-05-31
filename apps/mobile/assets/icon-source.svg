@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="none">
+  <!-- App icon source — Pandi без декора и бейджа, фиолетовый фон во весь квадрат -->
+  <rect width="240" height="240" fill="#5B4FE2"/>
+
+  <!-- Тело панды -->
+  <ellipse cx="120" cy="170" rx="62" ry="50" fill="#FFFFFF" stroke="#1F2233" stroke-width="3" />
+
+  <!-- Лапка машет (поднята) -->
+  <g transform="translate(178,118) rotate(-15)">
+    <ellipse cx="0" cy="0" rx="14" ry="22" fill="#1F2233" />
+    <ellipse cx="-1" cy="-12" rx="6" ry="5" fill="#1F2233" />
+    <circle cx="-7" cy="-13" r="2" fill="#1F2233" />
+    <circle cx="6" cy="-12" r="2" fill="#1F2233" />
+  </g>
+
+  <!-- Лапка вторая -->
+  <ellipse cx="78" cy="200" rx="16" ry="22" fill="#1F2233" />
+
+  <!-- Голова -->
+  <circle cx="120" cy="108" r="58" fill="#FFFFFF" stroke="#1F2233" stroke-width="3" />
+
+  <!-- Уши -->
+  <circle cx="74" cy="64" r="20" fill="#1F2233" />
+  <circle cx="74" cy="64" r="10" fill="#3D4253" />
+  <circle cx="166" cy="64" r="20" fill="#1F2233" />
+  <circle cx="166" cy="64" r="10" fill="#3D4253" />
+
+  <!-- Чёрные пятна вокруг глаз -->
+  <ellipse cx="98" cy="108" rx="18" ry="22" fill="#1F2233" transform="rotate(-18 98 108)" />
+  <ellipse cx="142" cy="108" rx="18" ry="22" fill="#1F2233" transform="rotate(18 142 108)" />
+
+  <!-- Белки глаз -->
+  <circle cx="98" cy="110" r="9" fill="#FFFFFF" />
+  <circle cx="142" cy="110" r="9" fill="#FFFFFF" />
+
+  <!-- Зрачки -->
+  <circle cx="100" cy="111" r="4.5" fill="#1F2233" />
+  <circle cx="144" cy="111" r="4.5" fill="#1F2233" />
+  <circle cx="101.5" cy="109" r="1.6" fill="#FFFFFF" />
+  <circle cx="145.5" cy="109" r="1.6" fill="#FFFFFF" />
+
+  <!-- Нос -->
+  <ellipse cx="120" cy="134" rx="6" ry="4.5" fill="#1F2233" />
+
+  <!-- Улыбка -->
+  <path d="M105 146 Q120 158 135 146" stroke="#1F2233" stroke-width="3" stroke-linecap="round" fill="none" />
+  <path d="M120 147 L120 152" stroke="#1F2233" stroke-width="2.5" stroke-linecap="round" />
+</svg>
