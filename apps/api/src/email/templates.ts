@@ -94,6 +94,51 @@ export function renderLoginAlert({
   `);
 }
 
+export function renderPasswordReset({
+  firstName,
+  resetUrl,
+}: {
+  firstName: string;
+  resetUrl: string;
+}): string {
+  return LAYOUT(`
+    <p style="font-size:16px;line-height:1.6;">Здравствуйте, <strong>${escapeHtml(firstName)}</strong>!</p>
+    <p style="font-size:16px;line-height:1.6;">
+      Мы получили запрос на восстановление пароля. Нажмите кнопку ниже, чтобы создать новый:
+    </p>
+    ${BUTTON(resetUrl, "Создать новый пароль")}
+    <p style="font-size:14px;color:#6B7080;line-height:1.5;">
+      Ссылка действительна 1 час. Если запрос делали не вы — проигнорируйте это письмо,
+      ваш текущий пароль продолжит работать.
+    </p>
+  `);
+}
+
+export function renderEmployeeInvite({
+  inviterName,
+  tenantName,
+  inviteUrl,
+}: {
+  inviterName: string;
+  tenantName: string;
+  inviteUrl: string;
+}): string {
+  return LAYOUT(`
+    <p style="font-size:16px;line-height:1.6;">
+      <strong>${escapeHtml(inviterName)}</strong> приглашает вас присоединиться к команде
+      <strong>${escapeHtml(tenantName)}</strong> в Pandaclock.
+    </p>
+    <p style="font-size:16px;line-height:1.6;">
+      Pandaclock — система учёта рабочего времени, задач и отпусков. Принимая приглашение,
+      вы создадите свой профиль и сможете начать работу.
+    </p>
+    ${BUTTON(inviteUrl, "Принять приглашение")}
+    <p style="font-size:14px;color:#6B7080;line-height:1.5;">
+      Ссылка действительна 7 дней. Если вы не ожидали приглашения — просто проигнорируйте письмо.
+    </p>
+  `);
+}
+
 function escapeHtml(input: string): string {
   return input
     .replace(/&/g, "&amp;")

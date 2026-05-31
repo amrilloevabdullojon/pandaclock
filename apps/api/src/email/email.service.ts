@@ -1,7 +1,13 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { Resend } from "resend";
 import { createTransport, type Transporter } from "nodemailer";
-import { renderWelcomeEmail, renderEmailVerification, renderLoginAlert } from "./templates.js";
+import {
+  renderEmailVerification,
+  renderEmployeeInvite,
+  renderLoginAlert,
+  renderPasswordReset,
+  renderWelcomeEmail,
+} from "./templates.js";
 
 export interface SendEmailParams {
   to: string;
@@ -95,6 +101,27 @@ export class EmailService {
       to: params.to,
       subject: "🔐 Новый вход в ваш аккаунт Pandaclock",
       html: renderLoginAlert(params),
+    });
+  }
+
+  sendPasswordReset(params: { to: string; firstName: string; resetUrl: string }): Promise<void> {
+    return this.send({
+      to: params.to,
+      subject: "Восстановление пароля Pandaclock",
+      html: renderPasswordReset(params),
+    });
+  }
+
+  sendEmployeeInvite(params: {
+    to: string;
+    inviterName: string;
+    tenantName: string;
+    inviteUrl: string;
+  }): Promise<void> {
+    return this.send({
+      to: params.to,
+      subject: `Приглашение в команду ${params.tenantName} — Pandaclock`,
+      html: renderEmployeeInvite(params),
     });
   }
 }

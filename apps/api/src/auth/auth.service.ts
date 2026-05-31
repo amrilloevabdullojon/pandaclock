@@ -268,17 +268,12 @@ export class AuthService {
     );
 
     const appUrl = process.env.APP_URL ?? "http://localhost:3000";
-    const url = `${appUrl}/reset-password?token=${raw}`;
+    const resetUrl = `${appUrl}/reset-password?token=${raw}`;
     await this.email
-      .send({
+      .sendPasswordReset({
         to: user.email,
-        subject: "Восстановление пароля Pandaclock",
-        html: `
-          <p>Здравствуйте, ${user.first_name}!</p>
-          <p>Мы получили запрос на восстановление пароля для вашего аккаунта.</p>
-          <p><a href="${url}" style="display:inline-block;background:#5B4FE2;color:#fff;text-decoration:none;padding:14px 32px;border-radius:12px;font-weight:700;">Создать новый пароль</a></p>
-          <p>Ссылка действительна 1 час. Если вы не запрашивали — проигнорируйте это письмо.</p>
-        `,
+        firstName: user.first_name,
+        resetUrl,
       })
       .catch(() => undefined);
   }

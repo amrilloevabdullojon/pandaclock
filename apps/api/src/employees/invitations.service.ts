@@ -34,7 +34,10 @@ export class InvitationsService {
         email,
       );
       if (existing[0]) {
-        result.skipped.push({ email, reason: existing[0].status === "ACTIVE" ? "ALREADY_ACTIVE" : "ALREADY_INVITED" });
+        result.skipped.push({
+          email,
+          reason: existing[0].status === "ACTIVE" ? "ALREADY_ACTIVE" : "ALREADY_INVITED",
+        });
         continue;
       }
 
@@ -66,18 +69,14 @@ export class InvitationsService {
       );
 
       const appUrl = process.env.APP_URL ?? "http://localhost:3000";
-      const url = `${appUrl}/accept-invite?token=${rawToken}&tenant=${tenantSlug}`;
+      const inviteUrl = `${appUrl}/accept-invite?token=${rawToken}&tenant=${tenantSlug}`;
 
       await this.email
-        .send({
+        .sendEmployeeInvite({
           to: email,
-          subject: `${invitedBy.firstName} ${invitedBy.lastName} приглашает вас в Pandaclock`,
-          html: `
-            <p>Привет!</p>
-            <p>${invitedBy.firstName} ${invitedBy.lastName} приглашает вас присоединиться к рабочему пространству на Pandaclock.</p>
-            <p><a href="${url}" style="display:inline-block;background:#5B4FE2;color:#fff;text-decoration:none;padding:14px 32px;border-radius:12px;font-weight:700;">Принять приглашение</a></p>
-            <p>Ссылка действительна 7 дней.</p>
-          `,
+          inviterName: `${invitedBy.firstName} ${invitedBy.lastName}`.trim(),
+          tenantName: tenantSlug, // имя тенанта в скоупе метода нет, slug визуально ок
+          inviteUrl,
         })
         .catch(() => undefined);
 
@@ -98,7 +97,9 @@ export class InvitationsService {
     }
     const tokenHash = crypto.createHash("sha256").update(input.token).digest("hex");
     const client = await this.tenantDb.getClient();
-    const rows = await client.$queryRawUnsafe<{ id: string; user_id: string; expires_at: Date; consumed_at: Date | null }[]>(
+    const rows = await client.$queryRawUnsafe<
+      { id: string; user_id: string; expires_at: Date; consumed_at: Date | null }[]
+    >(
       `SELECT id, user_id, expires_at, consumed_at
        FROM verification_tokens
        WHERE token_hash = $1 AND purpose = 'INVITE' LIMIT 1`,
