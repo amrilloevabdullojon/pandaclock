@@ -1,10 +1,41 @@
 import { useState } from "react";
 import { router } from "expo-router";
-import { Alert, KeyboardAvoidingView, Platform, Pressable, Text, View } from "react-native";
-import { Eye, EyeOff, Lock, Mail } from "lucide-react-native";
+import { KeyboardAvoidingView, Platform, Pressable, Text, View } from "react-native";
+import { AlertCircle, Eye, EyeOff, Lock, Mail } from "lucide-react-native";
 import { useAuthStore } from "@/lib/auth-store";
-import { publicApi, ApiError } from "@/lib/api-client";
+import { publicApi, ApiError, NetworkError } from "@/lib/api-client";
 import { Button, Card, Input, Screen } from "@/components/ui";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Маппинг API error code → понятное сообщение для пользователя.
+ *
+ * INVALID_CREDENTIALS специально единый (не различаем «пользователь не найден»
+ * vs «пароль неверный») — это даёт enumeration attack vector.
+ */
+function messageForLoginError(error: unknown): string {
+  if (error instanceof NetworkError) {
+    return "Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.";
+  }
+  if (error instanceof ApiError) {
+    switch (error.code) {
+      case "INVALID_CREDENTIALS":
+        return "Неверный email или пароль.";
+      case "TENANT_NOT_FOUND":
+        return "Компания с таким адресом не найдена. Проверьте slug.";
+      case "USER_INACTIVE":
+        return "Аккаунт деактивирован. Обратитесь к администратору компании.";
+      case "RATE_LIMITED":
+      case "ThrottlerException: Too Many Requests":
+        return "Слишком много попыток. Подождите 5 минут и попробуйте снова.";
+      default:
+        if (error.status >= 500) return "Сервер недоступен. Попробуйте через минуту.";
+        return "Не удалось войти. Попробуйте ещё раз.";
+    }
+  }
+  return "Что-то пошло не так. Попробуйте ещё раз.";
+}
 
 export default function LoginScreen() {
   const setSession = useAuthStore((state) => state.setSession);
@@ -14,20 +45,29 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  /** Общая ошибка от сервера (показывается под формой). */
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  function validateLocal(): boolean {
+    const next: typeof errors = {};
+    if (!email.trim()) next.email = "Введите email";
+    else if (!EMAIL_RE.test(email.trim())) next.email = "Похоже на не-email";
+    if (!password) next.password = "Введите пароль";
+    else if (password.length < 8) next.password = "Минимум 8 символов";
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  }
 
   async function handleLogin() {
-    const newErrors: typeof errors = {};
-    if (!email.trim()) newErrors.email = "Введите email";
-    else if (!email.includes("@")) newErrors.email = "Похоже на не-email";
-    if (!password) newErrors.password = "Введите пароль";
-    setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) return;
+    setSubmitError(null);
+    if (!validateLocal()) return;
 
     if (!tenantSlug) {
-      Alert.alert("Сначала введите адрес компании");
+      // Без тенанта запрос не имеет смысла — отправляем на главный экран.
       router.replace("/");
       return;
     }
+
     setIsLoading(true);
     try {
       const tokens = await publicApi.request<{
@@ -41,11 +81,7 @@ export default function LoginScreen() {
       });
       router.replace("/(tabs)/home");
     } catch (error) {
-      const message =
-        error instanceof ApiError && error.code === "INVALID_CREDENTIALS"
-          ? "Неверный email или пароль"
-          : "Не удалось войти. Попробуйте позже.";
-      Alert.alert("Ошибка входа", message);
+      setSubmitError(messageForLoginError(error));
     } finally {
       setIsLoading(false);
     }
@@ -116,6 +152,16 @@ export default function LoginScreen() {
             }
             required
           />
+
+          {submitError ? (
+            <View
+              accessibilityRole="alert"
+              className="border-danger/40 bg-danger-light flex-row gap-2 rounded-md border px-3 py-2.5"
+            >
+              <AlertCircle size={18} color="#DC2626" className="mt-0.5" />
+              <Text className="text-danger flex-1 text-sm leading-5">{submitError}</Text>
+            </View>
+          ) : null}
 
           <Button
             size="lg"

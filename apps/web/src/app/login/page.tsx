@@ -25,6 +25,33 @@ const DEMO_HINTS: Record<string, { email: string; password: string }> = {
   acmebank: { email: "anna@acmebank.uz", password: "password123" },
 };
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * API code → понятное сообщение. Контракт ответа { code, message } —
+ * см. apps/api/src/observability/sentry.filter.ts и /api/auth/login proxy.
+ */
+function loginErrorMessage(code: string | undefined, status: number): string {
+  switch (code) {
+    case "INVALID_CREDENTIALS":
+      return "Неверный email или пароль.";
+    case "TENANT_NOT_FOUND":
+    case "TENANT_REQUIRED":
+      return "Компания с таким адресом не найдена. Проверьте поле «Компания».";
+    case "USER_INACTIVE":
+      return "Аккаунт деактивирован. Обратитесь к администратору компании.";
+    case "RATE_LIMITED":
+      return "Слишком много попыток. Подождите 5 минут и попробуйте снова.";
+    case "API_UNREACHABLE":
+      return "Сервер не отвечает. Попробуйте через минуту.";
+    case "INVALID_INPUT":
+      return "Заполните все поля.";
+    default:
+      if (status >= 500) return "Сервер недоступен. Попробуйте через минуту.";
+      return "Не удалось войти. Попробуйте ещё раз.";
+  }
+}
+
 export default function LoginPage() {
   const t = useTranslations("auth.login");
   const router = useRouter();
@@ -40,39 +67,51 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
 
   function useDemoCreds() {
     const hint = DEMO_HINTS[tenant];
     if (!hint) return;
     setEmail(hint.email);
     setPassword(hint.password);
+    setFieldErrors({});
+    setError(null);
+  }
+
+  function validateLocal(): boolean {
+    const next: typeof fieldErrors = {};
+    if (!email.trim()) next.email = "Введите email";
+    else if (!EMAIL_RE.test(email.trim())) next.email = "Похоже на не-email";
+    if (!password) next.password = "Введите пароль";
+    setFieldErrors(next);
+    return Object.keys(next).length === 0;
   }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    setIsLoading(true);
     setError(null);
+    if (!validateLocal()) return;
+
+    setIsLoading(true);
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, tenant: showTenantPicker ? tenant : undefined }),
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+          tenant: showTenantPicker ? tenant : undefined,
+        }),
       });
       if (!response.ok) {
-        const body = (await response.json().catch(() => ({}))) as {
-          error?: { code?: string };
-        };
-        setError(
-          body.error?.code === "TENANT_NOT_FOUND"
-            ? "Компания с таким адресом не найдена"
-            : "Неверный email или пароль",
-        );
+        const body = (await response.json().catch(() => ({}))) as { code?: string };
+        setError(loginErrorMessage(body.code, response.status));
         return;
       }
       router.push(next);
       router.refresh();
     } catch {
-      setError("Не удалось подключиться к серверу");
+      setError("Нет связи с сервером. Проверьте интернет.");
     } finally {
       setIsLoading(false);
     }
@@ -128,9 +167,19 @@ export default function LoginPage() {
                 autoComplete="email"
                 required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (fieldErrors.email) setFieldErrors((f) => ({ ...f, email: undefined }));
+                }}
+                aria-invalid={!!fieldErrors.email}
+                aria-describedby={fieldErrors.email ? "email-error" : undefined}
                 placeholder="you@company.uz"
               />
+              {fieldErrors.email ? (
+                <p id="email-error" className="text-danger text-xs font-semibold">
+                  {fieldErrors.email}
+                </p>
+              ) : null}
             </div>
 
             <div className="space-y-2">
@@ -148,8 +197,18 @@ export default function LoginPage() {
                 autoComplete="current-password"
                 required
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (fieldErrors.password) setFieldErrors((f) => ({ ...f, password: undefined }));
+                }}
+                aria-invalid={!!fieldErrors.password}
+                aria-describedby={fieldErrors.password ? "password-error" : undefined}
               />
+              {fieldErrors.password ? (
+                <p id="password-error" className="text-danger text-xs font-semibold">
+                  {fieldErrors.password}
+                </p>
+              ) : null}
             </div>
 
             {error ? (
@@ -161,8 +220,8 @@ export default function LoginPage() {
               </p>
             ) : null}
 
-            <Button type="submit" fullWidth size="lg" disabled={isLoading}>
-              {isLoading ? "..." : t("submit")}
+            <Button type="submit" fullWidth size="lg" loading={isLoading} loadingText="Входим…">
+              {t("submit")}
             </Button>
 
             <p className="text-center text-sm text-neutral-500">

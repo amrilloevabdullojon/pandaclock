@@ -29,9 +29,10 @@ export class SentryExceptionFilter implements ExceptionFilter {
 
     const isHttp = exception instanceof HttpException;
     const status = isHttp ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
-    const payload = isHttp
-      ? exception.getResponse()
-      : { statusCode: 500, message: "Internal server error" };
+
+    // Нормализованный формат ответа: { statusCode, code, message, details? }
+    // Контракт: клиенты (web/mobile) ВСЕГДА читают body.code, без вложенностей.
+    const payload = normalizeErrorPayload(exception, status);
 
     if (status >= 500) {
       Sentry.withScope((scope) => {
@@ -48,4 +49,64 @@ export class SentryExceptionFilter implements ExceptionFilter {
 
     httpAdapter.reply(response, payload, status);
   }
+}
+
+interface ErrorPayload {
+  statusCode: number;
+  code: string;
+  message: string;
+  details?: unknown;
+}
+
+/**
+ * Сводит любую Nest exception к стабильному формату ответа.
+ *
+ * Поддерживает три типичных формы getResponse():
+ *  - string  → message только
+ *  - { code, ... } → наш собственный формат с error code
+ *  - { message, statusCode, ... } → стандартный Nest (ValidationPipe и пр.)
+ */
+function normalizeErrorPayload(exception: unknown, status: number): ErrorPayload {
+  if (!(exception instanceof HttpException)) {
+    return { statusCode: status, code: "INTERNAL_ERROR", message: "Internal server error" };
+  }
+
+  const raw = exception.getResponse();
+
+  if (typeof raw === "string") {
+    return { statusCode: status, code: defaultCodeFor(status), message: raw };
+  }
+
+  if (raw && typeof raw === "object") {
+    const obj = raw as Record<string, unknown>;
+    const code = typeof obj.code === "string" ? obj.code : defaultCodeFor(status);
+    const message =
+      typeof obj.message === "string"
+        ? obj.message
+        : Array.isArray(obj.message)
+          ? obj.message.join("; ")
+          : humanMessageFor(code, status);
+    const { code: _c, message: _m, statusCode: _s, ...rest } = obj;
+    const details = Object.keys(rest).length > 0 ? rest : undefined;
+    return { statusCode: status, code, message, ...(details ? { details } : {}) };
+  }
+
+  return { statusCode: status, code: defaultCodeFor(status), message: humanMessageFor("", status) };
+}
+
+function defaultCodeFor(status: number): string {
+  if (status === 400) return "BAD_REQUEST";
+  if (status === 401) return "UNAUTHORIZED";
+  if (status === 403) return "FORBIDDEN";
+  if (status === 404) return "NOT_FOUND";
+  if (status === 409) return "CONFLICT";
+  if (status === 422) return "UNPROCESSABLE_ENTITY";
+  if (status === 429) return "RATE_LIMITED";
+  if (status >= 500) return "INTERNAL_ERROR";
+  return "ERROR";
+}
+
+function humanMessageFor(code: string, status: number): string {
+  if (code) return code;
+  return defaultCodeFor(status);
 }
