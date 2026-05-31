@@ -17,7 +17,10 @@
       "bundleIdentifier": "uz.pandaclock.app",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Pandaclock использует геолокацию, чтобы подтвердить, что вы на работе в момент отметки.",
-        "NSFaceIDUsageDescription": "Используйте Face ID для быстрого входа в Pandaclock."
+        "NSFaceIDUsageDescription": "Используйте Face ID для быстрого входа в Pandaclock.",
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
       }
     },
     "android": {
@@ -26,7 +29,13 @@
         "backgroundColor": "#5B4FE2"
       },
       "package": "uz.pandaclock.app",
-      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION", "USE_BIOMETRIC"]
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "USE_BIOMETRIC",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -36,11 +45,26 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Pandaclock использует геолокацию для подтверждения присутствия на работе."
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
       ]
     ],
     "scheme": "pandaclock",
     "extra": {
-      "apiUrl": "http://localhost:4000/api/v1"
-    }
+      "apiUrl": "http://localhost:4000/api/v1",
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "b85651fd-1cd1-42f1-87b0-80b0720ea5ab"
+      }
+    },
+    "owner": "abdullo_amrilloev"
   }
 }
