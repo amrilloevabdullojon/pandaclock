@@ -117,8 +117,10 @@ export default function LoginPage() {
     }
   }
 
+  const marketingUrl = process.env.NEXT_PUBLIC_MARKETING_URL ?? "https://pandaclock.uz";
+
   return (
-    <main className="flex min-h-screen items-center justify-center bg-neutral-50 px-6">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-neutral-50 px-6 py-12">
       <Card className="w-full max-w-md">
         <CardHeader>
           <div className="mb-2 text-center text-4xl">🐼</div>
@@ -233,6 +235,22 @@ export default function LoginPage() {
           </form>
         </CardContent>
       </Card>
+
+      <footer className="mt-8 flex flex-col items-center gap-2 text-xs text-neutral-500">
+        <a href={marketingUrl} className="hover:text-primary-500 font-semibold">
+          ← На главную pandaclock.uz
+        </a>
+        <p>
+          © {new Date().getFullYear()} Pandaclock ·{" "}
+          <Link href="/legal/privacy" className="hover:underline">
+            Конфиденциальность
+          </Link>{" "}
+          ·{" "}
+          <Link href="/legal/oferta" className="hover:underline">
+            Условия
+          </Link>
+        </p>
+      </footer>
     </main>
   );
 }

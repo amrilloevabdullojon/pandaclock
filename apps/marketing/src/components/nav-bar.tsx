@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@pandaclock/ui";
+import { APP_LOGIN_URL, APP_REGISTER_URL } from "@/lib/app-urls";
 
 export function NavBar() {
   return (
@@ -27,10 +28,10 @@ export function NavBar() {
 
         <div className="flex items-center gap-3">
           <Button asChild variant="secondary" size="sm">
-            <a href={process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000/login"}>Войти</a>
+            <a href={APP_LOGIN_URL}>Войти</a>
           </Button>
           <Button asChild size="sm">
-            <Link href="#cta">Начать бесплатно</Link>
+            <a href={APP_REGISTER_URL}>Начать бесплатно</a>
           </Button>
         </div>
       </div>
