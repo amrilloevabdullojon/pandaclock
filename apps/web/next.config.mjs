@@ -11,6 +11,16 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react"],
   },
+  // packages/types написан NodeNext-стилем: `import "./foo.js"` указывает на
+  // соседний `foo.ts`. Webpack по умолчанию не знает что .js → .ts, поэтому
+  // даём ему extensionAlias.
+  webpack(config) {
+    config.resolve.extensionAlias = {
+      ".js": [".ts", ".tsx", ".js"],
+      ".mjs": [".mts", ".mjs"],
+    };
+    return config;
+  },
 };
 
 const withIntl = withNextIntl(nextConfig);

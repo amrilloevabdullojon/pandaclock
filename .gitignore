@@ -69,3 +69,4 @@ packages/ui/storybook-static/
 apps/web/playwright-report/
 apps/web/test-results/
 apps/web/.playwright/
+.vercel
