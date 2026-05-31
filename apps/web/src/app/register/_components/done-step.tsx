@@ -19,8 +19,8 @@ export function DoneStep({
         <p className="mt-2 text-neutral-500">Ваш аккаунт {tenantSlug}.pandaclock.uz создан.</p>
       </div>
 
-      <div className="space-y-3 rounded-lg bg-primary-50 p-4 text-left">
-        <p className="text-sm font-semibold text-primary-700">📧 Проверьте email</p>
+      <div className="bg-primary-50 space-y-3 rounded-lg p-4 text-left">
+        <p className="text-primary-700 text-sm font-semibold">📧 Проверьте email</p>
         <p className="text-sm text-neutral-600">
           Мы отправили ссылку для подтверждения на <strong>{adminEmail}</strong>. Перейдите по ней,
           чтобы активировать аккаунт.
@@ -35,7 +35,7 @@ export function DoneStep({
       </div>
 
       <Button onClick={onLogin} size="lg" fullWidth>
-        Перейти к входу →
+        Открыть дашборд →
       </Button>
     </div>
   );
