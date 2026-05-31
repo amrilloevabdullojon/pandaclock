@@ -8,6 +8,7 @@ import {
   Card,
   CardContent,
   EmptyState,
+  ErrorBoundary,
   PageHeader,
   Sparkline,
   TrendIndicator,
@@ -142,34 +143,36 @@ export default async function DashboardPage() {
 
       <div className="grid gap-4 lg:grid-cols-3">
         {/* Активность за 14 дней */}
-        <Card className="lg:col-span-2">
-          <CardContent className="p-6">
-            <div className="mb-4 flex items-start justify-between">
-              <div>
-                <h2 className="text-foreground text-lg font-bold">Активность команды</h2>
-                <p className="text-muted-foreground text-xs">За последние 14 дней</p>
+        <ErrorBoundary className="lg:col-span-2">
+          <Card className="lg:col-span-2">
+            <CardContent className="p-6">
+              <div className="mb-4 flex items-start justify-between">
+                <div>
+                  <h2 className="text-foreground text-lg font-bold">Активность команды</h2>
+                  <p className="text-muted-foreground text-xs">За последние 14 дней</p>
+                </div>
               </div>
-            </div>
-            {activityData.length === 0 ? (
-              <EmptyState
-                compact
-                icon={<Clock />}
-                title="Нет данных за период"
-                description="Сотрудники появятся здесь после первых отметок"
-              />
-            ) : (
-              <BarChart
-                data={activityData}
-                xKey="day"
-                bars={[
-                  { key: "На работе", color: "success" },
-                  { key: "Опоздания", color: "warning" },
-                ]}
-                height={220}
-              />
-            )}
-          </CardContent>
-        </Card>
+              {activityData.length === 0 ? (
+                <EmptyState
+                  compact
+                  icon={<Clock />}
+                  title="Нет данных за период"
+                  description="Сотрудники появятся здесь после первых отметок"
+                />
+              ) : (
+                <BarChart
+                  data={activityData}
+                  xKey="day"
+                  bars={[
+                    { key: "На работе", color: "success" },
+                    { key: "Опоздания", color: "warning" },
+                  ]}
+                  height={220}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </ErrorBoundary>
 
         {/* Кто на работе сейчас */}
         <Card>

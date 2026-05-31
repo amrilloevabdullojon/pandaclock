@@ -44,6 +44,9 @@ export * from "./components/table";
 export * from "./components/row-selection";
 export * from "./components/editable-field";
 
+// === Resilience ===
+export * from "./components/error-boundary";
+
 // === cmdk / command-palette ===
 export * from "./components/command";
 
