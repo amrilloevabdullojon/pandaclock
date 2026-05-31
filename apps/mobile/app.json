@@ -53,6 +53,12 @@
             "usesCleartextTraffic": true
           }
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Pandaclock запрашивает доступ к фото, чтобы вы могли загрузить аватар."
+        }
       ]
     ],
     "scheme": "pandaclock",

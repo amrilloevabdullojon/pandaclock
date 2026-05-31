@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Alert, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import {
   Bell,
+  Camera,
   ChevronRight,
   HelpCircle,
   LogOut,
@@ -17,6 +18,7 @@ import {
 import { api } from "@/lib/api-client";
 import { useAuthStore } from "@/lib/auth-store";
 import { useThemeStore, type ThemePreference } from "@/lib/theme-store";
+import { pickAvatarFromGallery, uploadAvatar } from "@/lib/avatar-upload";
 import { Avatar, Badge, Button, Card, Divider, Input, Screen, Skeleton } from "@/components/ui";
 
 interface Me {
@@ -47,6 +49,25 @@ export default function ProfileScreen() {
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  async function handleAvatarTap() {
+    if (uploadingAvatar) return;
+    const picked = await pickAvatarFromGallery();
+    if (!picked) return; // юзер отменил
+    setUploadingAvatar(true);
+    try {
+      const { avatarUrl } = await uploadAvatar(picked);
+      setMe((prev) => (prev ? { ...prev, avatarUrl } : prev));
+    } catch (error) {
+      Alert.alert(
+        "Не удалось загрузить фото",
+        error instanceof Error ? error.message : "Попробуйте ещё раз",
+      );
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -109,12 +130,27 @@ export default function ProfileScreen() {
           </>
         ) : (
           <>
-            <Avatar
-              size="2xl"
-              gradient
-              src={me?.avatarUrl ?? undefined}
-              fallback={`${me?.firstName.charAt(0) ?? "?"}${me?.lastName.charAt(0) ?? ""}`}
-            />
+            <Pressable
+              onPress={handleAvatarTap}
+              disabled={uploadingAvatar}
+              accessibilityRole="button"
+              accessibilityLabel="Сменить фото профиля"
+              className="relative"
+            >
+              <Avatar
+                size="2xl"
+                gradient
+                src={me?.avatarUrl ?? undefined}
+                fallback={`${me?.firstName.charAt(0) ?? "?"}${me?.lastName.charAt(0) ?? ""}`}
+              />
+              <View className="bg-primary-500 border-background absolute bottom-0 right-0 h-8 w-8 items-center justify-center rounded-full border-2">
+                {uploadingAvatar ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Camera size={14} color="#FFFFFF" />
+                )}
+              </View>
+            </Pressable>
             <Text className="text-foreground mt-4 text-xl font-extrabold">
               {me ? `${me.firstName} ${me.lastName}` : "—"}
             </Text>
