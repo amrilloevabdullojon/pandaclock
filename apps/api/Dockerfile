@@ -19,7 +19,9 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 # ----- Build stage -----
 FROM deps AS build
 COPY apps/api ./apps/api
-RUN pnpm --filter @pandaclock/db prisma generate
+# @pandaclock/db экспортирует через ./dist/*.js → нужен полный build (tsc),
+# не только prisma generate. Без этого api typecheck/build падает TS2307.
+RUN pnpm --filter @pandaclock/db build
 RUN pnpm --filter @pandaclock/api build
 
 # ----- Production-deploy stage -----
