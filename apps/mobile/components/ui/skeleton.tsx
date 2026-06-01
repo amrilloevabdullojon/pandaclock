@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Animated, View, type ViewProps } from "react-native";
+import { Animated, type ViewProps } from "react-native";
 import { cn } from "./utils";
 
 interface SkeletonProps extends ViewProps {

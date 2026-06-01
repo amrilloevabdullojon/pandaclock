@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Building2, CheckCircle2, Circle, Clock, Sparkles, Users, X } from "lucide-react";
-import { Button, Card, CardContent, cn, toast } from "@pandaclock/ui";
+import { Card, CardContent, cn, toast } from "@pandaclock/ui";
 
 interface Step {
   key: "departments" | "employees" | "tasks" | "time";
@@ -55,7 +55,9 @@ const STEP_CONFIG: Record<
 
 export function OnboardingChecklist({ initial }: { initial: OnboardingResponse }) {
   const router = useRouter();
-  const [data, setData] = React.useState(initial);
+  // initial неизменяемый; локально мы не апдейтим состояние шагов — они
+  // приходят с сервера при F5. setData убран чтобы не вводить в заблуждение.
+  const data = initial;
   const [hidden, setHidden] = React.useState(false);
 
   // Все шаги пройдены — показываем поздравление 5 сек и скрываем

@@ -86,7 +86,6 @@ export function AvatarUploader({ initialAvatarUrl, fallback }: AvatarUploaderPro
         )}
       >
         {avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
         ) : (
           <div className="bg-primary-100 text-primary-700 flex h-full w-full items-center justify-center text-2xl font-extrabold">

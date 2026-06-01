@@ -9,7 +9,16 @@ const meta: Meta<typeof Button> = {
   argTypes: {
     variant: {
       control: "select",
-      options: ["default", "secondary", "outline", "ghost", "destructive", "link"],
+      options: [
+        "primary",
+        "secondary",
+        "outline",
+        "ghost",
+        "danger",
+        "link",
+        "success",
+        "gradient",
+      ],
     },
     size: { control: "select", options: ["sm", "default", "lg", "icon"] },
     disabled: { control: "boolean" },
@@ -32,7 +41,7 @@ export const Outline: Story = {
 };
 
 export const Destructive: Story = {
-  args: { variant: "destructive", children: "Удалить" },
+  args: { variant: "danger", children: "Удалить" },
 };
 
 export const Ghost: Story = {

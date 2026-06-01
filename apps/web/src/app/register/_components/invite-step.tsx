@@ -57,7 +57,6 @@ export function InviteStep({
       <div className="space-y-2">
         {emails.map((email, idx) => (
           <Input
-            // eslint-disable-next-line react/no-array-index-key
             key={idx}
             type="email"
             placeholder="colleague@company.uz"

@@ -31,7 +31,6 @@ export function useQueryState(
   // Sync URL → local when URL changes externally (back button, etc.)
   React.useEffect(() => {
     setLocalValue(urlValue);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlValue]);
 
   const writeToUrl = React.useCallback(

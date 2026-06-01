@@ -32,7 +32,6 @@ export default function HomeScreen() {
 
   React.useEffect(() => {
     let cancelled = false;
-    let timer: NodeJS.Timeout | undefined;
     async function tick() {
       try {
         const res = await api<{ count: number }>("/notifications/unread-count");
@@ -43,10 +42,10 @@ export default function HomeScreen() {
     }
     void tick();
     // Polling каждые 30 сек когда экран активен
-    timer = setInterval(() => void tick(), 30_000);
+    const timer = setInterval(() => void tick(), 30_000);
     return () => {
       cancelled = true;
-      if (timer) clearInterval(timer);
+      clearInterval(timer);
     };
   }, []);
 

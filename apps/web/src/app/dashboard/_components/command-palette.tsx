@@ -20,7 +20,6 @@ import {
   Monitor,
   Moon,
   Plus,
-  Search,
   Sun,
   User as UserIcon,
   UserCircle,

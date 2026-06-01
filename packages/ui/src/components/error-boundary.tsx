@@ -43,7 +43,6 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, State> {
   override componentDidCatch(error: Error, info: React.ErrorInfo): void {
     this.props.onError?.(error, { componentStack: info.componentStack });
     if (process.env.NODE_ENV !== "production") {
-      // eslint-disable-next-line no-console
       console.error("[ErrorBoundary]", error, info.componentStack);
     }
   }
