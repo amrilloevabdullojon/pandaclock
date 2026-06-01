@@ -11,6 +11,7 @@ interface TaskCard {
   status: "NEW" | "IN_PROGRESS" | "DONE" | "REJECTED";
   priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
   assigneeName: string | null;
+  assigneeAvatarUrl: string | null;
   deadline: string | null;
   commentsCount: number;
   labels: string[];

@@ -25,6 +25,7 @@ interface EmployeeRow {
   status: string;
   position: string | null;
   departmentName: string | null;
+  avatarUrl: string | null;
 }
 
 interface EmployeesResponse {

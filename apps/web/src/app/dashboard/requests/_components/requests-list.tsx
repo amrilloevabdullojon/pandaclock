@@ -6,6 +6,7 @@ import { CheckCheck, X, XCircle } from "lucide-react";
 import {
   Avatar,
   AvatarFallback,
+  AvatarImage,
   Badge,
   Button,
   Checkbox,
@@ -29,6 +30,7 @@ interface LeaveRequest {
   id: string;
   userId: string;
   userName: string;
+  userAvatarUrl: string | null;
   type: LeaveType;
   startDate: string;
   endDate: string;
@@ -150,6 +152,9 @@ export function RequestsList({ items, scope }: Props) {
 
               <div className="flex flex-1 items-start gap-3">
                 <Avatar className="mt-0.5 h-9 w-9">
+                  {req.userAvatarUrl ? (
+                    <AvatarImage src={req.userAvatarUrl} alt={req.userName} />
+                  ) : null}
                   <AvatarFallback className="bg-gradient-primary text-xs font-bold text-white">
                     {initialsOf(req.userName)}
                   </AvatarFallback>

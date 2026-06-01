@@ -16,6 +16,7 @@ export interface LeaveRequestRow {
   id: string;
   userId: string;
   userName: string;
+  userAvatarUrl: string | null;
   type: LeaveType;
   startDate: string;
   endDate: string;
@@ -33,6 +34,7 @@ interface RawRow {
   id: string;
   user_id: string;
   user_name: string;
+  user_avatar_url: string | null;
   type: string;
   start_date: Date;
   end_date: Date;
@@ -48,6 +50,7 @@ interface RawRow {
 
 const SELECT_REQUEST = `
   r.id, r.user_id, u.first_name || ' ' || u.last_name AS user_name,
+  u.avatar_url AS user_avatar_url,
   r.type, r.start_date, r.end_date, r.days_count, r.reason, r.status,
   r.approver_id,
   CASE WHEN a.id IS NOT NULL THEN a.first_name || ' ' || a.last_name END AS approver_name,
@@ -326,6 +329,7 @@ function toRow(row: RawRow): LeaveRequestRow {
     id: row.id,
     userId: row.user_id,
     userName: row.user_name,
+    userAvatarUrl: row.user_avatar_url,
     type: row.type as LeaveType,
     startDate: row.start_date.toISOString().slice(0, 10),
     endDate: row.end_date.toISOString().slice(0, 10),

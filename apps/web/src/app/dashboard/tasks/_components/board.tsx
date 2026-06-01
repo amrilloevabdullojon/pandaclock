@@ -26,6 +26,7 @@ import { Flame, GripVertical, MessageCircle, MoreHorizontal, Tag as TagIcon } fr
 import {
   Avatar,
   AvatarFallback,
+  AvatarImage,
   Card,
   DropdownMenu,
   DropdownMenuContent,
@@ -46,6 +47,7 @@ interface TaskCard {
   status: Status;
   priority: Priority;
   assigneeName: string | null;
+  assigneeAvatarUrl: string | null;
   deadline: string | null;
   commentsCount: number;
   labels: string[];
@@ -323,6 +325,9 @@ function TaskCardContent({ task, dragging, dragHandleProps }: TaskCardContentPro
             {task.assigneeName ? (
               <>
                 <Avatar className="h-5 w-5">
+                  {task.assigneeAvatarUrl ? (
+                    <AvatarImage src={task.assigneeAvatarUrl} alt={task.assigneeName} />
+                  ) : null}
                   <AvatarFallback className="bg-gradient-primary text-[9px] font-bold text-white">
                     {initials(task.assigneeName)}
                   </AvatarFallback>

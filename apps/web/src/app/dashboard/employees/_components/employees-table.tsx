@@ -7,6 +7,7 @@ import { ArrowRight, Power, PowerOff, X } from "lucide-react";
 import {
   Avatar,
   AvatarFallback,
+  AvatarImage,
   Badge,
   Button,
   Checkbox,
@@ -36,6 +37,7 @@ interface EmployeeRow {
   status: string;
   position: string | null;
   departmentName: string | null;
+  avatarUrl: string | null;
 }
 
 interface Props {
@@ -126,6 +128,12 @@ export function EmployeesTable({ items }: Props) {
                     className="focus-ring group flex items-center gap-3 rounded-sm"
                   >
                     <Avatar className="h-9 w-9">
+                      {employee.avatarUrl ? (
+                        <AvatarImage
+                          src={employee.avatarUrl}
+                          alt={`${employee.firstName} ${employee.lastName}`}
+                        />
+                      ) : null}
                       <AvatarFallback className="bg-gradient-primary text-xs font-bold text-white">
                         {employee.firstName.charAt(0)}
                         {employee.lastName.charAt(0)}

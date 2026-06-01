@@ -13,6 +13,7 @@ interface LeaveRequest {
   id: string;
   userId: string;
   userName: string;
+  userAvatarUrl: string | null;
   type: LeaveType;
   startDate: string;
   endDate: string;

@@ -26,7 +26,9 @@ export interface TaskRow {
 
 export interface TaskWithPeople extends TaskRow {
   assigneeName: string | null;
+  assigneeAvatarUrl: string | null;
   createdByName: string;
+  createdByAvatarUrl: string | null;
   commentsCount: number;
 }
 
@@ -44,7 +46,9 @@ interface TaskRawRow {
   created_at: Date;
   updated_at: Date;
   assignee_name: string | null;
+  assignee_avatar_url: string | null;
   created_by_name: string;
+  created_by_avatar_url: string | null;
   comments_count: bigint;
 }
 
@@ -53,7 +57,9 @@ const SELECT_TASK = `
   t.created_by_id, t.assignee_id, t.deadline, t.completed_at,
   t.labels, t.created_at, t.updated_at,
   CASE WHEN a.id IS NOT NULL THEN a.first_name || ' ' || a.last_name END AS assignee_name,
+  a.avatar_url AS assignee_avatar_url,
   c.first_name || ' ' || c.last_name AS created_by_name,
+  c.avatar_url AS created_by_avatar_url,
   COALESCE((SELECT COUNT(*) FROM task_comments tc WHERE tc.task_id = t.id), 0)::bigint AS comments_count
 `;
 
@@ -334,7 +340,9 @@ function toWithPeople(row: TaskRawRow): TaskWithPeople {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     assigneeName: row.assignee_name,
+    assigneeAvatarUrl: row.assignee_avatar_url,
     createdByName: row.created_by_name,
+    createdByAvatarUrl: row.created_by_avatar_url,
     commentsCount: Number(row.comments_count),
   };
 }
