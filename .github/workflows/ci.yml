@@ -54,6 +54,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Generate Prisma Client
+        # @pandaclock/db требует сгенерированный @prisma/client для typecheck.
+        # Без него tsc валится с TS2307 во всех api-сервисах.
+        run: pnpm --filter @pandaclock/db prisma generate
+
       - name: Lint
         run: pnpm lint
 
