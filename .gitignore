@@ -70,3 +70,4 @@ apps/web/playwright-report/
 apps/web/test-results/
 apps/web/.playwright/
 .vercel
+*.tsbuildinfo
