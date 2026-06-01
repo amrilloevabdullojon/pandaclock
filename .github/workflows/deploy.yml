@@ -17,7 +17,7 @@ jobs:
     name: Deploy API to fly.io
     runs-on: ubuntu-latest
     # Запускается только если есть FLY_API_TOKEN в secrets (на форках не сработает)
-    if: ${{ vars.DEPLOY_API_ENABLED == 'true' || github.repository_owner == 'amrilloev-abdullojon' }}
+    if: ${{ vars.DEPLOY_API_ENABLED != 'false' && github.repository_owner == 'amrilloevabdullojon' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -32,7 +32,7 @@ jobs:
   deploy-web:
     name: Deploy Web to Vercel
     runs-on: ubuntu-latest
-    if: ${{ vars.DEPLOY_WEB_ENABLED == 'true' || github.repository_owner == 'amrilloev-abdullojon' }}
+    if: ${{ vars.DEPLOY_WEB_ENABLED != 'false' && github.repository_owner == 'amrilloevabdullojon' }}
     steps:
       - uses: actions/checkout@v4
 
