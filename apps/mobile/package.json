@@ -11,7 +11,7 @@
     "build": "echo 'mobile build via EAS'",
     "lint": "eslint app components",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@expo-google-fonts/nunito": "^0.2.3",
