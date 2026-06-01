@@ -54,12 +54,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Generate Prisma client
-        # packages/db#build делает tsc, который требует сгенерированный
-        # @prisma/client (postinstall не запускается из-за pnpm
-        # ignore-scripts при monorepo install)
-        run: pnpm --filter @pandaclock/db generate
-
       - name: Lint
         run: pnpm lint
 

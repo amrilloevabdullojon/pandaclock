@@ -14,7 +14,7 @@
     "./tenant-template": "./dist/tenant-template.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "prisma generate && tsc",
     "prisma": "prisma",
     "generate": "prisma generate",
     "migrate:dev": "prisma migrate dev",
