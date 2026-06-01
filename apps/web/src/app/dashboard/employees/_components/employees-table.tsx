@@ -18,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
   SelectionToolbar,
+  SortableTableHead,
   Table,
   TableBody,
   TableCell,
@@ -27,6 +28,7 @@ import {
   toast,
   useRowSelection,
 } from "@pandaclock/ui";
+import { useQueryState } from "@/lib/hooks/use-query-state";
 
 interface EmployeeRow {
   id: string;
@@ -47,6 +49,12 @@ interface Props {
 export function EmployeesTable({ items }: Props) {
   const router = useRouter();
   const selection = useRowSelection<string>();
+  const [sortBy, setSortBy] = useQueryState("sortBy", "");
+  const [sortDir, setSortDir] = useQueryState("sortDir", "");
+  const handleSort = (field: string, dir: "asc" | "desc"): void => {
+    setSortBy(field);
+    setSortDir(dir);
+  };
   const [pendingAction, setPendingAction] = React.useState<"SUSPENDED" | "ACTIVE" | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
 
@@ -101,10 +109,31 @@ export function EmployeesTable({ items }: Props) {
                 disabled={selectableIds.length === 0}
               />
             </TableHead>
-            <TableHead>Сотрудник</TableHead>
+            <SortableTableHead
+              field="name"
+              currentField={sortBy || undefined}
+              currentDirection={(sortDir as "asc" | "desc" | undefined) || undefined}
+              onSortChange={handleSort}
+            >
+              Сотрудник
+            </SortableTableHead>
             <TableHead>Должность</TableHead>
-            <TableHead>Отдел</TableHead>
-            <TableHead>Статус</TableHead>
+            <SortableTableHead
+              field="department"
+              currentField={sortBy || undefined}
+              currentDirection={(sortDir as "asc" | "desc" | undefined) || undefined}
+              onSortChange={handleSort}
+            >
+              Отдел
+            </SortableTableHead>
+            <SortableTableHead
+              field="status"
+              currentField={sortBy || undefined}
+              currentDirection={(sortDir as "asc" | "desc" | undefined) || undefined}
+              onSortChange={handleSort}
+            >
+              Статус
+            </SortableTableHead>
             <TableHead aria-hidden />
           </TableRow>
         </TableHeader>

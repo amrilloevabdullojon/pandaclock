@@ -93,6 +93,18 @@ export class EmployeesService {
     }
     const where = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
 
+    // Sort whitelist — никаких пользовательских строк в ORDER BY, чтобы не
+    // открыть SQL-инъекцию (даже из DTO @IsIn — двойная защита).
+    const SORT_MAP: Record<string, string> = {
+      name: "u.last_name, u.first_name",
+      role: "u.role",
+      status: "u.status",
+      department: "d.name NULLS LAST, u.last_name",
+      hireDate: "u.hire_date NULLS LAST",
+    };
+    const sortColumn = SORT_MAP[query.sortBy ?? "name"] ?? SORT_MAP.name;
+    const sortDirection = query.sortDir === "desc" ? "DESC" : "ASC";
+
     const client = await this.tenantDb.getClient();
 
     const rows = await client.$queryRawUnsafe<RowList[]>(
@@ -100,7 +112,7 @@ export class EmployeesService {
        FROM users u
        LEFT JOIN departments d ON d.id = u.department_id
        ${where}
-       ORDER BY u.last_name, u.first_name
+       ORDER BY ${sortColumn} ${sortDirection}
        LIMIT ${String(pageSize)} OFFSET ${String(offset)}`,
       ...params,
     );

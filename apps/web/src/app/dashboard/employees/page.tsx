@@ -12,6 +12,8 @@ interface EmployeesQuery {
   search?: string;
   departmentId?: string;
   status?: string;
+  sortBy?: string;
+  sortDir?: string;
   page?: string;
   pageSize?: string;
 }
@@ -64,6 +66,8 @@ export default async function EmployeesPage({
   if (params.search) qs.set("search", params.search);
   if (params.departmentId) qs.set("departmentId", params.departmentId);
   if (params.status) qs.set("status", params.status);
+  if (params.sortBy) qs.set("sortBy", params.sortBy);
+  if (params.sortDir) qs.set("sortDir", params.sortDir);
   if (params.page) qs.set("page", params.page);
   if (params.pageSize) qs.set("pageSize", params.pageSize);
 
