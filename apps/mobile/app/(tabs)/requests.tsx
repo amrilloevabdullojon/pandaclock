@@ -9,9 +9,10 @@ import {
   Text,
   View,
 } from "react-native";
-import { Plus, X } from "lucide-react-native";
+import { Plus, X, XCircle } from "lucide-react-native";
 import { api } from "@/lib/api-client";
 import { Badge, Button, Card, EmptyState, Input, Screen, Skeleton } from "@/components/ui";
+import { SwipeableRow } from "@/components/swipeable-row";
 
 type LeaveType = "VACATION" | "SICK" | "TIME_OFF" | "OTHER";
 type Status = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
@@ -112,7 +113,28 @@ export default function RequestsScreen() {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#5B4FE2" />
           }
-          renderItem={({ item }) => <RequestCard request={item} />}
+          renderItem={({ item }) => (
+            <SwipeableRow
+              disabled={item.status !== "PENDING"}
+              rightActions={[
+                {
+                  icon: <XCircle size={20} color="#FFFFFF" />,
+                  label: "Отменить",
+                  color: "#DC2626",
+                  onPress: async () => {
+                    try {
+                      await api(`/requests/${item.id}/cancel`, { method: "POST" });
+                      setItems((prev) => prev.filter((r) => r.id !== item.id));
+                    } catch {
+                      Alert.alert("Не удалось отменить заявку");
+                    }
+                  },
+                },
+              ]}
+            >
+              <RequestCard request={item} />
+            </SwipeableRow>
+          )}
         />
       )}
 
