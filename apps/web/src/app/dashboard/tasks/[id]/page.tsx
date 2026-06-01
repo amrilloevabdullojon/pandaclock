@@ -4,6 +4,8 @@ import { Badge, Card, CardContent } from "@pandaclock/ui";
 import { serverFetch } from "@/lib/server-api";
 import { TaskActions } from "./_components/task-actions";
 import { CommentList } from "./_components/comment-list";
+import { EditableTaskTitle } from "./_components/editable-title";
+import { EditableTaskDescription } from "./_components/editable-description";
 
 interface TaskDetail {
   id: string;
@@ -56,7 +58,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
                 </span>
               ))}
             </div>
-            <h1 className="text-foreground text-3xl font-extrabold">{task.title}</h1>
+            <EditableTaskTitle taskId={task.id} initial={task.title} />
           </header>
 
           <Card>
@@ -64,11 +66,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
               <h2 className="text-muted-foreground mb-2 text-sm font-semibold uppercase tracking-wider">
                 Описание
               </h2>
-              {task.description ? (
-                <p className="text-foreground whitespace-pre-wrap text-sm">{task.description}</p>
-              ) : (
-                <p className="text-muted-foreground text-sm">Без описания.</p>
-              )}
+              <EditableTaskDescription taskId={task.id} initial={task.description} />
             </CardContent>
           </Card>
 
