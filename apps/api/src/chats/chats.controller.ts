@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Query,
+  UseGuards,
+} from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { ChatsService } from "./chats.service.js";
 import { CreateChannelDto, SendMessageDto } from "./dto/chat.dto.js";
@@ -50,5 +61,32 @@ export class ChatsController {
   @Post("channels/:id/read")
   read(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: AuthRequestUser) {
     return this.chats.markRead(id, user.id);
+  }
+
+  // ===== Members =====
+
+  @Get("channels/:id/members")
+  members(@Param("id", ParseUUIDPipe) id: string, @CurrentUser() user: AuthRequestUser) {
+    return this.chats.listMembers(id, user.id);
+  }
+
+  @Post("channels/:id/members")
+  @HttpCode(204)
+  async addMember(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() body: { userId: string },
+    @CurrentUser() user: AuthRequestUser,
+  ): Promise<void> {
+    await this.chats.addMember(id, body.userId, user.id);
+  }
+
+  @Delete("channels/:id/members/:userId")
+  @HttpCode(204)
+  async removeMember(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Param("userId", ParseUUIDPipe) userId: string,
+    @CurrentUser() user: AuthRequestUser,
+  ): Promise<void> {
+    await this.chats.removeMember(id, userId, user.id);
   }
 }

@@ -1,9 +1,20 @@
 "use client";
 
 import * as React from "react";
-import { Hash, Lock, MessageCircle, Search, Send, Users } from "lucide-react";
+import { Hash, Lock, MessageCircle, Search, Send } from "lucide-react";
 import { io, type Socket } from "socket.io-client";
-import { Avatar, AvatarFallback, Button, EmptyState, Input, ScrollArea, cn } from "@pandaclock/ui";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+  Button,
+  EmptyState,
+  Input,
+  ScrollArea,
+  cn,
+} from "@pandaclock/ui";
+import { NewChannelDialog } from "./new-channel-dialog";
+import { MembersSheet } from "./members-sheet";
 
 interface ChannelRow {
   id: string;
@@ -18,6 +29,7 @@ interface Message {
   channelId: string;
   authorId: string;
   authorName: string;
+  authorAvatarUrl: string | null;
   body: string;
   createdAt: string;
 }
@@ -28,7 +40,13 @@ interface DayGroup {
   messages: Message[];
 }
 
-export function ChatsView({ initialChannels }: { initialChannels: ChannelRow[] }) {
+export function ChatsView({
+  initialChannels,
+  meId,
+}: {
+  initialChannels: ChannelRow[];
+  meId: string;
+}) {
   const [channels, setChannels] = React.useState(initialChannels);
   const [activeId, setActiveId] = React.useState<string | null>(initialChannels[0]?.id ?? null);
   const [messages, setMessages] = React.useState<Message[]>([]);
@@ -159,13 +177,26 @@ export function ChatsView({ initialChannels }: { initialChannels: ChannelRow[] }
     <div className="border-border bg-card grid h-[calc(100vh-220px)] min-h-[480px] grid-cols-1 overflow-hidden rounded-md border md:grid-cols-[280px_1fr]">
       {/* === Левая колонка: каналы === */}
       <aside className="border-border bg-muted/30 flex flex-col border-b md:border-b-0 md:border-r">
-        <div className="border-border border-b p-3">
+        <div className="border-border flex items-center gap-2 border-b p-3">
           <Input
             prefix={<Search className="h-4 w-4" />}
             size="sm"
             placeholder="Найти канал…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            className="flex-1"
+          />
+          <NewChannelDialog
+            meId={meId}
+            onCreated={async (channelId) => {
+              // Перезагружаем список каналов и сразу открываем созданный.
+              const response = await fetch("/api/chats/channels");
+              if (response.ok) {
+                const fresh = (await response.json()) as ChannelRow[];
+                setChannels(fresh);
+              }
+              setActiveId(channelId);
+            }}
           />
         </div>
         <ScrollArea className="flex-1">
@@ -195,15 +226,11 @@ export function ChatsView({ initialChannels }: { initialChannels: ChannelRow[] }
                   {activeChannel.name ?? "channel"}
                 </h2>
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                leftIcon={<Users className="h-4 w-4" />}
-                disabled
-              >
-                Участники
-              </Button>
+              <MembersSheet
+                channelId={activeChannel.id}
+                channelName={activeChannel.name}
+                meId={meId}
+              />
             </header>
 
             <ScrollArea className="flex-1 px-5">
@@ -344,6 +371,7 @@ interface MessageClusterT {
   id: string;
   authorId: string;
   authorName: string;
+  authorAvatarUrl: string | null;
   startedAt: string;
   messages: Message[];
 }
@@ -356,6 +384,7 @@ function MessageCluster({ cluster }: { cluster: MessageClusterT }) {
   return (
     <li className="hover:bg-muted/40 -mx-2 flex items-start gap-3 rounded-sm px-2 py-1 transition-colors">
       <Avatar className="mt-0.5 h-9 w-9 shrink-0">
+        {cluster.authorAvatarUrl ? <AvatarImage src={cluster.authorAvatarUrl} alt="" /> : null}
         <AvatarFallback className="bg-gradient-primary text-xs font-bold text-white">
           {initials(cluster.authorName)}
         </AvatarFallback>
@@ -411,6 +440,7 @@ function clusterMessages(messages: Message[]): MessageClusterT[] {
         id: m.id,
         authorId: m.authorId,
         authorName: m.authorName,
+        authorAvatarUrl: m.authorAvatarUrl,
         startedAt: m.createdAt,
         messages: [m],
       });

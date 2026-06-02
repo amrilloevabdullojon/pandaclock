@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { TenantPrismaService } from "../tenant/tenant-prisma.service.js";
 
 export type ChannelType = "CHANNEL" | "DM";
@@ -18,8 +23,18 @@ export interface MessageRow {
   channelId: string;
   authorId: string;
   authorName: string;
+  authorAvatarUrl: string | null;
   body: string;
   createdAt: Date;
+}
+
+export interface MemberRow {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl: string | null;
+  role: "ADMIN" | "MEMBER";
+  joinedAt: Date;
 }
 
 @Injectable()
@@ -121,10 +136,19 @@ export class ChatsService {
     await this.ensureMembership(channelId, userId);
     const client = await this.tenantDb.getClient();
     const rows = await client.$queryRawUnsafe<
-      { id: string; channel_id: string; author_id: string; author_name: string; body: string; created_at: Date }[]
+      {
+        id: string;
+        channel_id: string;
+        author_id: string;
+        author_name: string;
+        author_avatar_url: string | null;
+        body: string;
+        created_at: Date;
+      }[]
     >(
       `SELECT m.id, m.channel_id, m.author_id,
               u.first_name || ' ' || u.last_name AS author_name,
+              u.avatar_url AS author_avatar_url,
               m.body, m.created_at
        FROM chat_messages m
        JOIN users u ON u.id = m.author_id
@@ -140,6 +164,7 @@ export class ChatsService {
         channelId: row.channel_id,
         authorId: row.author_id,
         authorName: row.author_name,
+        authorAvatarUrl: row.author_avatar_url,
         body: row.body,
         createdAt: row.created_at,
       }))
@@ -150,14 +175,23 @@ export class ChatsService {
     await this.ensureMembership(channelId, authorId);
     const client = await this.tenantDb.getClient();
     const rows = await client.$queryRawUnsafe<
-      { id: string; channel_id: string; author_id: string; author_name: string; body: string; created_at: Date }[]
+      {
+        id: string;
+        channel_id: string;
+        author_id: string;
+        author_name: string;
+        author_avatar_url: string | null;
+        body: string;
+        created_at: Date;
+      }[]
     >(
       `WITH inserted AS (
          INSERT INTO chat_messages (channel_id, author_id, body)
          VALUES ($1, $2, $3)
          RETURNING id, channel_id, author_id, body, created_at
        )
-       SELECT i.*, u.first_name || ' ' || u.last_name AS author_name
+       SELECT i.*, u.first_name || ' ' || u.last_name AS author_name,
+              u.avatar_url AS author_avatar_url
        FROM inserted i JOIN users u ON u.id = i.author_id`,
       channelId,
       authorId,
@@ -178,9 +212,91 @@ export class ChatsService {
       channelId: row.channel_id,
       authorId: row.author_id,
       authorName: row.author_name,
+      authorAvatarUrl: row.author_avatar_url,
       body: row.body,
       createdAt: row.created_at,
     };
+  }
+
+  // ===== Members =====
+
+  async listMembers(channelId: string, requesterId: string): Promise<MemberRow[]> {
+    await this.ensureMembership(channelId, requesterId);
+    const client = await this.tenantDb.getClient();
+    const rows = await client.$queryRawUnsafe<
+      {
+        user_id: string;
+        first_name: string;
+        last_name: string;
+        avatar_url: string | null;
+        role: string;
+        joined_at: Date;
+      }[]
+    >(
+      `SELECT cm.user_id, u.first_name, u.last_name, u.avatar_url,
+              cm.role, cm.joined_at
+       FROM chat_members cm
+       JOIN users u ON u.id = cm.user_id
+       WHERE cm.channel_id = $1::uuid AND u.status = 'ACTIVE'
+       ORDER BY cm.role DESC, u.first_name, u.last_name`,
+      channelId,
+    );
+    return rows.map((r) => ({
+      userId: r.user_id,
+      firstName: r.first_name,
+      lastName: r.last_name,
+      avatarUrl: r.avatar_url,
+      role: r.role as "ADMIN" | "MEMBER",
+      joinedAt: r.joined_at,
+    }));
+  }
+
+  async addMember(channelId: string, userId: string, requesterId: string): Promise<void> {
+    await this.assertChannelAdmin(channelId, requesterId);
+    const client = await this.tenantDb.getClient();
+    // Проверяем что user существует и активен в этом tenant.
+    const userRows = await client.$queryRawUnsafe<{ id: string }[]>(
+      `SELECT id FROM users WHERE id = $1::uuid AND status = 'ACTIVE' LIMIT 1`,
+      userId,
+    );
+    if (userRows.length === 0) {
+      throw new NotFoundException({ code: "USER_NOT_FOUND" });
+    }
+    await client.$executeRawUnsafe(
+      `INSERT INTO chat_members (channel_id, user_id, role)
+       VALUES ($1::uuid, $2::uuid, 'MEMBER')
+       ON CONFLICT DO NOTHING`,
+      channelId,
+      userId,
+    );
+  }
+
+  async removeMember(channelId: string, userId: string, requesterId: string): Promise<void> {
+    // Сам себя из канала может убрать любой; других — только админ.
+    if (userId !== requesterId) {
+      await this.assertChannelAdmin(channelId, requesterId);
+    }
+    const client = await this.tenantDb.getClient();
+    const result = await client.$executeRawUnsafe(
+      `DELETE FROM chat_members WHERE channel_id = $1::uuid AND user_id = $2::uuid`,
+      channelId,
+      userId,
+    );
+    if (result === 0) {
+      throw new NotFoundException({ code: "MEMBER_NOT_FOUND" });
+    }
+  }
+
+  private async assertChannelAdmin(channelId: string, userId: string): Promise<void> {
+    const client = await this.tenantDb.getClient();
+    const rows = await client.$queryRawUnsafe<{ role: string }[]>(
+      `SELECT role FROM chat_members WHERE channel_id = $1::uuid AND user_id = $2::uuid LIMIT 1`,
+      channelId,
+      userId,
+    );
+    const role = rows[0]?.role;
+    if (!role) throw new ForbiddenException({ code: "NOT_A_MEMBER" });
+    if (role !== "ADMIN") throw new ForbiddenException({ code: "NOT_CHANNEL_ADMIN" });
   }
 
   async markRead(channelId: string, userId: string): Promise<void> {
