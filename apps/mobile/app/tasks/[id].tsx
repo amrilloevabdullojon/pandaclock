@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { router, useLocalSearchParams, Stack } from "expo-router";
 import { api } from "@/lib/api-client";
+import { TaskComments } from "@/components/task-comments";
 
 type Status = "NEW" | "IN_PROGRESS" | "DONE" | "REJECTED";
 
@@ -42,14 +43,19 @@ export default function TaskDetailScreen() {
   const params = useLocalSearchParams<{ id: string }>();
   const taskId = params.id;
   const [task, setTask] = useState<TaskDetail | null>(null);
+  const [meId, setMeId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState<Status | null>(null);
 
   const load = useCallback(async () => {
     if (!taskId) return;
     try {
-      const data = await api<TaskDetail>(`/tasks/${taskId}`);
+      const [data, me] = await Promise.all([
+        api<TaskDetail>(`/tasks/${taskId}`),
+        api<{ id: string }>("/auth/me").catch(() => null),
+      ]);
       setTask(data);
+      setMeId(me?.id ?? null);
     } catch {
       Alert.alert("Не удалось загрузить задачу");
     }
@@ -86,12 +92,10 @@ export default function TaskDetailScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-neutral-50">
-      <Stack.Screen
-        options={{ headerShown: true, title: "Задача", headerBackTitle: "Назад" }}
-      />
+      <Stack.Screen options={{ headerShown: true, title: "Задача", headerBackTitle: "Назад" }} />
       <ScrollView className="flex-1 px-6 py-4">
         <View className="mb-2 flex-row flex-wrap gap-2">
-          <Text className="rounded-pill bg-primary-100 px-2 py-0.5 text-xs font-semibold text-primary-700">
+          <Text className="rounded-pill bg-primary-100 text-primary-700 px-2 py-0.5 text-xs font-semibold">
             {task.priority}
           </Text>
           <Text className="rounded-pill bg-neutral-100 px-2 py-0.5 text-xs font-semibold text-neutral-600">
@@ -139,6 +143,11 @@ export default function TaskDetailScreen() {
               )}
             </Pressable>
           ))}
+        </View>
+
+        {/* Comments */}
+        <View className="mt-8">
+          <TaskComments taskId={task.id} meId={meId} />
         </View>
 
         <Pressable onPress={() => router.back()} className="mt-6 py-3">

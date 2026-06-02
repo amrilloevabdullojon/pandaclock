@@ -25,7 +25,9 @@ interface Comment {
   id: string;
   body: string;
   createdAt: string;
+  authorId: string;
   authorName: string;
+  authorAvatarUrl: string | null;
 }
 
 export default async function TaskDetailPage({ params }: { params: Promise<{ id: string }> }) {

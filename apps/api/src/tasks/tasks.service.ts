@@ -288,16 +288,30 @@ export class TasksService {
     return row ? `${row.first_name} ${row.last_name}` : "Сотрудник";
   }
 
-  async listComments(
-    taskId: string,
-  ): Promise<
-    { id: string; body: string; createdAt: Date; authorId: string; authorName: string }[]
+  async listComments(taskId: string): Promise<
+    {
+      id: string;
+      body: string;
+      createdAt: Date;
+      authorId: string;
+      authorName: string;
+      authorAvatarUrl: string | null;
+    }[]
   > {
     const client = await this.tenantDb.getClient();
     const rows = await client.$queryRawUnsafe<
-      { id: string; body: string; created_at: Date; author_id: string; author_name: string }[]
+      {
+        id: string;
+        body: string;
+        created_at: Date;
+        author_id: string;
+        author_name: string;
+        author_avatar_url: string | null;
+      }[]
     >(
-      `SELECT c.id, c.body, c.created_at, c.author_id, u.first_name || ' ' || u.last_name AS author_name
+      `SELECT c.id, c.body, c.created_at, c.author_id,
+              u.first_name || ' ' || u.last_name AS author_name,
+              u.avatar_url AS author_avatar_url
        FROM task_comments c
        JOIN users u ON u.id = c.author_id
        WHERE c.task_id = $1
@@ -310,6 +324,7 @@ export class TasksService {
       createdAt: r.created_at,
       authorId: r.author_id,
       authorName: r.author_name,
+      authorAvatarUrl: r.author_avatar_url,
     }));
   }
 
