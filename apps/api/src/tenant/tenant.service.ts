@@ -1,8 +1,23 @@
-import { Injectable, ConflictException, BadRequestException } from "@nestjs/common";
+import {
+  Injectable,
+  ConflictException,
+  BadRequestException,
+  NotFoundException,
+} from "@nestjs/common";
 import * as bcrypt from "bcrypt";
 import * as crypto from "node:crypto";
 import { prisma, PrismaClient, TENANT_TEMPLATE_SQL } from "@pandaclock/db";
 import type { Tenant } from "@pandaclock/db";
+import { parseTimePolicy, type TimePolicy } from "../time/time-policy.js";
+
+export interface UpdatePolicyInput {
+  workStart?: string;
+  workEnd?: string;
+  lateThresholdMinutes?: number;
+  workdays?: number[];
+  /** undefined → не трогать; null → удалить; объект → установить */
+  geofence?: TimePolicy["geofence"] | null;
+}
 
 export interface CreateTenantParams {
   slug: string;
@@ -93,6 +108,53 @@ export class TenantService {
     return prisma.tenant.findUnique({ where: { slug } });
   }
 
+  async getPolicy(slug: string): Promise<TimePolicy> {
+    const tenant = await prisma.tenant.findUnique({
+      where: { slug },
+      select: { timePolicy: true },
+    });
+    if (!tenant) throw new NotFoundException({ code: "TENANT_NOT_FOUND" });
+    return parseTimePolicy(tenant.timePolicy);
+  }
+
+  /**
+   * Частичное обновление tenant.time_policy. Поле geofence имеет 3 значения:
+   *  - undefined → не трогать
+   *  - null      → удалить
+   *  - объект    → заменить
+   */
+  async updatePolicy(slug: string, input: UpdatePolicyInput): Promise<TimePolicy> {
+    const current = await this.getPolicy(slug);
+    // Дополнительная санити-проверка диапазона work-window.
+    const next: TimePolicy = {
+      workStart: input.workStart ?? current.workStart,
+      workEnd: input.workEnd ?? current.workEnd,
+      lateThresholdMinutes: input.lateThresholdMinutes ?? current.lateThresholdMinutes,
+      workdays: input.workdays ?? current.workdays,
+      geofence:
+        input.geofence === null
+          ? undefined
+          : input.geofence !== undefined
+            ? input.geofence
+            : current.geofence,
+    };
+    if (toMinutes(next.workStart) >= toMinutes(next.workEnd)) {
+      throw new BadRequestException({
+        code: "INVALID_WORK_WINDOW",
+        message: "workEnd должен быть позже workStart",
+      });
+    }
+    await prisma.tenant.update({
+      where: { slug },
+      data: {
+        timePolicy: next as unknown as Parameters<
+          typeof prisma.tenant.update
+        >[0]["data"]["timePolicy"],
+      },
+    });
+    return next;
+  }
+
   async updateMetadata(slug: string, metadata: Record<string, unknown>): Promise<void> {
     // Prisma.Json типизирован узко (readonly array | object), кастуем чтобы
     // не тащить Prisma-namespace в публичный API метода.
@@ -168,6 +230,11 @@ export class TenantService {
  * Игнорирует строки-комментарии (--) и пустые строки. Все наши команды
  * в tenant-template без литералов с `;`, иначе пришлось бы парсить нормально.
  */
+function toMinutes(hhmm: string): number {
+  const [h, m] = hhmm.split(":").map(Number) as [number, number];
+  return h * 60 + m;
+}
+
 function splitSql(sql: string): string[] {
   const noComments = sql
     .split("\n")

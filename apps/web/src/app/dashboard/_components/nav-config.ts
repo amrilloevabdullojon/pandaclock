@@ -108,6 +108,13 @@ export const NAV: NavItem[] = [
         permission: "departments:read",
       },
       {
+        label: "Настройки компании",
+        href: "/dashboard/settings/company",
+        icon: Settings,
+        description: "Расписание, рабочие дни, геофенс офиса",
+        permission: "tenant:settings",
+      },
+      {
         label: "Биллинг",
         href: "/dashboard/settings/billing",
         icon: CreditCard,
