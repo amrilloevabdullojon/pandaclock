@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ActionSheetIOS,
   ActivityIndicator,
+  Alert,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -9,6 +11,8 @@ import {
   TextInput,
   View,
 } from "react-native";
+import * as Clipboard from "expo-clipboard";
+import * as Haptics from "expo-haptics";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { ArrowLeft, MessageCircle, Send } from "lucide-react-native";
 import { api } from "@/lib/api-client";
@@ -203,6 +207,32 @@ export default function ChatRoomScreen() {
   );
 }
 
+async function copyMessage(text: string): Promise<void> {
+  await Clipboard.setStringAsync(text);
+  await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+}
+
+/**
+ * Long-press на bubble → меню действий. На iOS ActionSheetIOS (нативно),
+ * на Android — Alert.alert как fallback.
+ */
+function showMessageMenu(message: Message): void {
+  const options = ["Копировать", "Отмена"];
+  if (Platform.OS === "ios") {
+    ActionSheetIOS.showActionSheetWithOptions(
+      { options, cancelButtonIndex: options.length - 1 },
+      (selected) => {
+        if (selected === 0) void copyMessage(message.body);
+      },
+    );
+  } else {
+    Alert.alert("Сообщение", undefined, [
+      { text: "Копировать", onPress: () => void copyMessage(message.body) },
+      { text: "Отмена", style: "cancel" },
+    ]);
+  }
+}
+
 function MessageBubble({
   message,
   isOwn,
@@ -224,7 +254,12 @@ function MessageBubble({
           {message.authorName}
         </Text>
       ) : null}
-      <View
+      <Pressable
+        onLongPress={() => {
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          showMessageMenu(message);
+        }}
+        delayLongPress={300}
         className={`max-w-[80%] rounded-2xl px-3.5 py-2 ${isOwn ? "bg-primary-500" : "bg-muted"}`}
       >
         <Text className={`text-sm ${isOwn ? "text-white" : "text-foreground"}`}>
@@ -237,7 +272,7 @@ function MessageBubble({
         >
           {time}
         </Text>
-      </View>
+      </Pressable>
     </View>
   );
 }
