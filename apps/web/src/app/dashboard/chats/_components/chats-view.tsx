@@ -1,7 +1,20 @@
 "use client";
 
 import * as React from "react";
-import { Hash, Lock, MessageCircle, Search, Send } from "lucide-react";
+import {
+  Download,
+  File as FileIcon,
+  FileImage,
+  FileSpreadsheet,
+  FileText,
+  Hash,
+  Lock,
+  MessageCircle,
+  Paperclip,
+  Search,
+  Send,
+  X,
+} from "lucide-react";
 import { io, type Socket } from "socket.io-client";
 import {
   Avatar,
@@ -24,6 +37,13 @@ interface ChannelRow {
   lastMessageAt: string | null;
 }
 
+interface ChatAttachment {
+  url: string;
+  filename: string;
+  size: number;
+  mimeType: string;
+}
+
 interface Message {
   id: string;
   channelId: string;
@@ -31,6 +51,7 @@ interface Message {
   authorName: string;
   authorAvatarUrl: string | null;
   body: string;
+  attachments: ChatAttachment[];
   createdAt: string;
 }
 
@@ -51,6 +72,8 @@ export function ChatsView({
   const [activeId, setActiveId] = React.useState<string | null>(initialChannels[0]?.id ?? null);
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [draft, setDraft] = React.useState("");
+  const [pendingAttachments, setPendingAttachments] = React.useState<ChatAttachment[]>([]);
+  const [uploading, setUploading] = React.useState(false);
   const [search, setSearch] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const socketRef = React.useRef<Socket | null>(null);
@@ -59,6 +82,7 @@ export function ChatsView({
   );
   const messagesEndRef = React.useRef<HTMLDivElement | null>(null);
   const composerRef = React.useRef<HTMLTextAreaElement | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   // Загружаем session info один раз.
   React.useEffect(() => {
@@ -147,10 +171,49 @@ export function ChatsView({
   function send(event: React.FormEvent) {
     event.preventDefault();
     const body = draft.trim();
-    if (!activeId || !body) return;
-    socketRef.current?.emit("message:send", { channelId: activeId, body });
+    if (!activeId) return;
+    // Разрешаем отправку без текста, если есть вложения.
+    if (!body && pendingAttachments.length === 0) return;
+    socketRef.current?.emit("message:send", {
+      channelId: activeId,
+      body,
+      attachments: pendingAttachments.length > 0 ? pendingAttachments : undefined,
+    });
     setDraft("");
+    setPendingAttachments([]);
     composerRef.current?.focus();
+  }
+
+  async function uploadFiles(files: FileList | File[]): Promise<void> {
+    if (!activeId) return;
+    setUploading(true);
+    try {
+      const arr = Array.from(files);
+      // Параллельно загружаем все, добавляем по мере успеха.
+      const results = await Promise.allSettled(
+        arr.map(async (file) => {
+          const form = new FormData();
+          form.append("file", file);
+          const response = await fetch(`/api/chats/channels/${activeId}/attachments`, {
+            method: "POST",
+            body: form,
+          });
+          if (!response.ok) throw new Error(`upload failed for ${file.name}`);
+          return (await response.json()) as ChatAttachment;
+        }),
+      );
+      const ok = results
+        .filter((r): r is PromiseFulfilledResult<ChatAttachment> => r.status === "fulfilled")
+        .map((r) => r.value);
+      setPendingAttachments((prev) => [...prev, ...ok]);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  function removePending(url: string): void {
+    setPendingAttachments((prev) => prev.filter((a) => a.url !== url));
   }
 
   function onComposerKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -267,7 +330,57 @@ export function ChatsView({
             </ScrollArea>
 
             <form onSubmit={send} className="border-border bg-card border-t p-3">
+              {/* Pending attachments chips */}
+              {pendingAttachments.length > 0 ? (
+                <div className="mb-2 flex flex-wrap gap-1.5">
+                  {pendingAttachments.map((att) => {
+                    const Icon = iconForMime(att.mimeType, att.filename);
+                    return (
+                      <span
+                        key={att.url}
+                        className="border-border bg-muted text-foreground inline-flex max-w-[240px] items-center gap-1.5 rounded-md border px-2 py-1 text-xs"
+                      >
+                        <Icon className="text-primary-500 h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate font-semibold">{att.filename}</span>
+                        <span className="text-muted-foreground shrink-0 text-[10px]">
+                          {formatBytes(att.size)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removePending(att.url)}
+                          aria-label="Убрать"
+                          className="text-muted-foreground hover:text-danger shrink-0"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              ) : null}
+
               <div className="border-border bg-background focus-within:border-primary-500 focus-within:ring-ring/30 flex items-end gap-2 rounded-md border px-3 py-2 focus-within:ring-2">
+                {/* Paperclip */}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  aria-label="Прикрепить файл"
+                  className="text-muted-foreground hover:text-primary-500 shrink-0 self-end py-1.5 disabled:opacity-40"
+                >
+                  <Paperclip className={`h-4 w-4 ${uploading ? "animate-pulse" : ""}`} />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      void uploadFiles(e.target.files);
+                    }
+                  }}
+                />
                 <textarea
                   ref={composerRef}
                   value={draft}
@@ -282,14 +395,14 @@ export function ChatsView({
                   type="submit"
                   variant="primary"
                   size="icon-sm"
-                  disabled={!draft.trim()}
+                  disabled={(!draft.trim() && pendingAttachments.length === 0) || uploading}
                   aria-label="Отправить"
                 >
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
               <p className="text-muted-foreground mt-1 px-1 text-[10px]">
-                Enter — отправить · Shift+Enter — перенос строки
+                Enter — отправить · Shift+Enter — перенос строки · 📎 — файл до 25 МБ
               </p>
             </form>
           </>
@@ -376,6 +489,71 @@ interface MessageClusterT {
   messages: Message[];
 }
 
+function MessageAttachments({ items }: { items: ChatAttachment[] }) {
+  if (items.length === 0) return null;
+  return (
+    <div className="mt-1.5 flex flex-wrap gap-1.5">
+      {items.map((att) => {
+        const isImage = att.mimeType.startsWith("image/");
+        if (isImage) {
+          return (
+            <a
+              key={att.url}
+              href={att.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="border-border block max-w-[280px] overflow-hidden rounded-md border"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={att.url}
+                alt={att.filename}
+                className="block max-h-[260px] w-full object-cover"
+              />
+            </a>
+          );
+        }
+        const Icon = iconForMime(att.mimeType, att.filename);
+        return (
+          <a
+            key={att.url}
+            href={att.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            download={att.filename}
+            className="border-border bg-card hover:bg-muted/60 flex max-w-[280px] items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors"
+          >
+            <div className="bg-primary-50 text-primary-700 flex h-8 w-8 shrink-0 items-center justify-center rounded">
+              <Icon className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-foreground truncate font-semibold">{att.filename}</p>
+              <p className="text-muted-foreground text-[10px]">{formatBytes(att.size)}</p>
+            </div>
+            <Download className="text-muted-foreground h-3.5 w-3.5 shrink-0" />
+          </a>
+        );
+      })}
+    </div>
+  );
+}
+
+function iconForMime(mime: string, filename: string) {
+  if (mime.startsWith("image/")) return FileImage;
+  const ext = filename.split(".").pop()?.toLowerCase();
+  if (ext && ["xls", "xlsx", "csv"].includes(ext)) return FileSpreadsheet;
+  if (mime === "application/pdf" || (ext && ["pdf", "doc", "docx", "txt"].includes(ext))) {
+    return FileText;
+  }
+  return FileIcon;
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} Б`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} КБ`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} МБ`;
+}
+
 function MessageCluster({ cluster }: { cluster: MessageClusterT }) {
   const time = new Date(cluster.startedAt).toLocaleTimeString("ru-RU", {
     hour: "2-digit",
@@ -394,14 +572,16 @@ function MessageCluster({ cluster }: { cluster: MessageClusterT }) {
           <span className="text-foreground text-sm font-bold">{cluster.authorName}</span>
           <span className="text-muted-foreground text-[10px] tabular-nums">{time}</span>
         </p>
-        <div className="space-y-0.5">
+        <div className="space-y-1">
           {cluster.messages.map((m) => (
-            <p
-              key={m.id}
-              className="text-foreground whitespace-pre-wrap break-words text-sm leading-relaxed"
-            >
-              {m.body}
-            </p>
+            <div key={m.id}>
+              {m.body ? (
+                <p className="text-foreground whitespace-pre-wrap break-words text-sm leading-relaxed">
+                  {m.body}
+                </p>
+              ) : null}
+              <MessageAttachments items={m.attachments} />
+            </div>
           ))}
         </div>
       </div>

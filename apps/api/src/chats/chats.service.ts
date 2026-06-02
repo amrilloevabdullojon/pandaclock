@@ -18,6 +18,13 @@ export interface ChannelRow {
   unreadCount: number;
 }
 
+export interface ChatAttachment {
+  url: string;
+  filename: string;
+  size: number;
+  mimeType: string;
+}
+
 export interface MessageRow {
   id: string;
   channelId: string;
@@ -25,6 +32,7 @@ export interface MessageRow {
   authorName: string;
   authorAvatarUrl: string | null;
   body: string;
+  attachments: ChatAttachment[];
   createdAt: Date;
 }
 
@@ -120,6 +128,11 @@ export class ChatsService {
     return created;
   }
 
+  /** Public-обёртка для controller'а (имя без `ensure`, потому что метод publics уже занят). */
+  async assertMembershipPublic(channelId: string, userId: string): Promise<void> {
+    return this.ensureMembership(channelId, userId);
+  }
+
   async ensureMembership(channelId: string, userId: string): Promise<void> {
     const client = await this.tenantDb.getClient();
     const rows = await client.$queryRawUnsafe<{ channel_id: string }[]>(
@@ -143,13 +156,14 @@ export class ChatsService {
         author_name: string;
         author_avatar_url: string | null;
         body: string;
+        attachments: unknown;
         created_at: Date;
       }[]
     >(
       `SELECT m.id, m.channel_id, m.author_id,
               u.first_name || ' ' || u.last_name AS author_name,
               u.avatar_url AS author_avatar_url,
-              m.body, m.created_at
+              m.body, m.attachments, m.created_at
        FROM chat_messages m
        JOIN users u ON u.id = m.author_id
        WHERE m.channel_id = $1
@@ -166,14 +180,24 @@ export class ChatsService {
         authorName: row.author_name,
         authorAvatarUrl: row.author_avatar_url,
         body: row.body,
+        attachments: parseAttachments(row.attachments),
         createdAt: row.created_at,
       }))
       .reverse();
   }
 
-  async sendMessage(channelId: string, authorId: string, body: string): Promise<MessageRow> {
+  async sendMessage(
+    channelId: string,
+    authorId: string,
+    body: string,
+    attachments: ChatAttachment[] = [],
+  ): Promise<MessageRow> {
     await this.ensureMembership(channelId, authorId);
+    if (body.trim().length === 0 && attachments.length === 0) {
+      throw new BadRequestException({ code: "EMPTY_MESSAGE" });
+    }
     const client = await this.tenantDb.getClient();
+    const attachmentsJson = attachments.length > 0 ? JSON.stringify(attachments) : null;
     const rows = await client.$queryRawUnsafe<
       {
         id: string;
@@ -182,13 +206,14 @@ export class ChatsService {
         author_name: string;
         author_avatar_url: string | null;
         body: string;
+        attachments: unknown;
         created_at: Date;
       }[]
     >(
       `WITH inserted AS (
-         INSERT INTO chat_messages (channel_id, author_id, body)
-         VALUES ($1, $2, $3)
-         RETURNING id, channel_id, author_id, body, created_at
+         INSERT INTO chat_messages (channel_id, author_id, body, attachments)
+         VALUES ($1, $2, $3, $4::jsonb)
+         RETURNING id, channel_id, author_id, body, attachments, created_at
        )
        SELECT i.*, u.first_name || ' ' || u.last_name AS author_name,
               u.avatar_url AS author_avatar_url
@@ -196,6 +221,7 @@ export class ChatsService {
       channelId,
       authorId,
       body,
+      attachmentsJson,
     );
     const row = rows[0];
     if (!row) throw new BadRequestException({ code: "INSERT_FAILED" });
@@ -214,6 +240,7 @@ export class ChatsService {
       authorName: row.author_name,
       authorAvatarUrl: row.author_avatar_url,
       body: row.body,
+      attachments: parseAttachments(row.attachments),
       createdAt: row.created_at,
     };
   }
@@ -317,4 +344,23 @@ export class ChatsService {
     );
     return rows.map((r) => r.user_id);
   }
+}
+
+/** Безопасный парс JSONB-поля attachments: всегда возвращает массив, фильтрует мусор. */
+function parseAttachments(raw: unknown): ChatAttachment[] {
+  if (!Array.isArray(raw)) return [];
+  const out: ChatAttachment[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const o = item as Record<string, unknown>;
+    if (
+      typeof o.url === "string" &&
+      typeof o.filename === "string" &&
+      typeof o.size === "number" &&
+      typeof o.mimeType === "string"
+    ) {
+      out.push({ url: o.url, filename: o.filename, size: o.size, mimeType: o.mimeType });
+    }
+  }
+  return out;
 }

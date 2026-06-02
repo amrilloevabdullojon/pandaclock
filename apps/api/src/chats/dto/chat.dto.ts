@@ -1,4 +1,17 @@
-import { ArrayMinSize, IsArray, IsIn, IsOptional, IsString, IsUUID, Length } from "class-validator";
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Length,
+  Min,
+  ValidateNested,
+} from "class-validator";
+import { Type } from "class-transformer";
 
 export class CreateChannelDto {
   @IsIn(["CHANNEL", "DM"])
@@ -19,8 +32,34 @@ export class CreateChannelDto {
   memberIds!: string[];
 }
 
-export class SendMessageDto {
+export class ChatAttachmentDto {
   @IsString()
-  @Length(1, 4000)
+  @Length(1, 2000)
+  url!: string;
+
+  @IsString()
+  @Length(1, 500)
+  filename!: string;
+
+  @IsInt()
+  @Min(0)
+  size!: number;
+
+  @IsString()
+  @Length(1, 200)
+  mimeType!: string;
+}
+
+export class SendMessageDto {
+  /** Допускаем пустой body если есть attachments — сервис проверит. */
+  @IsString()
+  @Length(0, 4000)
   body!: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(10)
+  @ValidateNested({ each: true })
+  @Type(() => ChatAttachmentDto)
+  attachments?: ChatAttachmentDto[];
 }

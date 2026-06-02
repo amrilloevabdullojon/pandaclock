@@ -26,6 +26,7 @@ interface JoinPayload {
 interface SendPayload {
   channelId: string;
   body: string;
+  attachments?: { url: string; filename: string; size: number; mimeType: string }[];
 }
 
 @WebSocketGateway({
@@ -99,7 +100,12 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async onSend(@ConnectedSocket() client: Socket, @MessageBody() body: SendPayload) {
     const user = client.data.user as SocketUser | undefined;
     if (!user) throw new WsException("Unauthenticated");
-    const message = await this.chats.sendMessage(body.channelId, user.userId, body.body);
+    const message = await this.chats.sendMessage(
+      body.channelId,
+      user.userId,
+      body.body,
+      body.attachments,
+    );
     this.server
       .to(`tenant:${user.tenantSlug}:channel:${body.channelId}`)
       .emit("message:new", message);

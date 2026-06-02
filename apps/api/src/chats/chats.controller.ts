@@ -8,10 +8,14 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from "@nestjs/common";
-import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
+import { FileInterceptor } from "@nestjs/platform-express";
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from "@nestjs/swagger";
 import { ChatsService } from "./chats.service.js";
+import { ChatUploadsService } from "./chat-uploads.service.js";
 import { CreateChannelDto, SendMessageDto } from "./dto/chat.dto.js";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard.js";
 import { CurrentUser } from "../auth/current-user.decorator.js";
@@ -22,7 +26,10 @@ import type { AuthRequestUser } from "../auth/jwt.strategy.js";
 @UseGuards(JwtAuthGuard)
 @Controller("chats")
 export class ChatsController {
-  constructor(private readonly chats: ChatsService) {}
+  constructor(
+    private readonly chats: ChatsService,
+    private readonly uploads: ChatUploadsService,
+  ) {}
 
   @Get("channels")
   channels(@CurrentUser() user: AuthRequestUser) {
@@ -55,7 +62,28 @@ export class ChatsController {
     @Body() dto: SendMessageDto,
     @CurrentUser() user: AuthRequestUser,
   ) {
-    return this.chats.sendMessage(id, user.id, dto.body);
+    return this.chats.sendMessage(id, user.id, dto.body, dto.attachments);
+  }
+
+  @Post("channels/:id/attachments")
+  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: 25 * 1024 * 1024 } }))
+  @ApiConsumes("multipart/form-data")
+  @ApiBody({
+    schema: {
+      type: "object",
+      properties: { file: { type: "string", format: "binary" } },
+      required: ["file"],
+    },
+  })
+  async uploadAttachment(
+    @Param("id", ParseUUIDPipe) id: string,
+    @UploadedFile()
+    file: { buffer: Buffer; mimetype: string; size: number; originalname: string },
+    @CurrentUser() user: AuthRequestUser,
+  ) {
+    // Проверяем что юзер — член канала. Сама загрузка в S3 — отдельный сервис.
+    await this.chats.assertMembershipPublic(id, user.id);
+    return this.uploads.upload(user.tenantSlug, id, file);
   }
 
   @Post("channels/:id/read")
