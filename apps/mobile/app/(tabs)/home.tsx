@@ -1,11 +1,12 @@
 import * as React from "react";
 import { Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
-import { Bell, Coffee, MapPin, Pause, Play } from "lucide-react-native";
+import { Bell, Coffee, Pause, Play } from "lucide-react-native";
 import { useTimeTracking, type SessionStatus, type TodaySession } from "@/lib/use-time-tracking";
 import { api } from "@/lib/api-client";
 import { Badge, Button, Card, EmptyState, Screen, Skeleton } from "@/components/ui";
 import { OnboardingCard } from "@/components/onboarding-card";
+import { LocationCard } from "@/components/location-card";
 
 interface MeResponse {
   firstName: string;
@@ -116,13 +117,15 @@ function StateView({
   if (status === "NOT_STARTED") {
     return (
       <View className="items-center pb-12">
+        <View className="mb-8 w-full">
+          <LocationCard office={session.office} />
+        </View>
         <CircleButton
           onPress={actions.startDay}
           color="success"
           icon={<Play color="#fff" size={56} fill="#fff" />}
           label={"Начать\nдень"}
         />
-        <GeofencePill status={session.geofenceStatus} className="mt-8" />
       </View>
     );
   }
@@ -130,6 +133,9 @@ function StateView({
   if (status === "WORKING" && session.startedAt) {
     return (
       <View className="items-center pb-12">
+        <View className="mb-6 w-full">
+          <LocationCard office={session.office} compact />
+        </View>
         <View className="mb-8 items-center">
           <Badge variant="success" dot size="lg">
             Вы работаете
@@ -169,6 +175,9 @@ function StateView({
   if (status === "ON_BREAK" && session.currentBreak) {
     return (
       <View className="items-center pb-12">
+        <View className="mb-6 w-full">
+          <LocationCard office={session.office} compact />
+        </View>
         <View className="mb-8 items-center">
           <Badge variant="warning" dot size="lg">
             На перерыве
@@ -254,33 +263,6 @@ function CircleButton({
         {label}
       </Text>
     </Pressable>
-  );
-}
-
-function GeofencePill({
-  status,
-  className,
-}: {
-  status: TodaySession["geofenceStatus"];
-  className?: string;
-}) {
-  const map: Record<
-    TodaySession["geofenceStatus"],
-    { label: string; variant: "success" | "warning" | "secondary" | "danger" }
-  > = {
-    inside: { label: "Местоположение: офис", variant: "success" },
-    outside: { label: "Вы вне зоны офиса", variant: "warning" },
-    no_coords: { label: "Геолокация не предоставлена", variant: "secondary" },
-    no_geofence: { label: "Готовы начать день?", variant: "secondary" },
-  };
-  const { label, variant } = map[status];
-  return (
-    <View className={className}>
-      <Badge variant={variant}>
-        <MapPin size={10} color={variant === "warning" ? "#C7762A" : "#6B7080"} />
-        {`  ${label}`}
-      </Badge>
-    </View>
   );
 }
 

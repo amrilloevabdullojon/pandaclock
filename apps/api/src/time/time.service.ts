@@ -23,6 +23,8 @@ export interface TodaySession {
   breaksTotalMinutes: number;
   currentBreak: { id: string; startedAt: Date; type: string } | null;
   geofenceStatus: "no_geofence" | "inside" | "outside" | "no_coords";
+  /** Координаты офиса для расчёта расстояния на клиенте. null если geofence не настроен. */
+  office: { latitude: number; longitude: number; radius: number; name?: string } | null;
 }
 
 interface TimeEntryRow {
@@ -74,6 +76,14 @@ export class TimeService {
        LIMIT 1`,
       userId,
     );
+    const office = policy.geofence
+      ? {
+          latitude: policy.geofence.latitude,
+          longitude: policy.geofence.longitude,
+          radius: policy.geofence.radius,
+        }
+      : null;
+
     const entry = entries[0];
     if (!entry) {
       return {
@@ -86,6 +96,7 @@ export class TimeService {
         breaksTotalMinutes: 0,
         currentBreak: null,
         geofenceStatus: isWithinGeofence(policy, undefined),
+        office,
       };
     }
 
@@ -112,6 +123,7 @@ export class TimeService {
       breaksTotalMinutes: entry.breaks_total_minutes,
       currentBreak,
       geofenceStatus: isWithinGeofence(policy, undefined),
+      office,
     };
   }
 

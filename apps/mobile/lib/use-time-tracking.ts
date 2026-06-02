@@ -15,6 +15,7 @@ export interface TodaySession {
   breaksTotalMinutes: number;
   currentBreak: { id: string; startedAt: string; type: string } | null;
   geofenceStatus: "no_geofence" | "inside" | "outside" | "no_coords";
+  office: { latitude: number; longitude: number; radius: number; name?: string } | null;
 }
 
 const EMPTY: TodaySession = {
@@ -27,6 +28,7 @@ const EMPTY: TodaySession = {
   breaksTotalMinutes: 0,
   currentBreak: null,
   geofenceStatus: "no_geofence",
+  office: null,
 };
 
 async function tryGetCoords(): Promise<{ latitude: number; longitude: number } | undefined> {
@@ -38,7 +40,9 @@ async function tryGetCoords(): Promise<{ latitude: number; longitude: number } |
     }
   }
   try {
-    const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+    const location = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.Balanced,
+    });
     return { latitude: location.coords.latitude, longitude: location.coords.longitude };
   } catch {
     return undefined;
