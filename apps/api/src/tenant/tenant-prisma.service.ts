@@ -4,20 +4,78 @@ import type { Request } from "express";
 import { PrismaClient } from "@pandaclock/db";
 
 /**
- * Per-request Prisma client с динамическим search_path для tenant schema.
+ * Per-request Prisma client с динамическим выбором tenant schema.
  *
- * ⚠️ ВАЖНО: Prisma внутри держит свой connection pool, плюс прод (Neon)
- * стоит за PgBouncer. Поэтому `SET search_path` на одной операции не
- * персистится в следующую — они могут попасть на разные соединения.
+ * ⚠️ ПРОБЛЕМА с SET search_path:
  *
- * Решение: каждый raw-запрос оборачивается в interactive `$transaction`
- * (callback form), который гарантирует, что все операции внутри
- * выполняются на ОДНОМ connection. Array form `$transaction([])` не
- * даёт таких гарантий с pgbouncer в transaction mode.
+ * 1. Prisma внутри держит свой connection pool
+ * 2. Neon стоит за PgBouncer
+ * 3. `SET search_path` (без LOCAL) живёт только в рамках одного connection
+ * 4. Даже `$transaction(callback)` с pgbouncer transaction-mode не
+ *    гарантирует что обе команды попадут на тот же connection
  *
- * Прозрачно для всех 87 callsites в сервисах — Proxy патчит только
- * `$queryRawUnsafe` и `$executeRawUnsafe`.
+ * ⚙️ РЕШЕНИЕ:
+ *
+ * Вместо SET — **schema-qualify** имена tenant-таблиц прямо в SQL.
+ * Перехватываем $queryRawUnsafe / $executeRawUnsafe в Proxy и
+ * подставляем `"tenant_xxx".` перед каждым известным tenant-table.
+ *
+ * Это:
+ * - не зависит от pooling / pgbouncer / transactions
+ * - не требует переписывать 87 callsites в сервисах
+ * - safe против SQL injection — schemaName валидируется regex'ом
  */
+
+/**
+ * Известные tenant-таблицы. Если добавляется новая — нужно прописать здесь.
+ * Источник истины — packages/db/src/tenant-template.ts.
+ */
+const TENANT_TABLES = [
+  "users",
+  "departments",
+  "user_documents",
+  "time_entries",
+  "breaks",
+  "tasks",
+  "task_comments",
+  "task_attachments",
+  "subtasks",
+  "leave_requests",
+  "leave_attachments",
+  "audit_log",
+  "refresh_tokens",
+  "chat_channels",
+  "chat_members",
+  "chat_messages",
+  "push_tokens",
+  "verification_tokens",
+  "notifications",
+] as const;
+
+/**
+ * Переписывает SQL, добавляя schema-prefix перед каждым tenant-table.
+ *
+ * Покрывает все формы: FROM/JOIN/INTO/UPDATE/DELETE FROM/REFERENCES/TABLE.
+ * Не трогает таблицы, у которых уже есть schema-префикс (через look-behind).
+ *
+ * Пример: `SELECT * FROM users WHERE id = $1` →
+ *         `SELECT * FROM "tenant_cloudit".users WHERE id = $1`
+ */
+function qualifyTables(sql: string, schemaName: string): string {
+  let result = sql;
+  // Word boundary до и после имени таблицы.
+  // Перед — должно быть FROM/JOIN/INTO/UPDATE/DELETE FROM/REFERENCES/TABLE + whitespace.
+  // После — word boundary (для конца имени) — не точка (значит схема уже есть).
+  for (const table of TENANT_TABLES) {
+    const re = new RegExp(
+      `(\\b(?:FROM|JOIN|INTO|UPDATE|REFERENCES|TABLE)\\s+)(${table})(\\b(?!\\.))`,
+      "gi",
+    );
+    result = result.replace(re, `$1"${schemaName}".$2$3`);
+  }
+  return result;
+}
+
 @Injectable({ scope: Scope.REQUEST })
 export class TenantPrismaService {
   private readonly prismaClient: PrismaClient;
@@ -33,31 +91,23 @@ export class TenantPrismaService {
     if (!tenant) {
       throw new Error("Tenant is not resolved in request — TenantMiddleware missing?");
     }
-    // Валидируем schemaName (защита от SQL injection в SET search_path).
+    // Валидируем schemaName regex'ом (защита от SQL injection в qualifyTables).
     if (!/^tenant_[a-z][a-z0-9_-]*$/.test(tenant.schemaName)) {
       throw new Error(`Invalid tenant schemaName: ${tenant.schemaName}`);
     }
-    const setSearchPath = `SET search_path TO "${tenant.schemaName}", public`;
+    const schema = tenant.schemaName;
     const client = this.prismaClient;
 
-    // Proxy перехватывает только raw-методы. Все остальные (Prisma model
-    // accessors, $transaction для пользовательских транзакций) идут как есть.
     this.wrappedClient = new Proxy(client, {
       get(target, prop, receiver) {
         if (prop === "$queryRawUnsafe") {
           return (sql: string, ...params: unknown[]) => {
-            return target.$transaction(async (tx) => {
-              await tx.$executeRawUnsafe(setSearchPath);
-              return tx.$queryRawUnsafe(sql, ...params);
-            });
+            return target.$queryRawUnsafe(qualifyTables(sql, schema), ...params);
           };
         }
         if (prop === "$executeRawUnsafe") {
           return (sql: string, ...params: unknown[]) => {
-            return target.$transaction(async (tx) => {
-              await tx.$executeRawUnsafe(setSearchPath);
-              return tx.$executeRawUnsafe(sql, ...params);
-            });
+            return target.$executeRawUnsafe(qualifyTables(sql, schema), ...params);
           };
         }
         return Reflect.get(target, prop, receiver);

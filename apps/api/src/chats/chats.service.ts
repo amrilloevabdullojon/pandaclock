@@ -100,7 +100,7 @@ export class ChatsService {
     const client = await this.tenantDb.getClient();
     const inserted = await client.$queryRawUnsafe<{ id: string }[]>(
       `INSERT INTO chat_channels (type, name, department_id, created_by_id)
-       VALUES ($1, $2, $3, $4)
+       VALUES ($1, $2, $3::uuid, $4::uuid)
        RETURNING id`,
       input.type,
       input.name ?? null,
@@ -114,7 +114,7 @@ export class ChatsService {
     for (const userId of allMembers) {
       await client.$executeRawUnsafe(
         `INSERT INTO chat_members (channel_id, user_id, role)
-         VALUES ($1, $2, $3)
+         VALUES ($1::uuid, $2::uuid, $3)
          ON CONFLICT DO NOTHING`,
         channelId,
         userId,
