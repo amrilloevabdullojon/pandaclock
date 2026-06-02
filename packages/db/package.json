@@ -22,6 +22,7 @@
     "migrate:reset": "prisma migrate reset",
     "studio": "prisma studio",
     "seed": "tsx prisma/seed.ts",
+    "apply-tenant-migration": "tsx scripts/apply-tenant-migration.ts",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit"
   },

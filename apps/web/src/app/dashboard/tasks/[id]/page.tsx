@@ -7,6 +7,7 @@ import { CommentList } from "./_components/comment-list";
 import { EditableTaskTitle } from "./_components/editable-title";
 import { EditableTaskDescription } from "./_components/editable-description";
 import { TaskAttachments } from "./_components/task-attachments";
+import { SubtasksList } from "./_components/subtasks-list";
 
 interface TaskDetail {
   id: string;
@@ -42,12 +43,21 @@ interface AttachmentRow {
   uploadedAt: string;
 }
 
+interface SubtaskRow {
+  id: string;
+  taskId: string;
+  title: string;
+  done: boolean;
+  position: number;
+}
+
 export default async function TaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [task, comments, attachments, me] = await Promise.all([
+  const [task, comments, attachments, subtasks, me] = await Promise.all([
     serverFetch<TaskDetail>(`/tasks/${id}`).catch(() => null),
     serverFetch<Comment[]>(`/tasks/${id}/comments`).catch(() => [] as Comment[]),
     serverFetch<AttachmentRow[]>(`/tasks/${id}/attachments`).catch(() => [] as AttachmentRow[]),
+    serverFetch<SubtaskRow[]>(`/tasks/${id}/subtasks`).catch(() => [] as SubtaskRow[]),
     serverFetch<{ id: string }>("/auth/me").catch(() => null),
   ]);
 
@@ -83,6 +93,15 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
                 Описание
               </h2>
               <EditableTaskDescription taskId={task.id} initial={task.description} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <h2 className="text-muted-foreground mb-4 text-sm font-semibold uppercase tracking-wider">
+                Подзадачи · {subtasks.length}
+              </h2>
+              <SubtasksList taskId={task.id} initial={subtasks} />
             </CardContent>
           </Card>
 

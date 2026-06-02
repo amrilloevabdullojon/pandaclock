@@ -1,12 +1,15 @@
 import {
   ArrayMaxSize,
   IsArray,
+  IsBoolean,
   IsDateString,
   IsIn,
+  IsInt,
   IsOptional,
   IsString,
   IsUUID,
   Length,
+  Min,
 } from "class-validator";
 import { TASK_PRIORITIES, TASK_STATUSES } from "../task-status.js";
 
@@ -102,4 +105,26 @@ export class AddCommentDto {
   @IsString()
   @Length(1, 2000)
   body!: string;
+}
+
+export class CreateSubtaskDto {
+  @IsString()
+  @Length(1, 500)
+  title!: string;
+}
+
+export class UpdateSubtaskDto {
+  @IsOptional()
+  @IsString()
+  @Length(1, 500)
+  title?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  done?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  position?: number;
 }

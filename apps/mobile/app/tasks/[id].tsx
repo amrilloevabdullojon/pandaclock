@@ -12,6 +12,7 @@ import { router, useLocalSearchParams, Stack } from "expo-router";
 import { api } from "@/lib/api-client";
 import { TaskComments } from "@/components/task-comments";
 import { TaskAttachments } from "@/components/task-attachments";
+import { TaskSubtasks } from "@/components/task-subtasks";
 
 type Status = "NEW" | "IN_PROGRESS" | "DONE" | "REJECTED";
 
@@ -144,6 +145,11 @@ export default function TaskDetailScreen() {
               )}
             </Pressable>
           ))}
+        </View>
+
+        {/* Subtasks */}
+        <View className="mt-8">
+          <TaskSubtasks taskId={task.id} />
         </View>
 
         {/* Attachments */}

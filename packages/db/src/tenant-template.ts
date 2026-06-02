@@ -155,6 +155,19 @@ CREATE TABLE task_attachments (
 
 CREATE INDEX idx_task_attachments_task ON task_attachments(task_id);
 
+-- Subtasks (чек-лист внутри задачи)
+CREATE TABLE subtasks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  title VARCHAR(500) NOT NULL,
+  done BOOLEAN NOT NULL DEFAULT false,
+  position INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_subtasks_task ON subtasks(task_id, position);
+
 -- Leave requests (заявки)
 CREATE TABLE leave_requests (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

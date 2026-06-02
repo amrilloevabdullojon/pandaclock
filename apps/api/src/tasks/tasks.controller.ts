@@ -17,7 +17,15 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { TasksService } from "./tasks.service.js";
 import { TaskAttachmentsService } from "./attachments.service.js";
-import { AddCommentDto, CreateTaskDto, TasksQueryDto, UpdateTaskDto } from "./dto/task.dto.js";
+import { SubtasksService } from "./subtasks.service.js";
+import {
+  AddCommentDto,
+  CreateSubtaskDto,
+  CreateTaskDto,
+  TasksQueryDto,
+  UpdateSubtaskDto,
+  UpdateTaskDto,
+} from "./dto/task.dto.js";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard.js";
 import { CurrentUser } from "../auth/current-user.decorator.js";
 import type { AuthRequestUser } from "../auth/jwt.strategy.js";
@@ -30,6 +38,7 @@ export class TasksController {
   constructor(
     private readonly tasks: TasksService,
     private readonly attachments: TaskAttachmentsService,
+    private readonly subtasks: SubtasksService,
   ) {}
 
   @Get()
@@ -126,5 +135,39 @@ export class TasksController {
     @CurrentUser() user: AuthRequestUser,
   ) {
     return this.attachments.remove(attachmentId, user.id, user.role);
+  }
+
+  // ===== Subtasks =====
+
+  @Get(":id/subtasks")
+  @ApiOperation({ summary: "Список subtasks задачи" })
+  listSubtasks(@Param("id", ParseUUIDPipe) id: string) {
+    return this.subtasks.list(id);
+  }
+
+  @Post(":id/subtasks")
+  @HttpCode(201)
+  @ApiOperation({ summary: "Добавить subtask" })
+  createSubtask(@Param("id", ParseUUIDPipe) id: string, @Body() dto: CreateSubtaskDto) {
+    return this.subtasks.create(id, dto.title);
+  }
+
+  @Patch(":id/subtasks/:subtaskId")
+  @ApiOperation({ summary: "Обновить subtask (title/done/position)" })
+  updateSubtask(
+    @Param("id", ParseUUIDPipe) _id: string,
+    @Param("subtaskId", ParseUUIDPipe) subtaskId: string,
+    @Body() dto: UpdateSubtaskDto,
+  ) {
+    return this.subtasks.update(subtaskId, dto);
+  }
+
+  @Delete(":id/subtasks/:subtaskId")
+  @HttpCode(204)
+  removeSubtask(
+    @Param("id", ParseUUIDPipe) _id: string,
+    @Param("subtaskId", ParseUUIDPipe) subtaskId: string,
+  ) {
+    return this.subtasks.remove(subtaskId);
   }
 }
