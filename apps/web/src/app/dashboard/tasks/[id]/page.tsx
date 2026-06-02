@@ -6,6 +6,7 @@ import { TaskActions } from "./_components/task-actions";
 import { CommentList } from "./_components/comment-list";
 import { EditableTaskTitle } from "./_components/editable-title";
 import { EditableTaskDescription } from "./_components/editable-description";
+import { TaskAttachments } from "./_components/task-attachments";
 
 interface TaskDetail {
   id: string;
@@ -30,11 +31,24 @@ interface Comment {
   authorAvatarUrl: string | null;
 }
 
+interface AttachmentRow {
+  id: string;
+  taskId: string;
+  url: string;
+  filename: string;
+  size: number;
+  uploadedById: string;
+  uploadedByName: string;
+  uploadedAt: string;
+}
+
 export default async function TaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [task, comments] = await Promise.all([
+  const [task, comments, attachments, me] = await Promise.all([
     serverFetch<TaskDetail>(`/tasks/${id}`).catch(() => null),
     serverFetch<Comment[]>(`/tasks/${id}/comments`).catch(() => [] as Comment[]),
+    serverFetch<AttachmentRow[]>(`/tasks/${id}/attachments`).catch(() => [] as AttachmentRow[]),
+    serverFetch<{ id: string }>("/auth/me").catch(() => null),
   ]);
 
   if (!task) notFound();
@@ -69,6 +83,15 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
                 Описание
               </h2>
               <EditableTaskDescription taskId={task.id} initial={task.description} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <h2 className="text-muted-foreground mb-4 text-sm font-semibold uppercase tracking-wider">
+                Вложения · {attachments.length}
+              </h2>
+              <TaskAttachments taskId={task.id} meId={me?.id ?? null} initial={attachments} />
             </CardContent>
           </Card>
 

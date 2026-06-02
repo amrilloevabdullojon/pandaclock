@@ -15,7 +15,6 @@ describe("TenantService — slug validation", () => {
     ["with spaces", false],
     ["__weird", false],
   ])("validates slug %s -> %s", (slug, isValid) => {
-    // @ts-expect-error — private API
     const callable = () => service["assertValidSlug"](slug);
     if (isValid) {
       expect(callable).not.toThrow();
@@ -25,9 +24,7 @@ describe("TenantService — slug validation", () => {
   });
 
   it("rejects reserved slugs", () => {
-    // @ts-expect-error — private API
     expect(() => service["assertValidSlug"]("api")).toThrow();
-    // @ts-expect-error — private API
     expect(() => service["assertValidSlug"]("www")).toThrow();
   });
 });

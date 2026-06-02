@@ -11,6 +11,7 @@ import {
 import { router, useLocalSearchParams, Stack } from "expo-router";
 import { api } from "@/lib/api-client";
 import { TaskComments } from "@/components/task-comments";
+import { TaskAttachments } from "@/components/task-attachments";
 
 type Status = "NEW" | "IN_PROGRESS" | "DONE" | "REJECTED";
 
@@ -143,6 +144,11 @@ export default function TaskDetailScreen() {
               )}
             </Pressable>
           ))}
+        </View>
+
+        {/* Attachments */}
+        <View className="mt-8">
+          <TaskAttachments taskId={task.id} meId={meId} />
         </View>
 
         {/* Comments */}
