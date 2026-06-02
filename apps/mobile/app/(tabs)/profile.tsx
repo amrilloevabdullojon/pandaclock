@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import {
   Bell,
+  Building2,
   Camera,
   ChevronRight,
   HelpCircle,
@@ -235,6 +236,22 @@ export default function ProfileScreen() {
             </Text>
             <ThemePicker />
           </View>
+
+          {/* === Admin === */}
+          {me && ["OWNER", "ADMIN", "HR"].includes(me.role) ? (
+            <View className="mt-6">
+              <Text className="text-muted-foreground mb-2 px-1 text-xs font-bold uppercase tracking-wider">
+                Управление
+              </Text>
+              <Card padding="none" className="overflow-hidden">
+                <MenuRow
+                  icon={<Building2 size={18} color="#5B4FE2" />}
+                  label="Отделы"
+                  onPress={() => router.push("/departments")}
+                />
+              </Card>
+            </View>
+          ) : null}
 
           {/* === Menu === */}
           <View className="mt-6">

@@ -63,7 +63,12 @@ export class DepartmentsService {
 
   async update(
     id: string,
-    input: { name?: string; parentId?: string; headId?: string; description?: string },
+    input: {
+      name?: string;
+      parentId?: string | null;
+      headId?: string | null;
+      description?: string | null;
+    },
   ): Promise<DepartmentRow> {
     if (input.parentId === id) {
       throw new BadRequestException({ code: "CANNOT_PARENT_SELF" });
@@ -71,21 +76,32 @@ export class DepartmentsService {
     await this.assertExists(id);
     if (input.parentId) {
       await this.assertExists(input.parentId);
+      // Защита от цикла: новый parent не может быть потомком этого узла.
+      const descendants = await this.collectDescendantIds(id);
+      if (descendants.has(input.parentId)) {
+        throw new BadRequestException({ code: "CANNOT_PARENT_DESCENDANT" });
+      }
     }
+    const parentTouched = "parentId" in input;
+    const headTouched = "headId" in input;
+    const descTouched = "description" in input;
     const client = await this.tenantDb.getClient();
     const rows = await client.$queryRawUnsafe<DepartmentRow[]>(
       `UPDATE departments SET
          name = COALESCE($2, name),
-         parent_id = COALESCE($3, parent_id),
-         head_id = COALESCE($4, head_id),
-         description = COALESCE($5, description),
+         parent_id = CASE WHEN $3::boolean THEN $4::uuid ELSE parent_id END,
+         head_id = CASE WHEN $5::boolean THEN $6::uuid ELSE head_id END,
+         description = CASE WHEN $7::boolean THEN $8::text ELSE description END,
          updated_at = NOW()
        WHERE id = $1::uuid
        RETURNING id, name, parent_id, head_id, description, created_at, updated_at`,
       id,
       input.name ?? null,
+      parentTouched,
       input.parentId ?? null,
+      headTouched,
       input.headId ?? null,
+      descTouched,
       input.description ?? null,
     );
     const row = rows[0];
@@ -93,9 +109,38 @@ export class DepartmentsService {
     return row;
   }
 
+  /** Собрать множество id всех потомков узла (для защиты от циклов). */
+  private async collectDescendantIds(rootId: string): Promise<Set<string>> {
+    const rows = await this.list();
+    const childrenByParent = new Map<string, string[]>();
+    rows.forEach((r) => {
+      if (!r.parent_id) return;
+      const arr = childrenByParent.get(r.parent_id) ?? [];
+      arr.push(r.id);
+      childrenByParent.set(r.parent_id, arr);
+    });
+    const out = new Set<string>();
+    const stack = [rootId];
+    while (stack.length) {
+      const cur = stack.pop();
+      if (cur === undefined) continue;
+      const kids = childrenByParent.get(cur) ?? [];
+      for (const k of kids) {
+        if (!out.has(k)) {
+          out.add(k);
+          stack.push(k);
+        }
+      }
+    }
+    return out;
+  }
+
   async remove(id: string): Promise<void> {
     const client = await this.tenantDb.getClient();
-    const result = await client.$executeRawUnsafe(`DELETE FROM departments WHERE id = $1::uuid`, id);
+    const result = await client.$executeRawUnsafe(
+      `DELETE FROM departments WHERE id = $1::uuid`,
+      id,
+    );
     if (result === 0) {
       throw new NotFoundException({ code: "DEPARTMENT_NOT_FOUND" });
     }

@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsUUID, Length } from "class-validator";
+import { IsOptional, IsString, IsUUID, Length, ValidateIf } from "class-validator";
 
 export class CreateDepartmentDto {
   @IsString()
@@ -24,15 +24,18 @@ export class UpdateDepartmentDto {
   @Length(2, 255)
   name?: string;
 
+  // null допустим — означает «вынести в корень».
+  @ValidateIf((_, v) => v !== null)
   @IsOptional()
   @IsUUID()
-  parentId?: string;
+  parentId?: string | null;
 
+  @ValidateIf((_, v) => v !== null)
   @IsOptional()
   @IsUUID()
-  headId?: string;
+  headId?: string | null;
 
   @IsOptional()
   @IsString()
-  description?: string;
+  description?: string | null;
 }
