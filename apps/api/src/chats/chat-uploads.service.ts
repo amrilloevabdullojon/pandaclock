@@ -49,8 +49,13 @@ export class ChatUploadsService {
 
   constructor() {
     const endpoint = process.env.MINIO_ENDPOINT ?? "http://localhost:9000";
-    this.publicBase = process.env.MINIO_PUBLIC_BASE ?? endpoint;
     this.bucket = process.env.ATTACHMENTS_BUCKET ?? "attachments";
+    // Тот же bucket что и task attachments — переиспользуем MINIO_ATTACHMENTS_PUBLIC_URL.
+    this.publicBase =
+      process.env.MINIO_ATTACHMENTS_PUBLIC_URL ??
+      (process.env.MINIO_PUBLIC_BASE
+        ? `${process.env.MINIO_PUBLIC_BASE}/${this.bucket}`
+        : `${endpoint}/${this.bucket}`);
     this.s3 = new S3Client({
       endpoint,
       region: "us-east-1",
@@ -103,7 +108,7 @@ export class ChatUploadsService {
     }
 
     return {
-      url: `${this.publicBase}/${this.bucket}/${key}`,
+      url: `${this.publicBase}/${key}`,
       filename: safeFilename,
       size: file.size,
       mimeType: file.mimetype,

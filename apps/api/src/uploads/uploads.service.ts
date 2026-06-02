@@ -17,7 +17,13 @@ export class UploadsService {
   constructor(private readonly tenantDb: TenantPrismaService) {
     this.endpoint = process.env.MINIO_ENDPOINT ?? "http://localhost:9000";
     // Для браузера/мобайла нужен hostname, который видит клиент:
-    this.publicBase = process.env.MINIO_PUBLIC_BASE ?? this.endpoint;
+    // На R2 каждый bucket имеет свой публичный URL (pub-XXX.r2.dev) без префикса.
+    // На MinIO (local) — один endpoint с path-style, поэтому fallback на старое поведение.
+    this.publicBase =
+      process.env.MINIO_AVATARS_PUBLIC_URL ??
+      (process.env.MINIO_PUBLIC_BASE
+        ? `${process.env.MINIO_PUBLIC_BASE}/avatars`
+        : `${this.endpoint}/avatars`);
     this.s3 = new S3Client({
       endpoint: this.endpoint,
       region: "us-east-1",
@@ -84,7 +90,8 @@ export class UploadsService {
       }),
     );
 
-    const avatarUrl = `${this.publicBase}/avatars/${key}`;
+    // publicBase уже включает /avatars при MinIO, или это сам bucket-domain для R2.
+    const avatarUrl = `${this.publicBase}/${key}`;
 
     // Обновляем users.avatar_url
     const client = await this.tenantDb.getClient();

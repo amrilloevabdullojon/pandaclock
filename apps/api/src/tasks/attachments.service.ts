@@ -73,8 +73,14 @@ export class TaskAttachmentsService {
 
   constructor(private readonly tenantDb: TenantPrismaService) {
     const endpoint = process.env.MINIO_ENDPOINT ?? "http://localhost:9000";
-    this.publicBase = process.env.MINIO_PUBLIC_BASE ?? endpoint;
     this.bucket = process.env.ATTACHMENTS_BUCKET ?? "attachments";
+    // На R2 у bucket'а свой публичный URL (pub-XXX.r2.dev), без префикса bucket в пути.
+    // На MinIO — один endpoint с path-style, поэтому fallback с /{bucket}.
+    this.publicBase =
+      process.env.MINIO_ATTACHMENTS_PUBLIC_URL ??
+      (process.env.MINIO_PUBLIC_BASE
+        ? `${process.env.MINIO_PUBLIC_BASE}/${this.bucket}`
+        : `${endpoint}/${this.bucket}`);
     this.s3 = new S3Client({
       endpoint,
       region: "us-east-1",
@@ -167,7 +173,8 @@ export class TaskAttachmentsService {
       });
     }
 
-    const url = `${this.publicBase}/${this.bucket}/${objectKey}`;
+    // publicBase уже включает /{bucket} (MinIO) или это bucket-domain (R2).
+    const url = `${this.publicBase}/${objectKey}`;
 
     const inserted = await client.$queryRawUnsafe<RawRow[]>(
       `INSERT INTO task_attachments (task_id, url, filename, size, uploaded_by_id)
@@ -221,7 +228,7 @@ export class TaskAttachmentsService {
     // Попытка удалить из S3 — если упадёт, всё равно удаляем из БД,
     // чтобы метаданные не висели «фантомом». S3 cleanup можно сделать кроном.
     try {
-      const key = extractKeyFromUrl(row.url, this.publicBase, this.bucket);
+      const key = extractKeyFromUrl(row.url, this.publicBase);
       if (key) {
         await this.s3.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
       }
@@ -242,8 +249,8 @@ function sanitizeFilename(name: string): string {
   return base.replace(/[^\w.\-А-Яа-яЁё ]/g, "_").slice(0, 200) || "file";
 }
 
-function extractKeyFromUrl(url: string, publicBase: string, bucket: string): string | null {
-  const prefix = `${publicBase}/${bucket}/`;
+function extractKeyFromUrl(url: string, publicBase: string): string | null {
+  const prefix = `${publicBase}/`;
   if (!url.startsWith(prefix)) return null;
   return url.slice(prefix.length);
 }
