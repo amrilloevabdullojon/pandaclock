@@ -166,7 +166,7 @@ export class ChatsService {
               m.body, m.attachments, m.created_at
        FROM chat_messages m
        JOIN users u ON u.id = m.author_id
-       WHERE m.channel_id = $1
+       WHERE m.channel_id = $1::uuid
        ORDER BY m.created_at DESC
        LIMIT $2::int`,
       channelId,
@@ -212,7 +212,7 @@ export class ChatsService {
     >(
       `WITH inserted AS (
          INSERT INTO chat_messages (channel_id, author_id, body, attachments)
-         VALUES ($1, $2, $3, $4::jsonb)
+         VALUES ($1::uuid, $2::uuid, $3, $4::jsonb)
          RETURNING id, channel_id, author_id, body, attachments, created_at
        )
        SELECT i.*, u.first_name || ' ' || u.last_name AS author_name,
