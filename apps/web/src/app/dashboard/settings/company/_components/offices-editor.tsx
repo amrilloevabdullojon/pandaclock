@@ -53,7 +53,7 @@ export function OfficesEditor({ offices, onChange, disabled }: Props) {
     onChange(offices.filter((o) => o.id !== id));
   }
 
-  function useMyLocation(id: string): void {
+  function fillFromMyLocation(id: string): void {
     if (!("geolocation" in navigator)) {
       toast.error("Браузер не поддерживает геолокацию");
       return;
@@ -190,7 +190,7 @@ export function OfficesEditor({ offices, onChange, disabled }: Props) {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => useMyLocation(office.id)}
+                onClick={() => fillFromMyLocation(office.id)}
                 loading={locatingId === office.id}
                 loadingText="Определяем…"
                 leftIcon={<Crosshair className="h-4 w-4" />}

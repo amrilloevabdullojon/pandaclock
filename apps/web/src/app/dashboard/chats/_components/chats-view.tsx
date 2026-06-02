@@ -504,7 +504,6 @@ function MessageAttachments({ items }: { items: ChatAttachment[] }) {
               rel="noopener noreferrer"
               className="border-border block max-w-[280px] overflow-hidden rounded-md border"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={att.url}
                 alt={att.filename}
