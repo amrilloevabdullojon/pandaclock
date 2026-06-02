@@ -14,29 +14,43 @@ describe("ExcelImportService.parseBuffer", () => {
 
   it("parses common column names (email/firstName/lastName/position)", () => {
     const buffer = buildXlsx([
-      { email: "alice@uz", firstName: "Alice", lastName: "K", position: "Manager" },
-      { email: "bob@uz", firstName: "Bob", lastName: "Y", position: "Dev" },
+      { email: "alice@example.uz", firstName: "Alice", lastName: "K", position: "Manager" },
+      { email: "bob@example.uz", firstName: "Bob", lastName: "Y", position: "Dev" },
     ]);
     const entries = service.parseBuffer(buffer);
     expect(entries).toHaveLength(2);
-    expect(entries[0]).toMatchObject({ email: "alice@uz", firstName: "Alice", position: "Manager" });
+    expect(entries[0]).toMatchObject({
+      email: "alice@example.uz",
+      firstName: "Alice",
+      position: "Manager",
+    });
   });
 
   it("parses Russian column names", () => {
     const buffer = buildXlsx([
-      { Email: "anna@uz", "Имя": "Анна", "Фамилия": "Каримова", "Должность": "HR" },
+      {
+        Email: "anna@example.uz",
+        Имя: "Анна",
+        Фамилия: "Каримова",
+        Должность: "HR",
+      },
     ]);
     const entries = service.parseBuffer(buffer);
-    expect(entries[0]).toMatchObject({ email: "anna@uz", firstName: "Анна", lastName: "Каримова" });
+    expect(entries[0]).toMatchObject({
+      email: "anna@example.uz",
+      firstName: "Анна",
+      lastName: "Каримова",
+    });
   });
 
   it("skips rows with invalid email", () => {
     const buffer = buildXlsx([
       { email: "not-an-email" },
-      { email: "ok@uz" },
+      { email: "no-dot@uz" }, // регулярка требует точку в доменной части
+      { email: "ok@example.uz" },
     ]);
     const entries = service.parseBuffer(buffer);
     expect(entries).toHaveLength(1);
-    expect(entries[0]?.email).toBe("ok@uz");
+    expect(entries[0]?.email).toBe("ok@example.uz");
   });
 });

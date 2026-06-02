@@ -20,6 +20,8 @@ function makeReq(overrides: { host?: string; header?: string }) {
       ...(overrides.host ? { host: overrides.host } : {}),
       ...(overrides.header ? { "x-tenant-slug": overrides.header } : {}),
     },
+    query: {},
+    cookies: undefined,
   } as unknown as Parameters<TenantMiddleware["use"]>[0];
 }
 
