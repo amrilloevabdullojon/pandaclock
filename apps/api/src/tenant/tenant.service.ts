@@ -17,6 +17,7 @@ export interface UpdatePolicyInput {
   workdays?: number[];
   /** undefined → не трогать; null → удалить; объект → установить */
   geofence?: TimePolicy["geofence"] | null;
+  leave?: TimePolicy["leave"];
 }
 
 export interface CreateTenantParams {
@@ -108,6 +109,51 @@ export class TenantService {
     return prisma.tenant.findUnique({ where: { slug } });
   }
 
+  async getProfile(slug: string): Promise<{
+    name: string;
+    industry: string | null;
+    timezone: string;
+    logoUrl: string | null;
+  }> {
+    const tenant = await prisma.tenant.findUnique({
+      where: { slug },
+      select: { name: true, industry: true, timezone: true, metadata: true },
+    });
+    if (!tenant) throw new NotFoundException({ code: "TENANT_NOT_FOUND" });
+    const metadata = (tenant.metadata as Record<string, unknown> | null) ?? {};
+    return {
+      name: tenant.name,
+      industry: tenant.industry ?? null,
+      timezone: tenant.timezone,
+      logoUrl: typeof metadata.logoUrl === "string" ? metadata.logoUrl : null,
+    };
+  }
+
+  async updateProfile(
+    slug: string,
+    input: { name?: string; industry?: string | null; timezone?: string },
+  ): Promise<void> {
+    if (input.name !== undefined && input.name.trim().length < 2) {
+      throw new BadRequestException({ code: "INVALID_NAME" });
+    }
+    // Sanity-check timezone — должен быть валидный IANA ID.
+    if (input.timezone !== undefined) {
+      try {
+        new Intl.DateTimeFormat("en-US", { timeZone: input.timezone });
+      } catch {
+        throw new BadRequestException({ code: "INVALID_TIMEZONE" });
+      }
+    }
+    await prisma.tenant.update({
+      where: { slug },
+      data: {
+        ...(input.name !== undefined ? { name: input.name.trim() } : {}),
+        ...(input.industry !== undefined ? { industry: input.industry } : {}),
+        ...(input.timezone !== undefined ? { timezone: input.timezone } : {}),
+      },
+    });
+  }
+
   async getPolicy(slug: string): Promise<TimePolicy> {
     const tenant = await prisma.tenant.findUnique({
       where: { slug },
@@ -137,6 +183,7 @@ export class TenantService {
           : input.geofence !== undefined
             ? input.geofence
             : current.geofence,
+      leave: input.leave ?? current.leave,
     };
     if (toMinutes(next.workStart) >= toMinutes(next.workEnd)) {
       throw new BadRequestException({

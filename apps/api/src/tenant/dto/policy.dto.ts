@@ -48,6 +48,23 @@ export class GeofenceDto {
  * class-transformer-у null нужно явно подсказать ValidateIf-ом — иначе он бросит
  * «nested object expected». Проверка через if (value !== null).
  */
+export class LeavePolicyDto {
+  @IsInt()
+  @Min(0)
+  @Max(60)
+  vacationDaysPerYear!: number;
+
+  @IsInt()
+  @Min(0)
+  @Max(30)
+  sickDaysPerYearWithoutDoc!: number;
+
+  @IsInt()
+  @Min(0)
+  @Max(60)
+  unpaidDaysPerYear!: number;
+}
+
 export class UpdateTimePolicyDto {
   /** HH:mm */
   @IsOptional()
@@ -78,4 +95,26 @@ export class UpdateTimePolicyDto {
   @ValidateNested()
   @Type(() => GeofenceDto)
   geofence?: GeofenceDto | null;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => LeavePolicyDto)
+  leave?: LeavePolicyDto;
+}
+
+export class UpdateTenantProfileDto {
+  @IsOptional()
+  @IsString()
+  @Length(2, 255)
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(0, 100)
+  industry?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @Length(2, 64)
+  timezone?: string;
 }

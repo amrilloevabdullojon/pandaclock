@@ -1,7 +1,7 @@
-import { Body, Controller, Get, Patch, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Patch, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { TenantService } from "./tenant.service.js";
-import { UpdateTimePolicyDto } from "./dto/policy.dto.js";
+import { UpdateTenantProfileDto, UpdateTimePolicyDto } from "./dto/policy.dto.js";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard.js";
 import { RolesGuard } from "../auth/roles.guard.js";
 import { Roles } from "../auth/roles.decorator.js";
@@ -24,11 +24,28 @@ export class TenantController {
 
   @Patch("policy")
   @Roles("OWNER", "ADMIN", "HR")
-  @ApiOperation({ summary: "Обновить time policy / geofence (только руководство)" })
+  @ApiOperation({ summary: "Обновить time policy / geofence / leave (только руководство)" })
   updatePolicy(
     @CurrentUser() user: AuthRequestUser,
     @Body() dto: UpdateTimePolicyDto,
   ): Promise<TimePolicy> {
     return this.tenants.updatePolicy(user.tenantSlug, dto);
+  }
+
+  @Get("profile")
+  @ApiOperation({ summary: "Профиль компании (название, индустрия, таймзона)" })
+  getProfile(@CurrentUser() user: AuthRequestUser) {
+    return this.tenants.getProfile(user.tenantSlug);
+  }
+
+  @Patch("profile")
+  @Roles("OWNER", "ADMIN", "HR")
+  @HttpCode(204)
+  @ApiOperation({ summary: "Обновить профиль компании (только руководство)" })
+  async updateProfile(
+    @CurrentUser() user: AuthRequestUser,
+    @Body() dto: UpdateTenantProfileDto,
+  ): Promise<void> {
+    await this.tenants.updateProfile(user.tenantSlug, dto);
   }
 }

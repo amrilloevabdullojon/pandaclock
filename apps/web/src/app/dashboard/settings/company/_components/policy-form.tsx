@@ -16,6 +16,11 @@ export interface TimePolicy {
     radius: number;
     name?: string;
   };
+  leave: {
+    vacationDaysPerYear: number;
+    sickDaysPerYearWithoutDoc: number;
+    unpaidDaysPerYear: number;
+  };
 }
 
 interface Props {
@@ -45,6 +50,10 @@ const WEEKDAYS = [
  *
  * canEdit = false → форма readonly + serializer не показывает кнопку Save.
  */
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
 export function CompanyPolicyForm({ initial, canEdit }: Props) {
   const router = useRouter();
   const [workStart, setWorkStart] = React.useState(initial.workStart);
@@ -62,6 +71,9 @@ export function CompanyPolicyForm({ initial, canEdit }: Props) {
     initial.geofence ? String(initial.geofence.radius) : "200",
   );
   const [officeName, setOfficeName] = React.useState(initial.geofence?.name ?? "");
+  const [vacationDays, setVacationDays] = React.useState(String(initial.leave.vacationDaysPerYear));
+  const [sickDays, setSickDays] = React.useState(String(initial.leave.sickDaysPerYearWithoutDoc));
+  const [unpaidDays, setUnpaidDays] = React.useState(String(initial.leave.unpaidDaysPerYear));
   const [locating, setLocating] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
 
@@ -131,6 +143,12 @@ export function CompanyPolicyForm({ initial, canEdit }: Props) {
       };
     }
 
+    const leavePayload = {
+      vacationDaysPerYear: clamp(parseInt(vacationDays, 10) || 0, 0, 60),
+      sickDaysPerYearWithoutDoc: clamp(parseInt(sickDays, 10) || 0, 0, 30),
+      unpaidDaysPerYear: clamp(parseInt(unpaidDays, 10) || 0, 0, 60),
+    };
+
     setSaving(true);
     try {
       const response = await fetch("/api/tenant/policy", {
@@ -142,6 +160,7 @@ export function CompanyPolicyForm({ initial, canEdit }: Props) {
           lateThresholdMinutes: Number(lateThreshold) || 0,
           workdays: [...workdays].sort(),
           geofence: geofencePayload,
+          leave: leavePayload,
         }),
       });
       if (!response.ok) {
@@ -170,6 +189,13 @@ export function CompanyPolicyForm({ initial, canEdit }: Props) {
 
   return (
     <fieldset disabled={fieldsetDisabled} className="space-y-8">
+      <header>
+        <h2 className="text-foreground text-base font-bold">Учёт времени и отпуска</h2>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Определяют, когда отметка считается опозданием, и сколько отпускных дней накапливается
+          каждый месяц.
+        </p>
+      </header>
       {/* ===== Расписание ===== */}
       <section>
         <h2 className="text-foreground mb-1 text-base font-bold">Расписание</h2>
@@ -335,6 +361,52 @@ export function CompanyPolicyForm({ initial, canEdit }: Props) {
             </p>
           </Card>
         ) : null}
+      </section>
+
+      {/* ===== Отпуска ===== */}
+      <section>
+        <h3 className="text-foreground mb-1 text-base font-bold">Лимиты отпусков</h3>
+        <p className="text-muted-foreground mb-4 text-sm">
+          Стандарт РУз — 21 день в год. Сотрудник, проработавший полгода, видит ≈10 дней доступного
+          отпуска в балансе.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="vacation-days">Отпуск (дней/год)</Label>
+            <Input
+              id="vacation-days"
+              type="number"
+              min={0}
+              max={60}
+              value={vacationDays}
+              onChange={(e) => setVacationDays(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="sick-days">Больничный без справки (дней/год)</Label>
+            <Input
+              id="sick-days"
+              type="number"
+              min={0}
+              max={30}
+              value={sickDays}
+              onChange={(e) => setSickDays(e.target.value)}
+            />
+            <p className="text-muted-foreground text-xs">Сверх этого — нужна справка от врача.</p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="unpaid-days">Отгулы (дней/год)</Label>
+            <Input
+              id="unpaid-days"
+              type="number"
+              min={0}
+              max={60}
+              value={unpaidDays}
+              onChange={(e) => setUnpaidDays(e.target.value)}
+            />
+            <p className="text-muted-foreground text-xs">0 = отгулы запрещены.</p>
+          </div>
+        </div>
       </section>
 
       {/* ===== Save ===== */}

@@ -24,13 +24,17 @@ export function countWorkingDays(startIso: string, endIso: string): number {
 
 /**
  * Возвращает накопленные отпускные дни для сотрудника на сегодня.
- * 21 день в год, пропорционально количеству отработанных дней.
+ * Норма берётся из tenant policy (default 21 для совместимости со старыми тестами).
  */
-export function accruedDays(hireDateIso: string | null, asOf = new Date()): number {
+export function accruedDays(
+  hireDateIso: string | null,
+  daysPerYear = 21,
+  asOf = new Date(),
+): number {
   if (!hireDateIso) return 0;
   const hire = parseDateOnly(hireDateIso);
   const totalDays = Math.max(0, Math.floor((asOf.getTime() - hire.getTime()) / MS_PER_DAY));
-  return Math.floor((totalDays / 365) * 21);
+  return Math.floor((totalDays / 365) * daysPerYear);
 }
 
 /**

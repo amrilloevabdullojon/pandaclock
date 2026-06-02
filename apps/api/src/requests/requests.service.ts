@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { TenantPrismaService } from "../tenant/tenant-prisma.service.js";
+import { TenantService } from "../tenant/tenant.service.js";
 import { NotificationsService } from "../notifications/notifications.service.js";
 import { accruedDays, countWorkingDays, rangesOverlap } from "./leave-utils.js";
 import type { CreateLeaveRequestDto, LeaveType } from "./dto/leave-request.dto.js";
@@ -62,6 +63,7 @@ export class RequestsService {
   constructor(
     private readonly tenantDb: TenantPrismaService,
     private readonly notifications: NotificationsService,
+    private readonly tenantService: TenantService,
   ) {}
 
   async list(scope: "my" | "team" | "all", currentUserId: string): Promise<LeaveRequestRow[]> {
@@ -172,7 +174,10 @@ export class RequestsService {
     return this.getById(id);
   }
 
-  async balance(userId: string): Promise<{
+  async balance(
+    userId: string,
+    tenantSlug: string,
+  ): Promise<{
     used: number;
     accrued: number;
     pending: number;
@@ -185,7 +190,8 @@ export class RequestsService {
     );
     const hireDate = userRows[0]?.hire_date ?? null;
     const hireDateIso = hireDate ? hireDate.toISOString() : null;
-    const accrued = accruedDays(hireDateIso);
+    const policy = await this.tenantService.getPolicy(tenantSlug);
+    const accrued = accruedDays(hireDateIso, policy.leave.vacationDaysPerYear);
 
     const aggregates = await client.$queryRawUnsafe<{ used: number; pending: number }[]>(
       `SELECT

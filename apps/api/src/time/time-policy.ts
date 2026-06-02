@@ -3,6 +3,15 @@
  * Парсится со значениями по умолчанию для устойчивости к старым tenants.
  */
 
+export interface LeavePolicy {
+  /** Сколько дней отпуска накапливается за год работы (стандарт РУз — 21). */
+  vacationDaysPerYear: number;
+  /** Сколько дней больничного без справки в год (0 = всегда нужна справка). */
+  sickDaysPerYearWithoutDoc: number;
+  /** Можно ли брать отгулы и сколько в год (0 = запрещено). */
+  unpaidDaysPerYear: number;
+}
+
 export interface TimePolicy {
   /** HH:mm */
   workStart: string;
@@ -18,14 +27,24 @@ export interface TimePolicy {
     longitude: number;
     /** В метрах */
     radius: number;
+    name?: string;
   };
+  /** Политика отпусков. Если не задана — берётся DEFAULT_LEAVE. */
+  leave: LeavePolicy;
 }
+
+const DEFAULT_LEAVE: LeavePolicy = {
+  vacationDaysPerYear: 21,
+  sickDaysPerYearWithoutDoc: 3,
+  unpaidDaysPerYear: 14,
+};
 
 const DEFAULT_POLICY: TimePolicy = {
   workStart: "09:00",
   workEnd: "18:00",
   lateThresholdMinutes: 15,
   workdays: [1, 2, 3, 4, 5],
+  leave: DEFAULT_LEAVE,
 };
 
 export function parseTimePolicy(raw: unknown): TimePolicy {
@@ -35,10 +54,18 @@ export function parseTimePolicy(raw: unknown): TimePolicy {
     workStart: candidate.workStart ?? DEFAULT_POLICY.workStart,
     workEnd: candidate.workEnd ?? DEFAULT_POLICY.workEnd,
     lateThresholdMinutes: candidate.lateThresholdMinutes ?? DEFAULT_POLICY.lateThresholdMinutes,
-    workdays: candidate.workdays && candidate.workdays.length > 0
-      ? candidate.workdays
-      : DEFAULT_POLICY.workdays,
+    workdays:
+      candidate.workdays && candidate.workdays.length > 0
+        ? candidate.workdays
+        : DEFAULT_POLICY.workdays,
     geofence: candidate.geofence,
+    leave: {
+      vacationDaysPerYear:
+        candidate.leave?.vacationDaysPerYear ?? DEFAULT_LEAVE.vacationDaysPerYear,
+      sickDaysPerYearWithoutDoc:
+        candidate.leave?.sickDaysPerYearWithoutDoc ?? DEFAULT_LEAVE.sickDaysPerYearWithoutDoc,
+      unpaidDaysPerYear: candidate.leave?.unpaidDaysPerYear ?? DEFAULT_LEAVE.unpaidDaysPerYear,
+    },
   };
 }
 

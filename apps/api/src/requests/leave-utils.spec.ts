@@ -27,16 +27,22 @@ describe("accruedDays", () => {
 
   it("returns about 21 days after full year", () => {
     const hireIso = "2025-05-25";
-    const value = accruedDays(hireIso, new Date("2026-05-25T00:00:00Z"));
+    const value = accruedDays(hireIso, 21, new Date("2026-05-25T00:00:00Z"));
     expect(value).toBeGreaterThanOrEqual(21);
     expect(value).toBeLessThanOrEqual(22);
   });
 
   it("returns half year ≈ 10 days", () => {
     const hireIso = "2025-11-25";
-    const value = accruedDays(hireIso, new Date("2026-05-25T00:00:00Z"));
+    const value = accruedDays(hireIso, 21, new Date("2026-05-25T00:00:00Z"));
     expect(value).toBeGreaterThanOrEqual(9);
     expect(value).toBeLessThanOrEqual(11);
+  });
+
+  it("uses custom daysPerYear when policy differs", () => {
+    const hireIso = "2025-05-25";
+    const value = accruedDays(hireIso, 28, new Date("2026-05-25T00:00:00Z"));
+    expect(value).toBeGreaterThanOrEqual(28);
   });
 });
 

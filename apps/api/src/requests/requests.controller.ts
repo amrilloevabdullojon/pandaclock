@@ -34,7 +34,7 @@ export class RequestsController {
 
   @Get("balance")
   balance(@CurrentUser() user: AuthRequestUser) {
-    return this.requests.balance(user.id);
+    return this.requests.balance(user.id, user.tenantSlug);
   }
 
   @Get(":id")

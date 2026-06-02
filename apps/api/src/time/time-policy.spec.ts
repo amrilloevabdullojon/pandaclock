@@ -27,6 +27,7 @@ describe("isLateArrival", () => {
     workEnd: "18:00",
     lateThresholdMinutes: 15,
     workdays: [1, 2, 3, 4, 5],
+    leave: { vacationDaysPerYear: 21, sickDaysPerYearWithoutDoc: 3, unpaidDaysPerYear: 14 },
   };
 
   it("returns false if arrived before threshold", () => {
@@ -43,7 +44,9 @@ describe("isLateArrival", () => {
 
 describe("distanceMeters", () => {
   it("returns 0 for the same point", () => {
-    expect(distanceMeters({ latitude: 41.3, longitude: 69.27 }, { latitude: 41.3, longitude: 69.27 })).toBe(0);
+    expect(
+      distanceMeters({ latitude: 41.3, longitude: 69.27 }, { latitude: 41.3, longitude: 69.27 }),
+    ).toBe(0);
   });
 
   it("calculates a meaningful distance", () => {
@@ -58,9 +61,18 @@ describe("distanceMeters", () => {
 
 describe("isWithinGeofence", () => {
   it("returns no_geofence when policy has no geofence", () => {
-    expect(isWithinGeofence({ workStart: "09:00", workEnd: "18:00", lateThresholdMinutes: 15, workdays: [1] }, undefined)).toBe(
-      "no_geofence",
-    );
+    expect(
+      isWithinGeofence(
+        {
+          workStart: "09:00",
+          workEnd: "18:00",
+          lateThresholdMinutes: 15,
+          workdays: [1],
+          leave: { vacationDaysPerYear: 21, sickDaysPerYearWithoutDoc: 3, unpaidDaysPerYear: 14 },
+        },
+        undefined,
+      ),
+    ).toBe("no_geofence");
   });
 
   it("returns no_coords when coords missing", () => {
@@ -71,6 +83,7 @@ describe("isWithinGeofence", () => {
           workEnd: "18:00",
           lateThresholdMinutes: 15,
           workdays: [1],
+          leave: { vacationDaysPerYear: 21, sickDaysPerYearWithoutDoc: 3, unpaidDaysPerYear: 14 },
           geofence: { latitude: 41.3, longitude: 69.27, radius: 200 },
         },
         undefined,
@@ -84,6 +97,7 @@ describe("isWithinGeofence", () => {
       workEnd: "18:00",
       lateThresholdMinutes: 15,
       workdays: [1],
+      leave: { vacationDaysPerYear: 21, sickDaysPerYearWithoutDoc: 3, unpaidDaysPerYear: 14 },
       geofence: { latitude: 41.3, longitude: 69.27, radius: 200 },
     };
     expect(isWithinGeofence(policy, { latitude: 41.3, longitude: 69.27 })).toBe("inside");
