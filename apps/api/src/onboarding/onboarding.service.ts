@@ -33,7 +33,7 @@ export class OnboardingService {
     const client = await this.tenantDb.getClient();
 
     // Все 4 запроса последовательно — параллельные могут попасть в разные
-    // pool-соединения без установленного search_path (см. CLAUDE.md).
+    // pool-соединения без установленного search_path (см. tenant.middleware.ts).
     const [departmentsCount] = await client.$queryRawUnsafe<[{ count: bigint }]>(
       `SELECT COUNT(*)::bigint AS count FROM departments`,
     );

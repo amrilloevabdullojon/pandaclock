@@ -1,9 +1,11 @@
 # TASKS.md
+
 ## Текущие задачи разработки Pandaclock
 
-Этот файл — рабочий backlog для AI-агентов. Обновляется по мере выполнения работ.
+Этот файл — рабочий backlog проекта. Обновляется по мере выполнения работ.
 
 **Формат:**
+
 - `[ ]` — открытая задача
 - `[~]` — в процессе
 - `[x]` — завершена
@@ -26,20 +28,20 @@
 
 ## E2E реально работает (доказано curl-ом)
 
-| Endpoint | HTTP | Что подтверждает |
-|----------|------|------------------|
-| `POST /auth/register-company` | 201 | tenant + schema + Owner user созданы в одной транзакции |
-| `POST /auth/login` | 200 | JWT access+refresh с правильным payload |
-| `GET /auth/me` | 200 | JwtAuthGuard + tenant binding работают |
-| `POST /auth/refresh` | 200 | rotation выпускает новую пару |
-| `GET /employees` | 200 | список сотрудников из tenant schema |
-| `POST /departments` | 201 | CRUD отделов |
-| `POST /time/start` → break → break/finish → finish | 200/201 | полный цикл рабочего дня с late detection |
-| `POST /tasks` + `PATCH /tasks/:id` + `POST /tasks/:id/comments` | 201/200/201 | задачи + переходы + комментарии |
-| `POST /requests` + `POST /requests/:id/approve` | 201/201 | заявка на отпуск + утверждение |
-| `GET /requests/balance` | 200 | расчёт `{used, accrued, pending, remaining}` |
-| `GET /reports/attendance` | 200 | агрегации с late count и hours |
-| `GET /calendar/events` | 200 | unified feed leave_requests + task_deadlines |
+| Endpoint                                                        | HTTP        | Что подтверждает                                        |
+| --------------------------------------------------------------- | ----------- | ------------------------------------------------------- |
+| `POST /auth/register-company`                                   | 201         | tenant + schema + Owner user созданы в одной транзакции |
+| `POST /auth/login`                                              | 200         | JWT access+refresh с правильным payload                 |
+| `GET /auth/me`                                                  | 200         | JwtAuthGuard + tenant binding работают                  |
+| `POST /auth/refresh`                                            | 200         | rotation выпускает новую пару                           |
+| `GET /employees`                                                | 200         | список сотрудников из tenant schema                     |
+| `POST /departments`                                             | 201         | CRUD отделов                                            |
+| `POST /time/start` → break → break/finish → finish              | 200/201     | полный цикл рабочего дня с late detection               |
+| `POST /tasks` + `PATCH /tasks/:id` + `POST /tasks/:id/comments` | 201/200/201 | задачи + переходы + комментарии                         |
+| `POST /requests` + `POST /requests/:id/approve`                 | 201/201     | заявка на отпуск + утверждение                          |
+| `GET /requests/balance`                                         | 200         | расчёт `{used, accrued, pending, remaining}`            |
+| `GET /reports/attendance`                                       | 200         | агрегации с late count и hours                          |
+| `GET /calendar/events`                                          | 200         | unified feed leave_requests + task_deadlines            |
 
 ## Hardening сделан
 
@@ -67,6 +69,7 @@ Landing уже использует `pandi-hello.svg` в Hero вместо emoji
 ## Sprint 8 — Полировка + запуск
 
 ### API
+
 - [x] BillingTransaction recording из Click и Payme webhooks (поиск tenant по merchant_trans_id, продление subscription.expiresAt, перевод TRIAL → ACTIVE)
 - [x] TransactionService.parseMerchantTransId + Vitest (4 кейса)
 - [x] SchedulerModule (@nestjs/schedule): утренние напоминания (Cron 09:00), trial-warning за 3 дня до конца
@@ -74,27 +77,32 @@ Landing уже использует `pandi-hello.svg` в Hero вместо emoji
 - [x] AppModule зарегистрировал SchedulerModule + webhook routes исключены из TenantMiddleware
 
 ### Web
+
 - [x] i18n: en.json + uz-latn.json + cookie-based locale
 - [x] LocaleSwitcher компонент в TopBar
 - [x] /api/locale endpoint для смены локали
 - [x] /legal/oferta, /legal/privacy, /legal/dpa страницы
 
 ### Mobile
+
 - [x] eas.json с 3 профилями (development/preview/production)
 - [x] README с инструкциями по EAS build/submit/update
 
 ### Marketing
+
 - [x] Расширенные метаданные (Open Graph + Twitter Card + canonical + alternate locales)
 - [x] sitemap.ts + robots.ts (Next.js 15 MetadataRoute)
 - [x] Schema.org JSON-LD (SoftwareApplication + Organization)
 - [x] Viewport meta + themeColor
 
 ### DevOps
+
 - [x] Multi-stage Dockerfile для API (production-ready, non-root user, healthcheck)
 - [x] vercel.json для web и marketing (rewrites, headers, security)
 - [x] .dockerignore
 
 ### Документация
+
 - [x] docs/Deployment_runbook.md — окружения, env vars, pre-flight, миграции, rollback, smoke test
 - [x] docs/On_call_playbook.md — severity levels, 7 типовых сценариев, post-mortem template
 
@@ -423,9 +431,7 @@ Landing уже использует `pandi-hello.svg` в Hero вместо emoji
 
 - [x] Инициализировать git
 - [x] Создать структуру monorepo (`apps/`, `packages/`, `docs/`)
-- [x] `AGENTS.md` — главный файл для AI-агентов
-- [x] `CLAUDE.md` — дополнения для Claude Code
-- [x] `README.md` — для людей
+- [x] `README.md` — главный документ
 - [x] `CONTRIBUTING.md`
 - [x] `package.json` (root)
 - [x] `pnpm-workspace.yaml`
@@ -523,15 +529,13 @@ Landing уже использует `pandi-hello.svg` в Hero вместо emoji
 - [ ] Neon project setup (production + staging branches)
 - [ ] Upstash Redis setup
 - [ ] Cloudflare R2 buckets
-- [ ] DNS: pandaclock.uz + wildcard *.pandaclock.uz
+- [ ] DNS: pandaclock.uz + wildcard \*.pandaclock.uz
 - [ ] SSL via Cloudflare
 
 ## Документация
 
 - [x] README.md (актуальный)
 - [x] CONTRIBUTING.md (как делать PR)
-- [x] AGENTS.md (для AI-агентов)
-- [x] CLAUDE.md (для Claude Code)
 - [x] 16 .md документов в `docs/`
 
 ---
@@ -539,6 +543,7 @@ Landing уже использует `pandi-hello.svg` в Hero вместо emoji
 # 🔵 ДАЛЬНЕЙШИЕ СПРИНТЫ (планируется)
 
 ## Sprint 1: Фундамент авторизации (недели 3-4)
+
 - Реальная регистрация компании через web (multi-step wizard)
 - Email verification flow
 - Реальный login + сохранение токенов в SecureStore/cookies
@@ -549,6 +554,7 @@ Landing уже использует `pandi-hello.svg` в Hero вместо emoji
 - E2E тест happy path
 
 ## Sprint 2: Сотрудники и отделы (недели 5-6)
+
 - CRUD departments
 - CRUD users
 - Импорт сотрудников из Excel
@@ -556,6 +562,7 @@ Landing уже использует `pandi-hello.svg` в Hero вместо emoji
 - Org chart
 
 ## Sprint 3: Учёт времени (недели 7-8)
+
 - Mobile clock-in/out с реальной БД
 - Геолокация и валидация по радиусу
 - Перерывы
@@ -563,6 +570,7 @@ Landing уже использует `pandi-hello.svg` в Hero вместо emoji
 - Offline-режим в mobile с синхронизацией
 
 ## Sprint 4: Задачи (недели 9-10)
+
 - Канбан-доска (drag-n-drop)
 - Создание/назначение задач
 - Комментарии и файлы
@@ -570,24 +578,28 @@ Landing уже использует `pandi-hello.svg` в Hero вместо emoji
 - Лендинг расширение (Pricing, FAQ, Industries)
 
 ## Sprint 5: Заявки и уведомления (недели 11-12)
+
 - Отпуска / больничные (CRUD + workflow утверждения)
 - Push notifications (Expo)
 - Email шаблоны (welcome, новая задача, заявка)
 - Inline approve/reject в email
 
 ## Sprint 6: Отчёты (недели 13-14)
+
 - Async-генерация Excel/PDF через BullMQ
 - KPI дашборды для руководителя
 - Дашборд сотрудника
 - Календарь графика
 
 ## Sprint 7: Биллинг + Чаты (недели 15-16)
+
 - Click / Payme webhooks
 - Тарифы и подписки
 - Чаты отделов (Socket.IO)
 - Видео-созвоны (LiveKit базовый)
 
 ## Sprint 8: Полировка + Запуск (недели 17-18)
+
 - E2E тесты (Playwright + Maestro)
 - Локализация (узбекский латиница)
 - Юридические страницы (оферта, ПД, DPA)
@@ -620,9 +632,7 @@ _Пока нет блокеров._
 
 ---
 
-# 🤖 ПРАВИЛА РАБОТЫ С ЭТИМ ФАЙЛОМ
-
-Для AI-агентов:
+# Правила работы с этим файлом
 
 1. **Перед началом задачи** — отметить её как `[~]` (в процессе)
 2. **После завершения** — отметить `[x]` и обновить % готовности спринта
