@@ -7,6 +7,7 @@ import { TablePagination } from "../_components/table-pagination";
 import { EmployeesFilters } from "./_components/employees-filters";
 import { EmployeesTable } from "./_components/employees-table";
 import { InviteEmployees } from "./_components/invite-modal";
+import { ImportEmployees } from "./_components/import-excel";
 
 interface EmployeesQuery {
   search?: string;
@@ -95,7 +96,14 @@ export default async function EmployeesPage({
         description={`В команде ${employees.total} ${
           employees.total === 1 ? "человек" : employees.total < 5 ? "человека" : "человек"
         }`}
-        actions={canInvite ? <InviteEmployees /> : undefined}
+        actions={
+          canInvite ? (
+            <div className="flex gap-2">
+              <ImportEmployees />
+              <InviteEmployees />
+            </div>
+          ) : undefined
+        }
       />
 
       <EmployeesFilters departments={departments} />
