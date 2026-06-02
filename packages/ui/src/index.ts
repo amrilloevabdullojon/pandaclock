@@ -37,6 +37,7 @@ export * from "./components/radio-group";
 export * from "./components/combobox";
 export * from "./components/calendar";
 export * from "./components/date-picker";
+export * from "./components/date-range-picker";
 export * from "./components/form";
 
 // === Списки / таблицы ===

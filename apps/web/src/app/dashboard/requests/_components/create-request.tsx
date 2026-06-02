@@ -4,13 +4,14 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Button,
+  DateRangePicker,
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  Input,
+  type DateRange,
 } from "@pandaclock/ui";
 
 type LeaveType = "VACATION" | "SICK" | "TIME_OFF" | "OTHER";
@@ -29,10 +30,12 @@ interface Balance {
   remaining: number;
 }
 
-function countWorkingDays(start: string, end: string): number {
-  if (!start || !end) return 0;
-  const s = new Date(`${start}T00:00:00Z`);
-  const e = new Date(`${end}T00:00:00Z`);
+function countWorkingDays(range: DateRange | undefined): number {
+  if (!range?.from || !range?.to) return 0;
+  const s = new Date(
+    Date.UTC(range.from.getFullYear(), range.from.getMonth(), range.from.getDate()),
+  );
+  const e = new Date(Date.UTC(range.to.getFullYear(), range.to.getMonth(), range.to.getDate()));
   if (e < s) return 0;
   let count = 0;
   for (let cursor = s; cursor <= e; cursor = new Date(cursor.getTime() + 86400000)) {
@@ -42,28 +45,41 @@ function countWorkingDays(start: string, end: string): number {
   return count;
 }
 
+/** YYYY-MM-DD без UTC-сдвига (LocalDate, как ждёт API). */
+function toIsoDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export function CreateRequestButton({ balance }: { balance: Balance | null }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<LeaveType>("VACATION");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [range, setRange] = useState<DateRange | undefined>();
   const [reason, setReason] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const days = useMemo(() => countWorkingDays(startDate, endDate), [startDate, endDate]);
+  const days = useMemo(() => countWorkingDays(range), [range]);
   const remainingAfter = balance && type === "VACATION" ? balance.remaining - days : null;
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+    if (!range?.from || !range?.to) {
+      setError("Выберите даты");
+      return;
+    }
     setPending(true);
     setError(null);
     try {
       const response = await fetch("/api/requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, startDate, endDate, reason: reason || undefined }),
+        body: JSON.stringify({
+          type,
+          startDate: toIsoDate(range.from),
+          endDate: toIsoDate(range.to),
+          reason: reason || undefined,
+        }),
       });
       if (!response.ok) {
         const body = (await response.json().catch(() => ({}))) as {
@@ -80,8 +96,7 @@ export function CreateRequestButton({ balance }: { balance: Balance | null }) {
       }
       setOpen(false);
       setType("VACATION");
-      setStartDate("");
-      setEndDate("");
+      setRange(undefined);
       setReason("");
       router.refresh();
     } finally {
@@ -120,25 +135,17 @@ export function CreateRequestButton({ balance }: { balance: Balance | null }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <label className="text-foreground text-sm font-semibold">С</label>
-              <Input
-                type="date"
-                required
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-foreground text-sm font-semibold">По</label>
-              <Input
-                type="date"
-                required
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </div>
+          <div className="space-y-2">
+            <label className="text-foreground text-sm font-semibold">Период</label>
+            <DateRangePicker
+              value={range}
+              onChange={setRange}
+              fromDate={new Date()}
+              placeholder="Выберите дни отпуска"
+            />
+            <p className="text-muted-foreground text-xs">
+              Кликните по дате начала, потом по дате окончания.
+            </p>
           </div>
 
           {days > 0 ? (
