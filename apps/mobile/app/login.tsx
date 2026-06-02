@@ -175,8 +175,15 @@ export default function LoginScreen() {
           </Button>
         </Card>
 
-        {/* === Switch tenant === */}
-        <View className="mt-6 items-center">
+        {/* === Forgot password + Switch tenant === */}
+        <View className="mt-5 items-center gap-3">
+          <Pressable
+            onPress={() => router.push("/forgot-password")}
+            hitSlop={8}
+            accessibilityRole="button"
+          >
+            <Text className="text-primary-500 text-sm font-semibold">Забыли пароль?</Text>
+          </Pressable>
           <Pressable onPress={() => router.replace("/")} hitSlop={8} accessibilityRole="button">
             <Text className="text-muted-foreground text-sm font-semibold">Сменить компанию</Text>
           </Pressable>
