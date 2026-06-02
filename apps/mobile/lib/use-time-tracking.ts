@@ -15,7 +15,7 @@ export interface TodaySession {
   breaksTotalMinutes: number;
   currentBreak: { id: string; startedAt: string; type: string } | null;
   geofenceStatus: "no_geofence" | "inside" | "outside" | "no_coords";
-  office: { latitude: number; longitude: number; radius: number; name?: string } | null;
+  offices: { id: string; name: string; latitude: number; longitude: number; radius: number }[];
 }
 
 const EMPTY: TodaySession = {
@@ -28,7 +28,7 @@ const EMPTY: TodaySession = {
   breaksTotalMinutes: 0,
   currentBreak: null,
   geofenceStatus: "no_geofence",
-  office: null,
+  offices: [],
 };
 
 async function tryGetCoords(): Promise<{ latitude: number; longitude: number } | undefined> {

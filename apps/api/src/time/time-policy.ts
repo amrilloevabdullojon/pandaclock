@@ -12,6 +12,16 @@ export interface LeavePolicy {
   unpaidDaysPerYear: number;
 }
 
+export interface Office {
+  /** Стабильный id офиса (UUID), генерится клиентом или сервером при создании. */
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  /** В метрах */
+  radius: number;
+}
+
 export interface TimePolicy {
   /** HH:mm */
   workStart: string;
@@ -21,14 +31,19 @@ export interface TimePolicy {
   lateThresholdMinutes: number;
   /** ISO weekdays: 1=Monday..7=Sunday. */
   workdays: number[];
-  /** Опциональный гео-фенс. Если задан — отметка вне радиуса требует подтверждения. */
+  /**
+   * DEPRECATED single-office geofence. Оставлено для backward-compat при чтении.
+   * Новые тенанты используют offices[]. parseTimePolicy() мигрирует geofence → offices[]
+   * при первом чтении, дальше пишется только offices.
+   */
   geofence?: {
     latitude: number;
     longitude: number;
-    /** В метрах */
     radius: number;
     name?: string;
   };
+  /** Список офисов. Если пуст — geofence не применяется (отмечаться можно откуда угодно). */
+  offices: Office[];
   /** Политика отпусков. Если не задана — берётся DEFAULT_LEAVE. */
   leave: LeavePolicy;
 }
@@ -44,12 +59,32 @@ const DEFAULT_POLICY: TimePolicy = {
   workEnd: "18:00",
   lateThresholdMinutes: 15,
   workdays: [1, 2, 3, 4, 5],
+  offices: [],
   leave: DEFAULT_LEAVE,
 };
 
 export function parseTimePolicy(raw: unknown): TimePolicy {
   if (!raw || typeof raw !== "object") return DEFAULT_POLICY;
   const candidate = raw as Partial<TimePolicy>;
+
+  // Auto-migration: если в БД лежит старый одиночный geofence без offices[],
+  // на лету конвертируем его в массив с одним элементом «Главный офис».
+  // При следующем save updatePolicy() запишет уже offices без geofence.
+  let offices: Office[] = Array.isArray(candidate.offices)
+    ? candidate.offices.filter(isValidOffice)
+    : [];
+  if (offices.length === 0 && candidate.geofence) {
+    offices = [
+      {
+        id: "legacy-main",
+        name: candidate.geofence.name ?? "Главный офис",
+        latitude: candidate.geofence.latitude,
+        longitude: candidate.geofence.longitude,
+        radius: candidate.geofence.radius,
+      },
+    ];
+  }
+
   return {
     workStart: candidate.workStart ?? DEFAULT_POLICY.workStart,
     workEnd: candidate.workEnd ?? DEFAULT_POLICY.workEnd,
@@ -59,6 +94,7 @@ export function parseTimePolicy(raw: unknown): TimePolicy {
         ? candidate.workdays
         : DEFAULT_POLICY.workdays,
     geofence: candidate.geofence,
+    offices,
     leave: {
       vacationDaysPerYear:
         candidate.leave?.vacationDaysPerYear ?? DEFAULT_LEAVE.vacationDaysPerYear,
@@ -119,12 +155,30 @@ export function distanceMeters(
   return 2 * R * Math.asin(Math.sqrt(sa));
 }
 
+/**
+ * Inside если координаты входят в радиус ЛЮБОГО офиса (логика «или одного из них»).
+ * no_geofence — если ни одного офиса не задано.
+ */
 export function isWithinGeofence(
   policy: TimePolicy,
   coords: { latitude: number; longitude: number } | undefined,
 ): "no_geofence" | "inside" | "outside" | "no_coords" {
-  if (!policy.geofence) return "no_geofence";
+  if (policy.offices.length === 0) return "no_geofence";
   if (!coords) return "no_coords";
-  const meters = distanceMeters(policy.geofence, coords);
-  return meters <= policy.geofence.radius ? "inside" : "outside";
+  for (const office of policy.offices) {
+    if (distanceMeters(office, coords) <= office.radius) return "inside";
+  }
+  return "outside";
+}
+
+function isValidOffice(o: unknown): o is Office {
+  if (!o || typeof o !== "object") return false;
+  const obj = o as Record<string, unknown>;
+  return (
+    typeof obj.id === "string" &&
+    typeof obj.name === "string" &&
+    typeof obj.latitude === "number" &&
+    typeof obj.longitude === "number" &&
+    typeof obj.radius === "number"
+  );
 }

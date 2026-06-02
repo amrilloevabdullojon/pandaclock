@@ -23,8 +23,11 @@ export interface TodaySession {
   breaksTotalMinutes: number;
   currentBreak: { id: string; startedAt: Date; type: string } | null;
   geofenceStatus: "no_geofence" | "inside" | "outside" | "no_coords";
-  /** Координаты офиса для расчёта расстояния на клиенте. null если geofence не настроен. */
-  office: { latitude: number; longitude: number; radius: number; name?: string } | null;
+  /**
+   * Все офисы компании — клиент находит ближайший и показывает distance/status
+   * к нему. Пустой массив = geofence не настроен, отметка разрешена откуда угодно.
+   */
+  offices: { id: string; name: string; latitude: number; longitude: number; radius: number }[];
 }
 
 interface TimeEntryRow {
@@ -76,13 +79,13 @@ export class TimeService {
        LIMIT 1`,
       userId,
     );
-    const office = policy.geofence
-      ? {
-          latitude: policy.geofence.latitude,
-          longitude: policy.geofence.longitude,
-          radius: policy.geofence.radius,
-        }
-      : null;
+    const offices = policy.offices.map((o) => ({
+      id: o.id,
+      name: o.name,
+      latitude: o.latitude,
+      longitude: o.longitude,
+      radius: o.radius,
+    }));
 
     const entry = entries[0];
     if (!entry) {
@@ -96,7 +99,7 @@ export class TimeService {
         breaksTotalMinutes: 0,
         currentBreak: null,
         geofenceStatus: isWithinGeofence(policy, undefined),
-        office,
+        offices,
       };
     }
 
@@ -123,7 +126,7 @@ export class TimeService {
       breaksTotalMinutes: entry.breaks_total_minutes,
       currentBreak,
       geofenceStatus: isWithinGeofence(policy, undefined),
-      office,
+      offices,
     };
   }
 

@@ -2,20 +2,23 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Crosshair, MapPin, Save } from "lucide-react";
-import { Button, Card, Checkbox, Input, Label, Switch, toast } from "@pandaclock/ui";
+import { Save } from "lucide-react";
+import { Button, Checkbox, Input, Label, toast } from "@pandaclock/ui";
+import { OfficesEditor, type Office as DraftOffice } from "./offices-editor";
 
 export interface TimePolicy {
   workStart: string;
   workEnd: string;
   lateThresholdMinutes: number;
   workdays: number[];
+  /** DEPRECATED — приходит с сервера если legacy, не используем в редакторе. */
   geofence?: {
     latitude: number;
     longitude: number;
     radius: number;
     name?: string;
   };
+  offices: { id: string; name: string; latitude: number; longitude: number; radius: number }[];
   leave: {
     vacationDaysPerYear: number;
     sickDaysPerYearWithoutDoc: number;
@@ -60,21 +63,18 @@ export function CompanyPolicyForm({ initial, canEdit }: Props) {
   const [workEnd, setWorkEnd] = React.useState(initial.workEnd);
   const [lateThreshold, setLateThreshold] = React.useState(String(initial.lateThresholdMinutes));
   const [workdays, setWorkdays] = React.useState<Set<number>>(new Set(initial.workdays));
-  const [geofenceEnabled, setGeofenceEnabled] = React.useState(!!initial.geofence);
-  const [latitude, setLatitude] = React.useState(
-    initial.geofence ? String(initial.geofence.latitude) : "",
+  const [offices, setOffices] = React.useState<DraftOffice[]>(
+    initial.offices.map((o) => ({
+      id: o.id,
+      name: o.name,
+      latitude: o.latitude,
+      longitude: o.longitude,
+      radius: o.radius,
+    })),
   );
-  const [longitude, setLongitude] = React.useState(
-    initial.geofence ? String(initial.geofence.longitude) : "",
-  );
-  const [radius, setRadius] = React.useState(
-    initial.geofence ? String(initial.geofence.radius) : "200",
-  );
-  const [officeName, setOfficeName] = React.useState(initial.geofence?.name ?? "");
   const [vacationDays, setVacationDays] = React.useState(String(initial.leave.vacationDaysPerYear));
   const [sickDays, setSickDays] = React.useState(String(initial.leave.sickDaysPerYearWithoutDoc));
   const [unpaidDays, setUnpaidDays] = React.useState(String(initial.leave.unpaidDaysPerYear));
-  const [locating, setLocating] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
 
   function toggleWorkday(iso: number): void {
@@ -86,61 +86,48 @@ export function CompanyPolicyForm({ initial, canEdit }: Props) {
     });
   }
 
-  async function useMyLocation(): Promise<void> {
-    if (!("geolocation" in navigator)) {
-      toast.error("Браузер не поддерживает геолокацию");
-      return;
-    }
-    setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLatitude(pos.coords.latitude.toFixed(6));
-        setLongitude(pos.coords.longitude.toFixed(6));
-        setLocating(false);
-        toast.success(`Координаты определены (±${Math.round(pos.coords.accuracy)} м)`);
-      },
-      (err) => {
-        setLocating(false);
-        toast.error(
-          err.code === err.PERMISSION_DENIED
-            ? "Разрешите геолокацию в настройках браузера"
-            : "Не удалось определить местоположение",
-        );
-      },
-      { enableHighAccuracy: true, timeout: 10_000 },
-    );
-  }
-
   async function handleSave(): Promise<void> {
     if (workdays.size === 0) {
       toast.error("Выберите хотя бы один рабочий день");
       return;
     }
-    let geofencePayload: TimePolicy["geofence"] | null;
-    if (!geofenceEnabled) {
-      geofencePayload = null;
-    } else {
-      const lat = parseFloat(latitude);
-      const lng = parseFloat(longitude);
-      const rad = parseInt(radius, 10);
-      if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
-        toast.error("Широта должна быть от -90 до 90");
+
+    // Валидация всех офисов.
+    const officesPayload: TimePolicy["offices"] = [];
+    for (const [idx, o] of offices.entries()) {
+      if (!o.name.trim()) {
+        toast.error(`Офис #${idx + 1}: введите название`);
         return;
       }
-      if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
-        toast.error("Долгота должна быть от -180 до 180");
+      if (
+        o.latitude === null ||
+        !Number.isFinite(o.latitude) ||
+        o.latitude < -90 ||
+        o.latitude > 90
+      ) {
+        toast.error(`Офис «${o.name}»: широта от -90 до 90`);
         return;
       }
-      if (!Number.isInteger(rad) || rad < 10 || rad > 50_000) {
-        toast.error("Радиус — целое число от 10 до 50 000 метров");
+      if (
+        o.longitude === null ||
+        !Number.isFinite(o.longitude) ||
+        o.longitude < -180 ||
+        o.longitude > 180
+      ) {
+        toast.error(`Офис «${o.name}»: долгота от -180 до 180`);
         return;
       }
-      geofencePayload = {
-        latitude: lat,
-        longitude: lng,
-        radius: rad,
-        ...(officeName.trim() ? { name: officeName.trim() } : {}),
-      };
+      if (!Number.isInteger(o.radius) || o.radius < 10 || o.radius > 50_000) {
+        toast.error(`Офис «${o.name}»: радиус 10–50 000 м`);
+        return;
+      }
+      officesPayload.push({
+        id: o.id,
+        name: o.name.trim(),
+        latitude: o.latitude,
+        longitude: o.longitude,
+        radius: o.radius,
+      });
     }
 
     const leavePayload = {
@@ -159,7 +146,7 @@ export function CompanyPolicyForm({ initial, canEdit }: Props) {
           workEnd,
           lateThresholdMinutes: Number(lateThreshold) || 0,
           workdays: [...workdays].sort(),
-          geofence: geofencePayload,
+          offices: officesPayload,
           leave: leavePayload,
         }),
       });
@@ -179,11 +166,6 @@ export function CompanyPolicyForm({ initial, canEdit }: Props) {
       setSaving(false);
     }
   }
-
-  const osmLink =
-    geofenceEnabled && latitude && longitude
-      ? `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=17/${latitude}/${longitude}`
-      : null;
 
   const fieldsetDisabled = !canEdit || saving;
 
@@ -261,106 +243,23 @@ export function CompanyPolicyForm({ initial, canEdit }: Props) {
         </div>
       </section>
 
-      {/* ===== Геофенс ===== */}
+      {/* ===== Офисы (геофенс) ===== */}
       <section>
         <div className="mb-1 flex items-center justify-between gap-3">
-          <h2 className="text-foreground text-base font-bold">Геофенс офиса</h2>
-          <div className="flex items-center gap-2">
-            <Switch
-              id="geofence-toggle"
-              checked={geofenceEnabled}
-              onCheckedChange={setGeofenceEnabled}
-            />
-            <Label htmlFor="geofence-toggle" className="cursor-pointer text-sm">
-              {geofenceEnabled ? "Включён" : "Выключен"}
-            </Label>
-          </div>
+          <h2 className="text-foreground text-base font-bold">Офисы · {offices.length}</h2>
         </div>
         <p className="text-muted-foreground mb-4 text-sm">
-          {geofenceEnabled
-            ? "Сотрудники должны быть в радиусе X метров от офиса, чтобы отметиться. Если они вне зоны — система спрашивает причину."
-            : "Сотрудники могут отмечаться откуда угодно. Геофенс не учитывается."}
+          Чтобы отметиться, сотрудник должен находиться в радиусе любого из офисов. Можно добавить
+          филиал в другом городе или несколько зданий в одном.
+          {offices.length === 0
+            ? " Сейчас геофенс не настроен — отмечаться можно откуда угодно."
+            : null}
         </p>
-
-        {geofenceEnabled ? (
-          <Card className="bg-muted/40 space-y-4 p-5">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="office-name">Название офиса (необязательно)</Label>
-                <Input
-                  id="office-name"
-                  value={officeName}
-                  onChange={(e) => setOfficeName(e.target.value)}
-                  placeholder="Например: Tashkent Plaza, 5 этаж"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="radius">Радиус (метров)</Label>
-                <Input
-                  id="radius"
-                  type="number"
-                  min={10}
-                  max={50_000}
-                  value={radius}
-                  onChange={(e) => setRadius(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="latitude">Широта</Label>
-                <Input
-                  id="latitude"
-                  type="text"
-                  inputMode="decimal"
-                  value={latitude}
-                  onChange={(e) => setLatitude(e.target.value)}
-                  placeholder="41.311081"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="longitude">Долгота</Label>
-                <Input
-                  id="longitude"
-                  type="text"
-                  inputMode="decimal"
-                  value={longitude}
-                  onChange={(e) => setLongitude(e.target.value)}
-                  placeholder="69.279729"
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={useMyLocation}
-                loading={locating}
-                loadingText="Определяем…"
-                leftIcon={<Crosshair className="h-4 w-4" />}
-              >
-                Использовать моё местоположение
-              </Button>
-              {osmLink ? (
-                <a
-                  href={osmLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary-500 inline-flex items-center gap-1 text-sm font-semibold hover:underline"
-                >
-                  <MapPin className="h-3.5 w-3.5" />
-                  Открыть на карте (OpenStreetMap)
-                </a>
-              ) : null}
-            </div>
-
-            <p className="text-muted-foreground text-xs">
-              💡 Координаты можно скопировать из Google Maps: правый клик на нужной точке → «Что
-              здесь?» → числа в карточке снизу. Или нажмите «Использовать моё местоположение»,
-              находясь физически в офисе.
-            </p>
-          </Card>
-        ) : null}
+        <OfficesEditor offices={offices} onChange={setOffices} disabled={fieldsetDisabled} />
+        <p className="text-muted-foreground mt-3 text-xs">
+          💡 Координаты можно скопировать из Google Maps: правый клик → «Что здесь?» → числа в
+          карточке снизу. Или нажмите «Использовать моё местоположение», находясь в офисе.
+        </p>
       </section>
 
       {/* ===== Отпуска ===== */}

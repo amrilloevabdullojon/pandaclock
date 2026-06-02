@@ -15,8 +15,11 @@ export interface UpdatePolicyInput {
   workEnd?: string;
   lateThresholdMinutes?: number;
   workdays?: number[];
-  /** undefined → не трогать; null → удалить; объект → установить */
+  /** DEPRECATED. undefined → не трогать; null → удалить; объект → установить.
+   * Новые клиенты должны слать offices[] вместо этого. */
   geofence?: TimePolicy["geofence"] | null;
+  /** Если задано — полностью заменяет список офисов. */
+  offices?: TimePolicy["offices"];
   leave?: TimePolicy["leave"];
 }
 
@@ -172,17 +175,25 @@ export class TenantService {
   async updatePolicy(slug: string, input: UpdatePolicyInput): Promise<TimePolicy> {
     const current = await this.getPolicy(slug);
     // Дополнительная санити-проверка диапазона work-window.
+    // Если клиент прислал offices — используем их и зануляем legacy geofence,
+    // чтобы дальше БД хранила только новый формат. Иначе оставляем то что было.
+    const nextOffices = input.offices !== undefined ? input.offices : current.offices;
+    const nextGeofence =
+      input.offices !== undefined
+        ? undefined
+        : input.geofence === null
+          ? undefined
+          : input.geofence !== undefined
+            ? input.geofence
+            : current.geofence;
+
     const next: TimePolicy = {
       workStart: input.workStart ?? current.workStart,
       workEnd: input.workEnd ?? current.workEnd,
       lateThresholdMinutes: input.lateThresholdMinutes ?? current.lateThresholdMinutes,
       workdays: input.workdays ?? current.workdays,
-      geofence:
-        input.geofence === null
-          ? undefined
-          : input.geofence !== undefined
-            ? input.geofence
-            : current.geofence,
+      geofence: nextGeofence,
+      offices: nextOffices,
       leave: input.leave ?? current.leave,
     };
     if (toMinutes(next.workStart) >= toMinutes(next.workEnd)) {

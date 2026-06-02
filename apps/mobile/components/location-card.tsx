@@ -10,15 +10,19 @@ import {
 } from "@/lib/use-current-location";
 
 export interface OfficeGeofence {
+  id: string;
+  name: string;
   latitude: number;
   longitude: number;
   radius: number;
-  name?: string;
 }
 
 interface Props {
-  /** Координаты офиса из /time/today. null если geofence не настроен в тенанте. */
-  office: OfficeGeofence | null;
+  /**
+   * Все офисы компании из /time/today. Пустой массив → geofence не настроен.
+   * Карточка находит ближайший по distance и показывает status относительно него.
+   */
+  offices: OfficeGeofence[];
   /** Если true — карточка показана компактнее (для WORKING/ON_BREAK состояний). */
   compact?: boolean;
 }
@@ -36,8 +40,21 @@ interface Props {
  * Все расчёты локально через haversine. Сервер шлёт office.coords один раз,
  * клиент пересчитывает distance каждые 30 сек (frequency хука useCurrentLocation).
  */
-export function LocationCard({ office, compact = false }: Props) {
+export function LocationCard({ offices, compact = false }: Props) {
   const { coords, permission, requestPermission } = useCurrentLocation();
+
+  // Находим ближайший офис, если есть координаты и хотя бы один офис.
+  const nearest = React.useMemo(() => {
+    if (!coords || offices.length === 0) return null;
+    let best: { office: OfficeGeofence; meters: number } | null = null;
+    for (const office of offices) {
+      const meters = distanceMeters(coords, office);
+      if (!best || meters < best.meters) {
+        best = { office, meters };
+      }
+    }
+    return best;
+  }, [coords, offices]);
 
   // ===== Состояние 1: нет разрешения =====
   if (permission === "denied" || permission === "unknown") {
@@ -78,7 +95,7 @@ export function LocationCard({ office, compact = false }: Props) {
   }
 
   // ===== Состояние 2: geofence не настроен =====
-  if (!office) {
+  if (offices.length === 0) {
     return (
       <Card padding={compact ? "sm" : "lg"} className="border-border border">
         <View className="flex-row items-center gap-3">
@@ -113,9 +130,11 @@ export function LocationCard({ office, compact = false }: Props) {
     );
   }
 
-  // ===== Состояние 4/5: считаем distance =====
-  const meters = distanceMeters(coords, office);
+  // ===== Состояние 4/5: считаем relative к ближайшему офису =====
+  if (!nearest) return null; // невозможный кейс при coords + offices.length > 0
+  const { office, meters } = nearest;
   const inside = meters <= office.radius;
+  const officeCountSuffix = offices.length > 1 ? ` · из ${offices.length} офисов` : "";
 
   if (inside) {
     return (
@@ -128,12 +147,10 @@ export function LocationCard({ office, compact = false }: Props) {
             <MapPin size={compact ? 18 : 22} color="#FFFFFF" fill="#22C55E" />
           </PulseIcon>
           <View className="flex-1">
-            <Text className="text-foreground text-base font-bold">
-              Вы в офисе{office.name ? ` · ${office.name}` : ""}
-            </Text>
+            <Text className="text-foreground text-base font-bold">Вы в офисе · {office.name}</Text>
             <Text className="text-muted-foreground mt-0.5 text-xs">
               {formatDistance(meters)} от центра · точность ±
-              {coords.accuracy ? Math.round(coords.accuracy) : "—"} м
+              {coords.accuracy ? Math.round(coords.accuracy) : "—"} м{officeCountSuffix}
             </Text>
           </View>
         </View>
@@ -141,7 +158,7 @@ export function LocationCard({ office, compact = false }: Props) {
     );
   }
 
-  // Outside: показываем расстояние + компас
+  // Outside: показываем расстояние до ближайшего + компас в его сторону
   const bearing = bearingDegrees(coords, office);
   return (
     <Card padding={compact ? "sm" : "lg"} className="border-warning/40 bg-warning-light/30 border">
@@ -154,10 +171,9 @@ export function LocationCard({ office, compact = false }: Props) {
             Вне зоны · {formatDistance(meters)}
           </Text>
           <Text className="text-muted-foreground mt-0.5 text-xs">
-            до офиса{office.name ? ` «${office.name}»` : ""} · радиус {office.radius} м
+            до ближайшего «{office.name}» · радиус {office.radius} м{officeCountSuffix}
           </Text>
         </View>
-        {/* Компас-стрелка в сторону офиса. */}
         <View
           className="bg-warning/20 h-9 w-9 items-center justify-center rounded-full"
           accessibilityLabel={`Офис в направлении ${Math.round(bearing)}°`}

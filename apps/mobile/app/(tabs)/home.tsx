@@ -118,7 +118,7 @@ function StateView({
     return (
       <View className="items-center pb-12">
         <View className="mb-8 w-full">
-          <LocationCard office={session.office} />
+          <LocationCard offices={session.offices} />
         </View>
         <CircleButton
           onPress={actions.startDay}
@@ -134,7 +134,7 @@ function StateView({
     return (
       <View className="items-center pb-12">
         <View className="mb-6 w-full">
-          <LocationCard office={session.office} compact />
+          <LocationCard offices={session.offices} compact />
         </View>
         <View className="mb-8 items-center">
           <Badge variant="success" dot size="lg">
@@ -176,7 +176,7 @@ function StateView({
     return (
       <View className="items-center pb-12">
         <View className="mb-6 w-full">
-          <LocationCard office={session.office} compact />
+          <LocationCard offices={session.offices} compact />
         </View>
         <View className="mb-8 items-center">
           <Badge variant="warning" dot size="lg">

@@ -13,6 +13,7 @@ import {
   Min,
   ValidateNested,
 } from "class-validator";
+// ArrayMaxSize / IsArray уже импортированы выше — используются для offices.
 
 export class GeofenceDto {
   @IsNumber()
@@ -35,6 +36,33 @@ export class GeofenceDto {
   @IsString()
   @Length(1, 100)
   name?: string;
+}
+
+export class OfficeDto {
+  /** Допускаем любую строку (не только UUID) — клиент может прислать «legacy-main»
+   * или crypto.randomUUID(). Главное — стабильный id для row-сравнений в react. */
+  @IsString()
+  @Length(1, 64)
+  id!: string;
+
+  @IsString()
+  @Length(1, 100)
+  name!: string;
+
+  @IsNumber()
+  @Min(-90)
+  @Max(90)
+  latitude!: number;
+
+  @IsNumber()
+  @Min(-180)
+  @Max(180)
+  longitude!: number;
+
+  @IsInt()
+  @Min(10)
+  @Max(50_000)
+  radius!: number;
 }
 
 /**
@@ -95,6 +123,14 @@ export class UpdateTimePolicyDto {
   @ValidateNested()
   @Type(() => GeofenceDto)
   geofence?: GeofenceDto | null;
+
+  /** Новый формат — список офисов. Если задан, перезаписывает старый geofence. */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @ValidateNested({ each: true })
+  @Type(() => OfficeDto)
+  offices?: OfficeDto[];
 
   @IsOptional()
   @ValidateNested()

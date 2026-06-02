@@ -27,6 +27,7 @@ describe("isLateArrival", () => {
     workEnd: "18:00",
     lateThresholdMinutes: 15,
     workdays: [1, 2, 3, 4, 5],
+    offices: [],
     leave: { vacationDaysPerYear: 21, sickDaysPerYearWithoutDoc: 3, unpaidDaysPerYear: 14 },
   };
 
@@ -60,31 +61,24 @@ describe("distanceMeters", () => {
 });
 
 describe("isWithinGeofence", () => {
-  it("returns no_geofence when policy has no geofence", () => {
-    expect(
-      isWithinGeofence(
-        {
-          workStart: "09:00",
-          workEnd: "18:00",
-          lateThresholdMinutes: 15,
-          workdays: [1],
-          leave: { vacationDaysPerYear: 21, sickDaysPerYearWithoutDoc: 3, unpaidDaysPerYear: 14 },
-        },
-        undefined,
-      ),
-    ).toBe("no_geofence");
+  const BASE = {
+    workStart: "09:00",
+    workEnd: "18:00",
+    lateThresholdMinutes: 15,
+    workdays: [1],
+    leave: { vacationDaysPerYear: 21, sickDaysPerYearWithoutDoc: 3, unpaidDaysPerYear: 14 },
+  };
+
+  it("returns no_geofence when offices is empty", () => {
+    expect(isWithinGeofence({ ...BASE, offices: [] }, undefined)).toBe("no_geofence");
   });
 
   it("returns no_coords when coords missing", () => {
     expect(
       isWithinGeofence(
         {
-          workStart: "09:00",
-          workEnd: "18:00",
-          lateThresholdMinutes: 15,
-          workdays: [1],
-          leave: { vacationDaysPerYear: 21, sickDaysPerYearWithoutDoc: 3, unpaidDaysPerYear: 14 },
-          geofence: { latitude: 41.3, longitude: 69.27, radius: 200 },
+          ...BASE,
+          offices: [{ id: "1", name: "Main", latitude: 41.3, longitude: 69.27, radius: 200 }],
         },
         undefined,
       ),
@@ -93,14 +87,45 @@ describe("isWithinGeofence", () => {
 
   it("returns inside / outside based on radius", () => {
     const policy: TimePolicy = {
-      workStart: "09:00",
-      workEnd: "18:00",
-      lateThresholdMinutes: 15,
-      workdays: [1],
-      leave: { vacationDaysPerYear: 21, sickDaysPerYearWithoutDoc: 3, unpaidDaysPerYear: 14 },
-      geofence: { latitude: 41.3, longitude: 69.27, radius: 200 },
+      ...BASE,
+      offices: [{ id: "1", name: "Main", latitude: 41.3, longitude: 69.27, radius: 200 }],
     };
     expect(isWithinGeofence(policy, { latitude: 41.3, longitude: 69.27 })).toBe("inside");
     expect(isWithinGeofence(policy, { latitude: 41.4, longitude: 69.4 })).toBe("outside");
+  });
+
+  it("returns inside when in ANY of multiple offices", () => {
+    const policy: TimePolicy = {
+      ...BASE,
+      offices: [
+        { id: "1", name: "Tashkent", latitude: 41.3, longitude: 69.27, radius: 200 },
+        { id: "2", name: "Samarkand", latitude: 39.65, longitude: 66.97, radius: 200 },
+      ],
+    };
+    // На точке samarkand-офиса должен быть inside
+    expect(isWithinGeofence(policy, { latitude: 39.65, longitude: 66.97 })).toBe("inside");
+    // Вдалеке от обоих — outside
+    expect(isWithinGeofence(policy, { latitude: 50, longitude: 30 })).toBe("outside");
+  });
+});
+
+describe("parseTimePolicy — legacy migration", () => {
+  it("converts legacy single geofence to offices[]", () => {
+    const policy = parseTimePolicy({
+      workStart: "09:00",
+      geofence: { latitude: 41, longitude: 69, radius: 250, name: "Главный офис" },
+    });
+    expect(policy.offices).toHaveLength(1);
+    expect(policy.offices[0]?.name).toBe("Главный офис");
+    expect(policy.offices[0]?.radius).toBe(250);
+  });
+
+  it("prefers offices[] over legacy geofence when both present", () => {
+    const policy = parseTimePolicy({
+      offices: [{ id: "x", name: "New office", latitude: 1, longitude: 1, radius: 100 }],
+      geofence: { latitude: 99, longitude: 99, radius: 9999 },
+    });
+    expect(policy.offices).toHaveLength(1);
+    expect(policy.offices[0]?.name).toBe("New office");
   });
 });
