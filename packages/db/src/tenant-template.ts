@@ -13,7 +13,7 @@
 
 export const TENANT_TEMPLATE_SQL = `
 -- Users (сотрудники tenant)
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email VARCHAR(255) UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
@@ -40,12 +40,12 @@ CREATE TABLE users (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_users_role ON users(role);
-CREATE INDEX idx_users_status ON users(status);
-CREATE INDEX idx_users_department ON users(department_id);
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
+CREATE INDEX IF NOT EXISTS idx_users_department ON users(department_id);
 
 -- Departments (отделы)
-CREATE TABLE departments (
+CREATE TABLE IF NOT EXISTS departments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(255) NOT NULL,
   parent_id UUID REFERENCES departments(id) ON DELETE SET NULL,
@@ -59,7 +59,7 @@ ALTER TABLE users ADD CONSTRAINT users_department_fkey
   FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL;
 
 -- User documents
-CREATE TABLE user_documents (
+CREATE TABLE IF NOT EXISTS user_documents (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   type VARCHAR(32) NOT NULL,
@@ -70,11 +70,11 @@ CREATE TABLE user_documents (
   uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_user_documents_user ON user_documents(user_id);
-CREATE INDEX idx_user_documents_expires ON user_documents(expires_at) WHERE expires_at IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_user_documents_user ON user_documents(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_documents_expires ON user_documents(expires_at) WHERE expires_at IS NOT NULL;
 
 -- Time entries (учёт рабочего времени)
-CREATE TABLE time_entries (
+CREATE TABLE IF NOT EXISTS time_entries (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   date DATE NOT NULL,
@@ -94,12 +94,12 @@ CREATE TABLE time_entries (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE UNIQUE INDEX idx_time_entries_user_date ON time_entries(user_id, date);
-CREATE INDEX idx_time_entries_date ON time_entries(date);
-CREATE INDEX idx_time_entries_status ON time_entries(status);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_time_entries_user_date ON time_entries(user_id, date);
+CREATE INDEX IF NOT EXISTS idx_time_entries_date ON time_entries(date);
+CREATE INDEX IF NOT EXISTS idx_time_entries_status ON time_entries(status);
 
 -- Breaks (перерывы)
-CREATE TABLE breaks (
+CREATE TABLE IF NOT EXISTS breaks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   time_entry_id UUID NOT NULL REFERENCES time_entries(id) ON DELETE CASCADE,
   started_at TIMESTAMPTZ NOT NULL,
@@ -108,10 +108,10 @@ CREATE TABLE breaks (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_breaks_time_entry ON breaks(time_entry_id);
+CREATE INDEX IF NOT EXISTS idx_breaks_time_entry ON breaks(time_entry_id);
 
 -- Tasks (задачи)
-CREATE TABLE tasks (
+CREATE TABLE IF NOT EXISTS tasks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title VARCHAR(500) NOT NULL,
   description TEXT,
@@ -126,13 +126,13 @@ CREATE TABLE tasks (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_tasks_assignee ON tasks(assignee_id);
-CREATE INDEX idx_tasks_status ON tasks(status);
-CREATE INDEX idx_tasks_deadline ON tasks(deadline) WHERE deadline IS NOT NULL;
-CREATE INDEX idx_tasks_labels ON tasks USING GIN(labels);
+CREATE INDEX IF NOT EXISTS idx_tasks_assignee ON tasks(assignee_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+CREATE INDEX IF NOT EXISTS idx_tasks_deadline ON tasks(deadline) WHERE deadline IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_tasks_labels ON tasks USING GIN(labels);
 
 -- Task comments
-CREATE TABLE task_comments (
+CREATE TABLE IF NOT EXISTS task_comments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
   author_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -140,10 +140,10 @@ CREATE TABLE task_comments (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_task_comments_task ON task_comments(task_id);
+CREATE INDEX IF NOT EXISTS idx_task_comments_task ON task_comments(task_id);
 
 -- Task attachments
-CREATE TABLE task_attachments (
+CREATE TABLE IF NOT EXISTS task_attachments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
   url TEXT NOT NULL,
@@ -153,10 +153,10 @@ CREATE TABLE task_attachments (
   uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_task_attachments_task ON task_attachments(task_id);
+CREATE INDEX IF NOT EXISTS idx_task_attachments_task ON task_attachments(task_id);
 
 -- Subtasks (чек-лист внутри задачи)
-CREATE TABLE subtasks (
+CREATE TABLE IF NOT EXISTS subtasks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
   title VARCHAR(500) NOT NULL,
@@ -166,10 +166,10 @@ CREATE TABLE subtasks (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_subtasks_task ON subtasks(task_id, position);
+CREATE INDEX IF NOT EXISTS idx_subtasks_task ON subtasks(task_id, position);
 
 -- Leave requests (заявки)
-CREATE TABLE leave_requests (
+CREATE TABLE IF NOT EXISTS leave_requests (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   type VARCHAR(32) NOT NULL,
@@ -185,12 +185,12 @@ CREATE TABLE leave_requests (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_leave_requests_user ON leave_requests(user_id);
-CREATE INDEX idx_leave_requests_status ON leave_requests(status);
-CREATE INDEX idx_leave_requests_dates ON leave_requests(start_date, end_date);
+CREATE INDEX IF NOT EXISTS idx_leave_requests_user ON leave_requests(user_id);
+CREATE INDEX IF NOT EXISTS idx_leave_requests_status ON leave_requests(status);
+CREATE INDEX IF NOT EXISTS idx_leave_requests_dates ON leave_requests(start_date, end_date);
 
 -- Leave attachments
-CREATE TABLE leave_attachments (
+CREATE TABLE IF NOT EXISTS leave_attachments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   leave_request_id UUID NOT NULL REFERENCES leave_requests(id) ON DELETE CASCADE,
   url TEXT NOT NULL,
@@ -200,7 +200,7 @@ CREATE TABLE leave_attachments (
 );
 
 -- Audit log (журнал аудита)
-CREATE TABLE audit_log (
+CREATE TABLE IF NOT EXISTS audit_log (
   id BIGSERIAL PRIMARY KEY,
   user_id UUID REFERENCES users(id) ON DELETE SET NULL,
   action VARCHAR(128) NOT NULL,
@@ -212,12 +212,12 @@ CREATE TABLE audit_log (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_audit_log_user ON audit_log(user_id);
-CREATE INDEX idx_audit_log_entity ON audit_log(entity_type, entity_id);
-CREATE INDEX idx_audit_log_created ON audit_log(created_at);
+CREATE INDEX IF NOT EXISTS idx_audit_log_user ON audit_log(user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_log_entity ON audit_log(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log(created_at);
 
 -- Refresh tokens
-CREATE TABLE refresh_tokens (
+CREATE TABLE IF NOT EXISTS refresh_tokens (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   token_hash TEXT NOT NULL UNIQUE,
@@ -229,11 +229,11 @@ CREATE TABLE refresh_tokens (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_refresh_tokens_user ON refresh_tokens(user_id);
-CREATE INDEX idx_refresh_tokens_expires ON refresh_tokens(expires_at);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user ON refresh_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_expires ON refresh_tokens(expires_at);
 
 -- Chat channels (отделовые + кастомные + DM)
-CREATE TABLE chat_channels (
+CREATE TABLE IF NOT EXISTS chat_channels (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   type VARCHAR(16) NOT NULL DEFAULT 'CHANNEL',
   name VARCHAR(255),
@@ -244,9 +244,9 @@ CREATE TABLE chat_channels (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_chat_channels_department ON chat_channels(department_id) WHERE department_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_chat_channels_department ON chat_channels(department_id) WHERE department_id IS NOT NULL;
 
-CREATE TABLE chat_members (
+CREATE TABLE IF NOT EXISTS chat_members (
   channel_id UUID NOT NULL REFERENCES chat_channels(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -255,9 +255,9 @@ CREATE TABLE chat_members (
   PRIMARY KEY (channel_id, user_id)
 );
 
-CREATE INDEX idx_chat_members_user ON chat_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_chat_members_user ON chat_members(user_id);
 
-CREATE TABLE chat_messages (
+CREATE TABLE IF NOT EXISTS chat_messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   channel_id UUID NOT NULL REFERENCES chat_channels(id) ON DELETE CASCADE,
   author_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -267,10 +267,10 @@ CREATE TABLE chat_messages (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_chat_messages_channel_created ON chat_messages(channel_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_channel_created ON chat_messages(channel_id, created_at DESC);
 
 -- Expo push notification tokens
-CREATE TABLE push_tokens (
+CREATE TABLE IF NOT EXISTS push_tokens (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   token TEXT NOT NULL,
@@ -280,10 +280,10 @@ CREATE TABLE push_tokens (
   UNIQUE (user_id, token)
 );
 
-CREATE INDEX idx_push_tokens_user ON push_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_push_tokens_user ON push_tokens(user_id);
 
 -- One-time tokens (email verification, password reset)
-CREATE TABLE verification_tokens (
+CREATE TABLE IF NOT EXISTS verification_tokens (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   token_hash TEXT NOT NULL UNIQUE,
@@ -293,11 +293,11 @@ CREATE TABLE verification_tokens (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_verification_tokens_user ON verification_tokens(user_id);
-CREATE INDEX idx_verification_tokens_purpose ON verification_tokens(purpose);
+CREATE INDEX IF NOT EXISTS idx_verification_tokens_user ON verification_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_verification_tokens_purpose ON verification_tokens(purpose);
 
 -- In-app notifications (bell icon в web/mobile)
-CREATE TABLE notifications (
+CREATE TABLE IF NOT EXISTS notifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   type VARCHAR(48) NOT NULL,
@@ -309,8 +309,8 @@ CREATE TABLE notifications (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_notifications_user_created ON notifications(user_id, created_at DESC);
-CREATE INDEX idx_notifications_user_unread ON notifications(user_id, read_at) WHERE read_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_notifications_user_created ON notifications(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON notifications(user_id, read_at) WHERE read_at IS NULL;
 `;
 
 /**

@@ -136,7 +136,7 @@ export class ChatsService {
   async ensureMembership(channelId: string, userId: string): Promise<void> {
     const client = await this.tenantDb.getClient();
     const rows = await client.$queryRawUnsafe<{ channel_id: string }[]>(
-      `SELECT channel_id FROM chat_members WHERE channel_id = $1::uuid AND user_id = $2 LIMIT 1`,
+      `SELECT channel_id FROM chat_members WHERE channel_id = $1::uuid AND user_id = $2::uuid LIMIT 1`,
       channelId,
       userId,
     );
@@ -228,7 +228,7 @@ export class ChatsService {
 
     // Сохраняем pointer прочтения для автора, чтобы своё сообщение не считалось unread.
     await client.$executeRawUnsafe(
-      `UPDATE chat_members SET last_read_at = NOW() WHERE channel_id = $1::uuid AND user_id = $2`,
+      `UPDATE chat_members SET last_read_at = NOW() WHERE channel_id = $1::uuid AND user_id = $2::uuid`,
       channelId,
       authorId,
     );
@@ -330,7 +330,7 @@ export class ChatsService {
     await this.ensureMembership(channelId, userId);
     const client = await this.tenantDb.getClient();
     await client.$executeRawUnsafe(
-      `UPDATE chat_members SET last_read_at = NOW() WHERE channel_id = $1::uuid AND user_id = $2`,
+      `UPDATE chat_members SET last_read_at = NOW() WHERE channel_id = $1::uuid AND user_id = $2::uuid`,
       channelId,
       userId,
     );
