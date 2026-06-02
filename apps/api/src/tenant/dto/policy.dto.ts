@@ -11,6 +11,7 @@ import {
   Matches,
   Max,
   Min,
+  ValidateIf,
   ValidateNested,
 } from "class-validator";
 // ArrayMaxSize / IsArray уже импортированы выше — используются для offices.
@@ -153,4 +154,10 @@ export class UpdateTenantProfileDto {
   @IsString()
   @Length(2, 64)
   timezone?: string;
+
+  /** Hex-цвет #RRGGBB или null для сброса. ValidateIf пропускает null без regex-проверки. */
+  @ValidateIf((_, v) => v !== null)
+  @IsOptional()
+  @Matches(/^#[0-9a-fA-F]{6}$/, { message: "primaryColor должен быть #RRGGBB" })
+  primaryColor?: string | null;
 }

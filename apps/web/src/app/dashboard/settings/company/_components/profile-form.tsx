@@ -10,7 +10,18 @@ export interface TenantProfile {
   industry: string | null;
   timezone: string;
   logoUrl: string | null;
+  primaryColor: string | null;
 }
+
+const DEFAULT_PRIMARY = "#5B4FE2";
+const COLOR_PRESETS = [
+  { label: "Pandaclock", hex: "#5B4FE2" },
+  { label: "Океан", hex: "#0EA5E9" },
+  { label: "Лес", hex: "#10B981" },
+  { label: "Закат", hex: "#F97316" },
+  { label: "Вишня", hex: "#EF4444" },
+  { label: "Графит", hex: "#475569" },
+];
 
 interface Props {
   initial: TenantProfile;
@@ -49,12 +60,17 @@ export function CompanyProfileForm({ initial, canEdit }: Props) {
   const [name, setName] = React.useState(initial.name);
   const [industry, setIndustry] = React.useState(initial.industry ?? "");
   const [timezone, setTimezone] = React.useState(initial.timezone);
+  const [primaryColor, setPrimaryColor] = React.useState(initial.primaryColor ?? DEFAULT_PRIMARY);
+  const [colorEnabled, setColorEnabled] = React.useState(initial.primaryColor !== null);
   const [saving, setSaving] = React.useState(false);
 
+  const effectivePrimary = colorEnabled ? primaryColor : null;
+  const initialEffective = initial.primaryColor;
   const dirty =
     name !== initial.name ||
     (industry || null) !== (initial.industry ?? null) ||
-    timezone !== initial.timezone;
+    timezone !== initial.timezone ||
+    effectivePrimary !== initialEffective;
 
   async function handleSave(): Promise<void> {
     if (name.trim().length < 2) {
@@ -70,6 +86,7 @@ export function CompanyProfileForm({ initial, canEdit }: Props) {
           name: name.trim(),
           industry: industry.trim() || null,
           timezone,
+          primaryColor: effectivePrimary,
         }),
       });
       if (response.status === 204) {
@@ -151,6 +168,83 @@ export function CompanyProfileForm({ initial, canEdit }: Props) {
             От него зависит, как считаются опоздания и в каком поясе отображается время.
           </p>
         </div>
+      </div>
+
+      {/* ===== Брендинг ===== */}
+      <div className="border-border space-y-3 border-t pt-6">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-foreground text-base font-bold">Брендинг</h3>
+            <p className="text-muted-foreground mt-0.5 text-sm">
+              Основной цвет применится к кнопкам, ссылкам и активным элементам.
+            </p>
+          </div>
+          <label className="flex cursor-pointer items-center gap-2">
+            <input
+              type="checkbox"
+              checked={colorEnabled}
+              onChange={(e) => setColorEnabled(e.target.checked)}
+              className="h-4 w-4 cursor-pointer"
+            />
+            <span className="text-foreground text-sm font-semibold">Свой цвет</span>
+          </label>
+        </div>
+
+        {colorEnabled ? (
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              {COLOR_PRESETS.map((preset) => {
+                const active = preset.hex.toLowerCase() === primaryColor.toLowerCase();
+                return (
+                  <button
+                    key={preset.hex}
+                    type="button"
+                    onClick={() => setPrimaryColor(preset.hex)}
+                    aria-label={preset.label}
+                    title={`${preset.label} · ${preset.hex}`}
+                    style={{ backgroundColor: preset.hex }}
+                    className={`h-8 w-8 rounded-full ring-2 transition-all ${
+                      active ? "ring-foreground scale-110" : "ring-transparent"
+                    }`}
+                  />
+                );
+              })}
+              <input
+                type="color"
+                value={primaryColor}
+                onChange={(e) => setPrimaryColor(e.target.value)}
+                className="border-border h-8 w-12 cursor-pointer rounded border bg-transparent p-0"
+                aria-label="Свой цвет"
+              />
+              <Input
+                value={primaryColor}
+                onChange={(e) => setPrimaryColor(e.target.value)}
+                placeholder="#RRGGBB"
+                maxLength={7}
+                className="w-28 font-mono text-xs"
+              />
+            </div>
+
+            {/* Preview-кнопка */}
+            <div className="border-border bg-muted/40 flex items-center justify-between gap-3 rounded-md border p-3">
+              <span className="text-muted-foreground text-xs">Предпросмотр:</span>
+              <button
+                type="button"
+                style={{ backgroundColor: primaryColor }}
+                className="rounded-md px-4 py-2 text-sm font-bold text-white shadow-sm"
+              >
+                Кнопка вашего цвета
+              </button>
+            </div>
+            <p className="text-muted-foreground text-xs">
+              💡 Изменения видны после сохранения и перезагрузки страницы.
+            </p>
+          </div>
+        ) : (
+          <p className="text-muted-foreground text-sm">
+            Используется стандартная палитра Pandaclock.
+          </p>
+        )}
       </div>
 
       {canEdit ? (

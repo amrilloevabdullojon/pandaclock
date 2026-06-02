@@ -117,6 +117,7 @@ export class TenantService {
     industry: string | null;
     timezone: string;
     logoUrl: string | null;
+    primaryColor: string | null;
   }> {
     const tenant = await prisma.tenant.findUnique({
       where: { slug },
@@ -124,22 +125,32 @@ export class TenantService {
     });
     if (!tenant) throw new NotFoundException({ code: "TENANT_NOT_FOUND" });
     const metadata = (tenant.metadata as Record<string, unknown> | null) ?? {};
+    const brand = (metadata.brand as Record<string, unknown> | undefined) ?? {};
     return {
       name: tenant.name,
       industry: tenant.industry ?? null,
       timezone: tenant.timezone,
       logoUrl: typeof metadata.logoUrl === "string" ? metadata.logoUrl : null,
+      primaryColor:
+        typeof brand.primaryColor === "string" && isValidHexColor(brand.primaryColor)
+          ? brand.primaryColor
+          : null,
     };
   }
 
   async updateProfile(
     slug: string,
-    input: { name?: string; industry?: string | null; timezone?: string },
+    input: {
+      name?: string;
+      industry?: string | null;
+      timezone?: string;
+      /** Hex-цвет в формате #RRGGBB, или null чтобы сбросить на дефолт. */
+      primaryColor?: string | null;
+    },
   ): Promise<void> {
     if (input.name !== undefined && input.name.trim().length < 2) {
       throw new BadRequestException({ code: "INVALID_NAME" });
     }
-    // Sanity-check timezone — должен быть валидный IANA ID.
     if (input.timezone !== undefined) {
       try {
         new Intl.DateTimeFormat("en-US", { timeZone: input.timezone });
@@ -147,12 +158,42 @@ export class TenantService {
         throw new BadRequestException({ code: "INVALID_TIMEZONE" });
       }
     }
+    if (input.primaryColor !== undefined && input.primaryColor !== null) {
+      if (!isValidHexColor(input.primaryColor)) {
+        throw new BadRequestException({ code: "INVALID_COLOR", message: "Ожидается #RRGGBB" });
+      }
+    }
+
+    // primaryColor хранится в tenant.metadata.brand.primaryColor — нужно merge
+    // с существующей metadata, а не перезаписывать.
+    let metadataUpdate: Record<string, unknown> | undefined;
+    if (input.primaryColor !== undefined) {
+      const tenant = await prisma.tenant.findUnique({
+        where: { slug },
+        select: { metadata: true },
+      });
+      const currentMetadata = (tenant?.metadata as Record<string, unknown> | null) ?? {};
+      const currentBrand = (currentMetadata.brand as Record<string, unknown> | undefined) ?? {};
+      const nextBrand =
+        input.primaryColor === null
+          ? Object.fromEntries(Object.entries(currentBrand).filter(([k]) => k !== "primaryColor"))
+          : { ...currentBrand, primaryColor: input.primaryColor };
+      metadataUpdate = { ...currentMetadata, brand: nextBrand };
+    }
+
     await prisma.tenant.update({
       where: { slug },
       data: {
         ...(input.name !== undefined ? { name: input.name.trim() } : {}),
         ...(input.industry !== undefined ? { industry: input.industry } : {}),
         ...(input.timezone !== undefined ? { timezone: input.timezone } : {}),
+        ...(metadataUpdate !== undefined
+          ? {
+              metadata: metadataUpdate as unknown as Parameters<
+                typeof prisma.tenant.update
+              >[0]["data"]["metadata"],
+            }
+          : {}),
       },
     });
   }
@@ -288,6 +329,10 @@ export class TenantService {
  * Игнорирует строки-комментарии (--) и пустые строки. Все наши команды
  * в tenant-template без литералов с `;`, иначе пришлось бы парсить нормально.
  */
+function isValidHexColor(s: string): boolean {
+  return /^#[0-9a-fA-F]{6}$/.test(s);
+}
+
 function toMinutes(hhmm: string): number {
   const [h, m] = hhmm.split(":").map(Number) as [number, number];
   return h * 60 + m;
