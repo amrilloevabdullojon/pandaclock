@@ -37,7 +37,10 @@ interface SendPayload {
   path: "/socket.io",
 })
 export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
-  private readonly logger = new Logger(ChatsGateway.name);
+  // NB: инициализация Logger в конструкторе, а не как field initializer.
+  // Field initializer иногда отказывал в production (compiled output), и
+  // handleConnection падал с `Cannot read properties of undefined (reading 'warn')`.
+  private readonly logger: Logger;
 
   @WebSocketServer()
   server!: Server;
@@ -45,7 +48,9 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly chats: ChatsService,
     private readonly jwt: JwtService,
-  ) {}
+  ) {
+    this.logger = new Logger(ChatsGateway.name);
+  }
 
   async handleConnection(client: Socket): Promise<void> {
     try {
@@ -70,13 +75,14 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.data.user = user;
       client.join(`tenant:${user.tenantSlug}:user:${user.userId}`);
     } catch (error) {
-      this.logger.warn({ err: error }, "ws auth failed");
+      // Logger опционально — даже если он сломан, клиент должен быть отключён.
+      this.logger?.warn({ err: error }, "ws auth failed");
       client.disconnect();
     }
   }
 
   handleDisconnect(client: Socket): void {
-    this.logger.debug({ id: client.id }, "ws disconnected");
+    this.logger?.debug({ id: client.id }, "ws disconnected");
   }
 
   @SubscribeMessage("channel:join")
