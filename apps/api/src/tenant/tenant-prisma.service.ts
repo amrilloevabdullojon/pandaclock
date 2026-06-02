@@ -10,11 +10,13 @@ import { PrismaClient } from "@pandaclock/db";
  * стоит за PgBouncer. Поэтому `SET search_path` на одной операции не
  * персистится в следующую — они могут попасть на разные соединения.
  *
- * Решение: каждый raw-запрос оборачивается в `$transaction([SET, query])`.
- * Транзакция гарантирует один и тот же connection для обеих команд.
+ * Решение: каждый raw-запрос оборачивается в interactive `$transaction`
+ * (callback form), который гарантирует, что все операции внутри
+ * выполняются на ОДНОМ connection. Array form `$transaction([])` не
+ * даёт таких гарантий с pgbouncer в transaction mode.
+ *
  * Прозрачно для всех 87 callsites в сервисах — Proxy патчит только
- * `$queryRawUnsafe` и `$executeRawUnsafe` (единственные методы, которыми
- * мы реально пользуемся для tenant-таблиц).
+ * `$queryRawUnsafe` и `$executeRawUnsafe`.
  */
 @Injectable({ scope: Scope.REQUEST })
 export class TenantPrismaService {
@@ -38,30 +40,24 @@ export class TenantPrismaService {
     const setSearchPath = `SET search_path TO "${tenant.schemaName}", public`;
     const client = this.prismaClient;
 
-    // Proxy перехватывает только $queryRawUnsafe и $executeRawUnsafe.
-    // Все остальные методы (Prisma model accessors, $transaction, ...) идут как есть.
+    // Proxy перехватывает только raw-методы. Все остальные (Prisma model
+    // accessors, $transaction для пользовательских транзакций) идут как есть.
     this.wrappedClient = new Proxy(client, {
       get(target, prop, receiver) {
         if (prop === "$queryRawUnsafe") {
           return (sql: string, ...params: unknown[]) => {
-            return target
-              .$transaction([
-                target.$executeRawUnsafe(setSearchPath),
-                target.$queryRawUnsafe(sql, ...params),
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              ] as any[])
-              .then((results: unknown[]) => results[1]);
+            return target.$transaction(async (tx) => {
+              await tx.$executeRawUnsafe(setSearchPath);
+              return tx.$queryRawUnsafe(sql, ...params);
+            });
           };
         }
         if (prop === "$executeRawUnsafe") {
           return (sql: string, ...params: unknown[]) => {
-            return target
-              .$transaction([
-                target.$executeRawUnsafe(setSearchPath),
-                target.$executeRawUnsafe(sql, ...params),
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              ] as any[])
-              .then((results: unknown[]) => results[1]);
+            return target.$transaction(async (tx) => {
+              await tx.$executeRawUnsafe(setSearchPath);
+              return tx.$executeRawUnsafe(sql, ...params);
+            });
           };
         }
         return Reflect.get(target, prop, receiver);
