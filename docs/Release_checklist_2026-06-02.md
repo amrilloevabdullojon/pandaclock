@@ -36,7 +36,7 @@
 3. Переключить **Vercel Authentication** в **Off** для всех окружений (Production + Preview)
 4. Save
 
-**Проверка:** открыть https://pandaclock-web.vercel.app в инкогнито — должна открыться страница логина (а не Vercel SSO).
+**Проверка:** открыть https://pandaclock-web-iota.vercel.app в инкогнито — должна открыться страница логина (а не Vercel SSO).
 
 - [ ] Готово
 
@@ -193,7 +193,7 @@ EAS вернёт URL — отправить Максу.
 
 ## Smoke-test после всего
 
-В браузере на https://pandaclock-web.vercel.app (или текущий URL):
+В браузере на https://pandaclock-web-iota.vercel.app (или текущий URL):
 
 - [ ] Логин с demo-аккаунтом (cloudit / `owner@cloudit.uz` / `demo1234`)
 - [ ] Создать задачу → проверить что есть Подзадачи + Вложения секции

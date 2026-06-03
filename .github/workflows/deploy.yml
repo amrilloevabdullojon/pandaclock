@@ -43,17 +43,12 @@ jobs:
       # и выполнит installCommand/buildCommand из vercel.json. Это надёжнее
       # чем vercel build локально + --prebuilt (на GH-runner нет pnpm в PATH
       # для child-shell, который запускает vercel).
-      # Захватываем URL свежего deployment в shell var, затем явно promote'ем
-      # его на production alias (vercel alias set). Без этого шага бывает,
-      # что --prod создаёт deployment, но production alias остаётся на старом —
-      # симптом «фикс задеплоен, но пользователи видят старую версию».
+      # Vercel сам auto-aliases production deployment на canonical-домен
+      # проекта (для нас pandaclock-web-iota.vercel.app — суффикс -iota
+       # потому что pandaclock-web.vercel.app принадлежит другому аккаунту).
+      # Никаких ручных `vercel alias set` не нужно.
       - name: Deploy to Vercel
-        run: |
-          set -euo pipefail
-          DEPLOY_URL=$(vercel deploy --prod --yes --token=${{ secrets.VERCEL_TOKEN }} | tail -1)
-          echo "Deployed to: $DEPLOY_URL"
-          vercel alias set "$DEPLOY_URL" pandaclock-web.vercel.app --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }}
-          echo "Aliased to pandaclock-web.vercel.app"
+        run: vercel deploy --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
