@@ -74,9 +74,13 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       };
       client.data.user = user;
       client.join(`tenant:${user.tenantSlug}:user:${user.userId}`);
+      this.logger?.log(
+        `ws connected: user=${user.userId} tenant=${user.tenantSlug} sid=${client.id}`,
+      );
     } catch (error) {
       // Logger опционально — даже если он сломан, клиент должен быть отключён.
-      this.logger?.warn({ err: error }, "ws auth failed");
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger?.warn(`ws auth failed: ${msg}`);
       client.disconnect();
     }
   }
