@@ -45,11 +45,16 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server!: Server;
 
-  constructor(
-    private readonly chats: ChatsService,
-    private readonly jwt: JwtService,
-  ) {
+  // JwtService инстанциируем напрямую, а не через DI: инъекция в этот
+  // скомпилированный WS-gateway-класс отдавала undefined (`this.jwt` падал
+  // с 'Cannot read properties of undefined (reading verifyAsync)'). new
+  // JwtService({}) полностью самодостаточен — verifyAsync принимает secret
+  // явным параметром.
+  private readonly jwt: JwtService;
+
+  constructor(private readonly chats: ChatsService) {
     this.logger = new Logger(ChatsGateway.name);
+    this.jwt = new JwtService({});
   }
 
   async handleConnection(client: Socket): Promise<void> {
