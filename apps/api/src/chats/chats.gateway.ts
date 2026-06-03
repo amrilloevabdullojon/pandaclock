@@ -74,13 +74,13 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       };
       client.data.user = user;
       client.join(`tenant:${user.tenantSlug}:user:${user.userId}`);
-      this.logger?.log(
-        `ws connected: user=${user.userId} tenant=${user.tenantSlug} sid=${client.id}`,
-      );
+      // console.* напрямую — nestjs-pino не выводит WS-gateway-контекст в stdout.
+      // eslint-disable-next-line no-console
+      console.log(`[WS] connected user=${user.userId} tenant=${user.tenantSlug}`);
     } catch (error) {
-      // Logger опционально — даже если он сломан, клиент должен быть отключён.
       const msg = error instanceof Error ? error.message : String(error);
-      this.logger?.warn(`ws auth failed: ${msg}`);
+      // eslint-disable-next-line no-console
+      console.error(`[WS] auth failed: ${msg}`, error);
       client.disconnect();
     }
   }
