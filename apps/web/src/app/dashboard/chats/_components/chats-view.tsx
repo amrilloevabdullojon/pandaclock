@@ -130,14 +130,27 @@ export function ChatsView({
         path: "/socket.io",
         auth: { token: session2.token },
         query: { tenant: session2.tenantSlug },
-        // polling fallback: если корпоративный прокси режет ws-upgrade, клиент
-        // подключится через long-polling и попытается upgrade позже.
-        transports: ["polling", "websocket"],
+        // Только polling: fly.io WebSocket-upgrade за прокси отдаёт 400 (Bad
+        // request), из-за чего ws-транспорт не поднимается. Long-polling
+        // доставляет события в реальном времени не хуже для чата такого
+        // масштаба и стабильно работает за любым прокси/CDN. upgrade:false
+        // запрещает socket.io даже пытаться апгрейдиться на ws (иначе он
+        // спамит ошибками в консоль).
+        transports: ["polling"],
+        upgrade: false,
+        reconnection: true,
+        reconnectionAttempts: 10,
+        reconnectionDelay: 1000,
+        withCredentials: true,
       });
       socketRef.current = socket;
 
       socket.on("connect", () => {
         socket.emit("channel:join", { channelId: activeId });
+      });
+      socket.on("connect_error", (err) => {
+        // eslint-disable-next-line no-console
+        console.warn("[chat] socket connect_error:", err.message);
       });
       socket.on("message:new", (message: Message) => {
         if (message.channelId === activeId) {

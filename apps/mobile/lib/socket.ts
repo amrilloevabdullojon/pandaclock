@@ -17,8 +17,14 @@ export function getChatSocket(): Socket {
     path: "/socket.io",
     auth: { token: accessToken ?? "" },
     query: tenantSlug ? { tenant: tenantSlug } : {},
-    transports: ["websocket"],
+    // Только polling: fly.io WebSocket-upgrade за прокси отдаёт 400, а на
+    // мобильном интернете ws ещё нестабильнее. Long-polling доставляет
+    // realtime-события стабильно. upgrade:false — не пытаться апгрейдиться.
+    transports: ["polling"],
+    upgrade: false,
     reconnection: true,
+    reconnectionAttempts: 10,
+    reconnectionDelay: 1000,
   });
   return socket;
 }
