@@ -11,7 +11,7 @@ import {
   WsException,
 } from "@nestjs/websockets";
 import type { Server, Socket } from "socket.io";
-import { ChatsService } from "./chats.service.js";
+import { PrismaClient } from "@pandaclock/db";
 
 interface SocketUser {
   userId: string;
@@ -23,12 +23,46 @@ interface JoinPayload {
   channelId: string;
 }
 
+interface ChatAttachment {
+  url: string;
+  filename: string;
+  size: number;
+  mimeType: string;
+}
+
 interface SendPayload {
   channelId: string;
   body: string;
-  attachments?: { url: string; filename: string; size: number; mimeType: string }[];
+  attachments?: ChatAttachment[];
 }
 
+interface MessageRow {
+  id: string;
+  channelId: string;
+  authorId: string;
+  authorName: string;
+  authorAvatarUrl: string | null;
+  body: string;
+  attachments: ChatAttachment[];
+  createdAt: Date;
+}
+
+/**
+ * Realtime-gateway чатов.
+ *
+ * ⚠️ КРИТИЧНО: gateway НЕ инжектит ChatsService.
+ *
+ * ChatsService зависит от TenantPrismaService (REQUEST-scoped). Если бы
+ * gateway инжектил ChatsService, scope «всплыл» бы — сам gateway стал бы
+ * REQUEST-scoped. Для WebSocket-gateway это фатально: нет понятия «request»
+ * для долгоживущего сокета, конструктор и DI-поля ведут себя непредсказуемо
+ * (this.jwt оказывался undefined → каждое подключение падало в catch и
+ * сервер дисконнектил клиента сразу после connect).
+ *
+ * Поэтому gateway — чистый SINGLETON со своим PrismaClient. Tenant-изоляция
+ * через schema-qualified SQL (`"tenant_<slug>".table`) — не требует
+ * search_path и работает на любом pooled-соединении.
+ */
 @WebSocketGateway({
   cors: {
     origin: (origin, callback) => callback(null, true),
@@ -37,24 +71,17 @@ interface SendPayload {
   path: "/socket.io",
 })
 export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
-  // NB: инициализация Logger в конструкторе, а не как field initializer.
-  // Field initializer иногда отказывал в production (compiled output), и
-  // handleConnection падал с `Cannot read properties of undefined (reading 'warn')`.
   private readonly logger: Logger;
+  private readonly jwt: JwtService;
+  private readonly prisma: PrismaClient;
 
   @WebSocketServer()
   server!: Server;
 
-  // JwtService инстанциируем напрямую, а не через DI: инъекция в этот
-  // скомпилированный WS-gateway-класс отдавала undefined (`this.jwt` падал
-  // с 'Cannot read properties of undefined (reading verifyAsync)'). new
-  // JwtService({}) полностью самодостаточен — verifyAsync принимает secret
-  // явным параметром.
-  private readonly jwt: JwtService;
-
-  constructor(private readonly chats: ChatsService) {
+  constructor() {
     this.logger = new Logger(ChatsGateway.name);
     this.jwt = new JwtService({});
+    this.prisma = new PrismaClient();
   }
 
   async handleConnection(client: Socket): Promise<void> {
@@ -79,13 +106,10 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       };
       client.data.user = user;
       client.join(`tenant:${user.tenantSlug}:user:${user.userId}`);
-      // console.* напрямую — nestjs-pino не выводит WS-gateway-контекст в stdout.
-      // eslint-disable-next-line no-console
-      console.log(`[WS] connected user=${user.userId} tenant=${user.tenantSlug}`);
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       // eslint-disable-next-line no-console
-      console.error(`[WS] auth failed: ${msg}`, error);
+      console.error(`[WS] auth failed: ${msg}`);
       client.disconnect();
     }
   }
@@ -98,7 +122,9 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async onJoin(@ConnectedSocket() client: Socket, @MessageBody() body: JoinPayload) {
     const user = client.data.user as SocketUser | undefined;
     if (!user) throw new WsException("Unauthenticated");
-    await this.chats.ensureMembership(body.channelId, user.userId);
+    const schema = this.schemaFor(user.tenantSlug);
+    const isMember = await this.isMember(schema, body.channelId, user.userId);
+    if (!isMember) throw new WsException("Not a member");
     await client.join(`tenant:${user.tenantSlug}:channel:${body.channelId}`);
     return { ok: true };
   }
@@ -115,12 +141,25 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async onSend(@ConnectedSocket() client: Socket, @MessageBody() body: SendPayload) {
     const user = client.data.user as SocketUser | undefined;
     if (!user) throw new WsException("Unauthenticated");
-    const message = await this.chats.sendMessage(
+    const schema = this.schemaFor(user.tenantSlug);
+
+    const isMember = await this.isMember(schema, body.channelId, user.userId);
+    if (!isMember) throw new WsException("Not a member");
+
+    const text = (body.body ?? "").trim();
+    const attachments = Array.isArray(body.attachments) ? body.attachments : [];
+    if (text.length === 0 && attachments.length === 0) {
+      throw new WsException("Empty message");
+    }
+
+    const message = await this.insertMessage(
+      schema,
       body.channelId,
       user.userId,
-      body.body,
-      body.attachments,
+      text,
+      attachments,
     );
+
     this.server
       .to(`tenant:${user.tenantSlug}:channel:${body.channelId}`)
       .emit("message:new", message);
@@ -137,6 +176,82 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
 
+  // ===== tenant-scoped DB (schema-qualified, без search_path) =====
+
+  private schemaFor(slug: string): string {
+    if (!/^[a-z][a-z0-9-]{1,30}$/.test(slug)) {
+      throw new WsException("Invalid tenant");
+    }
+    return `tenant_${slug}`;
+  }
+
+  private async isMember(schema: string, channelId: string, userId: string): Promise<boolean> {
+    const rows = await this.prisma.$queryRawUnsafe<{ ok: number }[]>(
+      `SELECT 1 AS ok FROM "${schema}".chat_members
+       WHERE channel_id = $1::uuid AND user_id = $2::uuid LIMIT 1`,
+      channelId,
+      userId,
+    );
+    return rows.length > 0;
+  }
+
+  private async insertMessage(
+    schema: string,
+    channelId: string,
+    authorId: string,
+    body: string,
+    attachments: ChatAttachment[],
+  ): Promise<MessageRow> {
+    const attachmentsJson = attachments.length > 0 ? JSON.stringify(attachments) : null;
+    const rows = await this.prisma.$queryRawUnsafe<
+      {
+        id: string;
+        channel_id: string;
+        author_id: string;
+        author_name: string;
+        author_avatar_url: string | null;
+        body: string;
+        attachments: unknown;
+        created_at: Date;
+      }[]
+    >(
+      `WITH inserted AS (
+         INSERT INTO "${schema}".chat_messages (channel_id, author_id, body, attachments)
+         VALUES ($1::uuid, $2::uuid, $3, $4::jsonb)
+         RETURNING id, channel_id, author_id, body, attachments, created_at
+       )
+       SELECT i.*,
+              u.first_name || ' ' || u.last_name AS author_name,
+              u.avatar_url AS author_avatar_url
+       FROM inserted i JOIN "${schema}".users u ON u.id = i.author_id`,
+      channelId,
+      authorId,
+      body,
+      attachmentsJson,
+    );
+    const row = rows[0];
+    if (!row) throw new WsException("Insert failed");
+
+    // Своё сообщение не должно считаться unread.
+    await this.prisma.$executeRawUnsafe(
+      `UPDATE "${schema}".chat_members SET last_read_at = NOW()
+       WHERE channel_id = $1::uuid AND user_id = $2::uuid`,
+      channelId,
+      authorId,
+    );
+
+    return {
+      id: row.id,
+      channelId: row.channel_id,
+      authorId: row.author_id,
+      authorName: row.author_name,
+      authorAvatarUrl: row.author_avatar_url,
+      body: row.body,
+      attachments: parseAttachments(row.attachments),
+      createdAt: row.created_at,
+    };
+  }
+
   private extractToken(client: Socket): string | null {
     const fromAuth = client.handshake.auth?.token as string | undefined;
     if (fromAuth) return fromAuth;
@@ -146,4 +261,22 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
     return null;
   }
+}
+
+function parseAttachments(raw: unknown): ChatAttachment[] {
+  if (!Array.isArray(raw)) return [];
+  const out: ChatAttachment[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const o = item as Record<string, unknown>;
+    if (
+      typeof o.url === "string" &&
+      typeof o.filename === "string" &&
+      typeof o.size === "number" &&
+      typeof o.mimeType === "string"
+    ) {
+      out.push({ url: o.url, filename: o.filename, size: o.size, mimeType: o.mimeType });
+    }
+  }
+  return out;
 }
