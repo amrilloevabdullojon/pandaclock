@@ -4,6 +4,7 @@ import "reflect-metadata";
 import { NestFactory, HttpAdapterHost } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
 import { NestExpressApplication } from "@nestjs/platform-express";
+import { IoAdapter } from "@nestjs/platform-socket.io";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { Logger } from "nestjs-pino";
 import cookieParser from "cookie-parser";
@@ -25,6 +26,12 @@ async function bootstrap(): Promise<void> {
       crossOriginResourcePolicy: { policy: "cross-origin" },
     }),
   );
+
+  // ВАЖНО: явный Socket.IO адаптер. Без него NestJS использует дефолтный
+  // ws-адаптер, и Socket.IO-клиенты (web + mobile) не могут подключиться
+  // к /socket.io path — отсюда симптом «чат не работает, сообщения не
+  // приходят в реальном времени». Должно вызываться до app.listen().
+  app.useWebSocketAdapter(new IoAdapter(app));
 
   app.use(cookieParser());
   app.set("trust proxy", 1);

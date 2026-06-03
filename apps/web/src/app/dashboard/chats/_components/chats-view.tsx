@@ -130,7 +130,9 @@ export function ChatsView({
         path: "/socket.io",
         auth: { token: session2.token },
         query: { tenant: session2.tenantSlug },
-        transports: ["websocket"],
+        // polling fallback: если корпоративный прокси режет ws-upgrade, клиент
+        // подключится через long-polling и попытается upgrade позже.
+        transports: ["polling", "websocket"],
       });
       socketRef.current = socket;
 
