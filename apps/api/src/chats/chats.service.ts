@@ -34,6 +34,8 @@ export interface MessageRow {
   body: string;
   attachments: ChatAttachment[];
   createdAt: Date;
+  editedAt: Date | null;
+  deletedAt: Date | null;
 }
 
 export interface MemberRow {
@@ -158,12 +160,14 @@ export class ChatsService {
         body: string;
         attachments: unknown;
         created_at: Date;
+        edited_at: Date | null;
+        deleted_at: Date | null;
       }[]
     >(
       `SELECT m.id, m.channel_id, m.author_id,
               u.first_name || ' ' || u.last_name AS author_name,
               u.avatar_url AS author_avatar_url,
-              m.body, m.attachments, m.created_at
+              m.body, m.attachments, m.created_at, m.edited_at, m.deleted_at
        FROM chat_messages m
        JOIN users u ON u.id = m.author_id
        WHERE m.channel_id = $1::uuid
@@ -179,9 +183,12 @@ export class ChatsService {
         authorId: row.author_id,
         authorName: row.author_name,
         authorAvatarUrl: row.author_avatar_url,
-        body: row.body,
-        attachments: parseAttachments(row.attachments),
+        // Удалённые отдаём без содержимого — тело и вложения не утекают.
+        body: row.deleted_at ? "" : row.body,
+        attachments: row.deleted_at ? [] : parseAttachments(row.attachments),
         createdAt: row.created_at,
+        editedAt: row.edited_at,
+        deletedAt: row.deleted_at,
       }))
       .reverse();
   }
@@ -242,6 +249,8 @@ export class ChatsService {
       body: row.body,
       attachments: parseAttachments(row.attachments),
       createdAt: row.created_at,
+      editedAt: null,
+      deletedAt: null,
     };
   }
 

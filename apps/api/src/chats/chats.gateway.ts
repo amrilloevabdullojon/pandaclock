@@ -45,6 +45,19 @@ interface MessageRow {
   body: string;
   attachments: ChatAttachment[];
   createdAt: Date;
+  editedAt: Date | null;
+  deletedAt: Date | null;
+}
+
+interface EditPayload {
+  channelId: string;
+  messageId: string;
+  body: string;
+}
+
+interface DeletePayload {
+  channelId: string;
+  messageId: string;
 }
 
 /**
@@ -165,6 +178,40 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return message;
   }
 
+  @SubscribeMessage("message:edit")
+  async onEdit(@ConnectedSocket() client: Socket, @MessageBody() body: EditPayload) {
+    const user = client.data.user as SocketUser | undefined;
+    if (!user) throw new WsException("Unauthenticated");
+    const schema = this.schemaFor(user.tenantSlug);
+
+    const text = (body.body ?? "").trim();
+    if (text.length === 0) throw new WsException("Empty message");
+
+    const message = await this.editMessage(schema, body.messageId, user.userId, text);
+    if (!message) throw new WsException("Not allowed");
+
+    this.server
+      .to(`tenant:${user.tenantSlug}:channel:${body.channelId}`)
+      .emit("message:edited", message);
+    return message;
+  }
+
+  @SubscribeMessage("message:delete")
+  async onDelete(@ConnectedSocket() client: Socket, @MessageBody() body: DeletePayload) {
+    const user = client.data.user as SocketUser | undefined;
+    if (!user) throw new WsException("Unauthenticated");
+    const schema = this.schemaFor(user.tenantSlug);
+
+    const ok = await this.deleteMessage(schema, body.messageId, user.userId);
+    if (!ok) throw new WsException("Not allowed");
+
+    this.server.to(`tenant:${user.tenantSlug}:channel:${body.channelId}`).emit("message:deleted", {
+      channelId: body.channelId,
+      messageId: body.messageId,
+    });
+    return { ok: true };
+  }
+
   @SubscribeMessage("typing")
   onTyping(@ConnectedSocket() client: Socket, @MessageBody() body: JoinPayload) {
     const user = client.data.user as SocketUser | undefined;
@@ -248,7 +295,75 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       body: row.body,
       attachments: parseAttachments(row.attachments),
       createdAt: row.created_at,
+      editedAt: null,
+      deletedAt: null,
     };
+  }
+
+  /**
+   * Редактирует текст сообщения. Разрешено только автору и только если оно не
+   * удалено. Возвращает обновлённую строку (с author_name) либо null, если
+   * правка не разрешена / сообщения нет.
+   */
+  private async editMessage(
+    schema: string,
+    messageId: string,
+    userId: string,
+    body: string,
+  ): Promise<MessageRow | null> {
+    const rows = await this.prisma.$queryRawUnsafe<
+      {
+        id: string;
+        channel_id: string;
+        author_id: string;
+        author_name: string;
+        author_avatar_url: string | null;
+        body: string;
+        attachments: unknown;
+        created_at: Date;
+        edited_at: Date | null;
+        deleted_at: Date | null;
+      }[]
+    >(
+      `WITH updated AS (
+         UPDATE "${schema}".chat_messages
+         SET body = $3, edited_at = NOW()
+         WHERE id = $1::uuid AND author_id = $2::uuid AND deleted_at IS NULL
+         RETURNING id, channel_id, author_id, body, attachments, created_at, edited_at, deleted_at
+       )
+       SELECT u2.*,
+              u.first_name || ' ' || u.last_name AS author_name,
+              u.avatar_url AS author_avatar_url
+       FROM updated u2 JOIN "${schema}".users u ON u.id = u2.author_id`,
+      messageId,
+      userId,
+      body,
+    );
+    const row = rows[0];
+    if (!row) return null;
+    return {
+      id: row.id,
+      channelId: row.channel_id,
+      authorId: row.author_id,
+      authorName: row.author_name,
+      authorAvatarUrl: row.author_avatar_url,
+      body: row.body,
+      attachments: parseAttachments(row.attachments),
+      createdAt: row.created_at,
+      editedAt: row.edited_at,
+      deletedAt: row.deleted_at,
+    };
+  }
+
+  /** Soft-delete: помечает deleted_at. Разрешено только автору. */
+  private async deleteMessage(schema: string, messageId: string, userId: string): Promise<boolean> {
+    const affected = await this.prisma.$executeRawUnsafe(
+      `UPDATE "${schema}".chat_messages SET deleted_at = NOW()
+       WHERE id = $1::uuid AND author_id = $2::uuid AND deleted_at IS NULL`,
+      messageId,
+      userId,
+    );
+    return affected > 0;
   }
 
   private extractToken(client: Socket): string | null {

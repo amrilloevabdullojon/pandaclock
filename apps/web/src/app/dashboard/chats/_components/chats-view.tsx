@@ -12,8 +12,10 @@ import {
   Lock,
   MessageCircle,
   Paperclip,
+  Pencil,
   Search,
   Send,
+  Trash2,
   X,
 } from "lucide-react";
 import { io, type Socket } from "socket.io-client";
@@ -54,6 +56,8 @@ interface Message {
   body: string;
   attachments: ChatAttachment[];
   createdAt: string;
+  editedAt?: string | null;
+  deletedAt?: string | null;
   /** true пока сообщение не подтверждено сервером (optimistic). */
   pending?: boolean;
 }
@@ -188,6 +192,23 @@ export function ChatsView({
           return next;
         });
       });
+      socket.on("message:edited", (message: Message) => {
+        if (message.channelId !== activeId) return;
+        setMessages((prev) => prev.map((m) => (m.id === message.id ? message : m)));
+      });
+      socket.on(
+        "message:deleted",
+        ({ channelId, messageId }: { channelId: string; messageId: string }) => {
+          if (channelId !== activeId) return;
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === messageId
+                ? { ...m, body: "", attachments: [], deletedAt: new Date().toISOString() }
+                : m,
+            ),
+          );
+        },
+      );
       socket.on("typing", ({ userId }: { channelId: string; userId: string }) => {
         if (userId === meId) return;
         const name = nameByUserRef.current[userId] ?? "Кто-то";
@@ -273,6 +294,30 @@ export function ChatsView({
     if (now - lastTypingSentRef.current < 2000) return;
     lastTypingSentRef.current = now;
     socketRef.current?.emit("typing", { channelId: activeId });
+  }
+
+  function editMessage(messageId: string, body: string): void {
+    const text = body.trim();
+    if (!activeId || !text) return;
+    // Optimistic: подменяем текст до серверного echo.
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === messageId ? { ...m, body: text, editedAt: new Date().toISOString() } : m,
+      ),
+    );
+    socketRef.current?.emit("message:edit", { channelId: activeId, messageId, body: text });
+  }
+
+  function deleteMessage(messageId: string): void {
+    if (!activeId) return;
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === messageId
+          ? { ...m, body: "", attachments: [], deletedAt: new Date().toISOString() }
+          : m,
+      ),
+    );
+    socketRef.current?.emit("message:delete", { channelId: activeId, messageId });
   }
 
   async function uploadFiles(files: FileList | File[]): Promise<void> {
@@ -410,7 +455,13 @@ export function ChatsView({
                       </div>
                       <ul className="space-y-3">
                         {clusterMessages(g.messages).map((cluster) => (
-                          <MessageCluster key={cluster.id} cluster={cluster} />
+                          <MessageCluster
+                            key={cluster.id}
+                            cluster={cluster}
+                            meId={meId}
+                            onEdit={editMessage}
+                            onDelete={deleteMessage}
+                          />
                         ))}
                       </ul>
                     </div>
@@ -666,7 +717,17 @@ function formatTyping(names: string[]): string {
   return `${list[0]} и ещё ${list.length - 1} печатают…`;
 }
 
-function MessageCluster({ cluster }: { cluster: MessageClusterT }) {
+function MessageCluster({
+  cluster,
+  meId,
+  onEdit,
+  onDelete,
+}: {
+  cluster: MessageClusterT;
+  meId: string;
+  onEdit: (messageId: string, body: string) => void;
+  onDelete: (messageId: string) => void;
+}) {
   const time = new Date(cluster.startedAt).toLocaleTimeString("ru-RU", {
     hour: "2-digit",
     minute: "2-digit",
@@ -686,21 +747,136 @@ function MessageCluster({ cluster }: { cluster: MessageClusterT }) {
         </p>
         <div className="space-y-1">
           {cluster.messages.map((m) => (
-            <div key={m.id} className={m.pending ? "opacity-60" : undefined}>
-              {m.body ? (
-                <p className="text-foreground flex items-end gap-1 whitespace-pre-wrap break-words text-sm leading-relaxed">
-                  <span>{m.body}</span>
-                  {m.pending ? (
-                    <Clock className="text-muted-foreground mb-0.5 h-3 w-3 shrink-0" />
-                  ) : null}
-                </p>
-              ) : null}
-              <MessageAttachments items={m.attachments} />
-            </div>
+            <MessageItem
+              key={m.id}
+              message={m}
+              mine={m.authorId === meId}
+              onEdit={onEdit}
+              onDelete={onDelete}
+            />
           ))}
         </div>
       </div>
     </li>
+  );
+}
+
+function MessageItem({
+  message: m,
+  mine,
+  onEdit,
+  onDelete,
+}: {
+  message: Message;
+  mine: boolean;
+  onEdit: (messageId: string, body: string) => void;
+  onDelete: (messageId: string) => void;
+}) {
+  const [editing, setEditing] = React.useState(false);
+  const [draft, setDraft] = React.useState(m.body);
+  const [confirmDelete, setConfirmDelete] = React.useState(false);
+
+  if (m.deletedAt) {
+    return <p className="text-muted-foreground text-sm italic">Сообщение удалено</p>;
+  }
+
+  if (editing) {
+    function save() {
+      const text = draft.trim();
+      if (text && text !== m.body) onEdit(m.id, text);
+      setEditing(false);
+    }
+    return (
+      <div className="space-y-1">
+        <textarea
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              save();
+            } else if (e.key === "Escape") {
+              setEditing(false);
+              setDraft(m.body);
+            }
+          }}
+          rows={Math.min(6, draft.split("\n").length)}
+          className="border-border focus-ring w-full resize-none rounded-md border bg-transparent px-2 py-1 text-sm"
+        />
+        <p className="text-muted-foreground text-[11px]">Enter — сохранить · Esc — отмена</p>
+      </div>
+    );
+  }
+
+  // Редактировать можно только текстовые (не чисто-вложения) сообщения.
+  const canEdit = mine && !m.pending && m.body.length > 0;
+  const canDelete = mine && !m.pending;
+
+  return (
+    <div className={`group/msg relative ${m.pending ? "opacity-60" : ""}`}>
+      {m.body ? (
+        <p className="text-foreground flex items-end gap-1 whitespace-pre-wrap break-words text-sm leading-relaxed">
+          <span>{m.body}</span>
+          {m.pending ? <Clock className="text-muted-foreground mb-0.5 h-3 w-3 shrink-0" /> : null}
+          {m.editedAt ? (
+            <span className="text-muted-foreground mb-0.5 shrink-0 text-[10px]">(изменено)</span>
+          ) : null}
+        </p>
+      ) : null}
+      <MessageAttachments items={m.attachments} />
+
+      {(canEdit || canDelete) && !confirmDelete ? (
+        <div className="border-border bg-card absolute -top-3 right-0 hidden gap-0.5 rounded-md border p-0.5 shadow-sm group-hover/msg:flex">
+          {canEdit ? (
+            <button
+              type="button"
+              title="Редактировать"
+              onClick={() => {
+                setDraft(m.body);
+                setEditing(true);
+              }}
+              className="hover:bg-muted text-muted-foreground hover:text-foreground rounded p-1"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          ) : null}
+          {canDelete ? (
+            <button
+              type="button"
+              title="Удалить"
+              onClick={() => setConfirmDelete(true)}
+              className="hover:bg-danger-light text-muted-foreground hover:text-danger rounded p-1"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {confirmDelete ? (
+        <div className="border-danger/40 bg-danger-light text-danger mt-1 flex items-center gap-2 rounded-md border px-2 py-1 text-xs">
+          <span>Удалить сообщение?</span>
+          <button
+            type="button"
+            onClick={() => {
+              onDelete(m.id);
+              setConfirmDelete(false);
+            }}
+            className="text-danger font-semibold underline-offset-2 hover:underline"
+          >
+            Удалить
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(false)}
+            className="text-muted-foreground font-semibold underline-offset-2 hover:underline"
+          >
+            Отмена
+          </button>
+        </div>
+      ) : null}
+    </div>
   );
 }
 

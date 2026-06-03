@@ -264,8 +264,12 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   body TEXT NOT NULL,
   attachments JSONB,
   edited_at TIMESTAMPTZ,
+  deleted_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Для уже существующих tenant-схем (CREATE TABLE IF NOT EXISTS не добавит колонку).
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 
 CREATE INDEX IF NOT EXISTS idx_chat_messages_channel_created ON chat_messages(channel_id, created_at DESC);
 
