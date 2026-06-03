@@ -241,7 +241,9 @@ export default function LoginPage() {
           ← На главную pandaclock.uz
         </a>
         <p>
-          © {new Date().getFullYear()} Pandaclock ·{" "}
+          {/* suppressHydrationWarning: год вычисляется на сервере и клиенте,
+              на границе года (UTC vs локаль) может разойтись → hydration #418. */}
+          <span suppressHydrationWarning>© {new Date().getFullYear()}</span> Pandaclock ·{" "}
           <Link href="/legal/privacy" className="hover:underline">
             Конфиденциальность
           </Link>{" "}

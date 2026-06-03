@@ -108,14 +108,13 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.join(`tenant:${user.tenantSlug}:user:${user.userId}`);
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      // eslint-disable-next-line no-console
-      console.error(`[WS] auth failed: ${msg}`);
+      this.logger.warn(`ws auth failed: ${msg}`);
       client.disconnect();
     }
   }
 
   handleDisconnect(client: Socket): void {
-    this.logger?.debug({ id: client.id }, "ws disconnected");
+    this.logger.debug(`ws disconnected: ${client.id}`);
   }
 
   @SubscribeMessage("channel:join")
