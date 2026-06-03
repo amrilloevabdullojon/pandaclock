@@ -15,8 +15,15 @@ interface ChannelRow {
 export default async function ChatsPage() {
   const [channels, me] = await Promise.all([
     serverFetch<ChannelRow[]>("/chats/channels").catch(() => [] as ChannelRow[]),
-    serverFetch<{ id: string }>("/auth/me").catch(() => null),
+    serverFetch<{
+      id: string;
+      firstName: string;
+      lastName: string;
+      avatarUrl: string | null;
+    }>("/auth/me").catch(() => null),
   ]);
+
+  const meName = me ? `${me.firstName} ${me.lastName}`.trim() : "";
 
   return (
     <>
@@ -26,7 +33,12 @@ export default async function ChatsPage() {
         title="Чаты"
         description="Каналы отделов и личные сообщения"
       />
-      <ChatsView initialChannels={channels} meId={me?.id ?? ""} />
+      <ChatsView
+        initialChannels={channels}
+        meId={me?.id ?? ""}
+        meName={meName}
+        meAvatarUrl={me?.avatarUrl ?? null}
+      />
     </>
   );
 }

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import {
+  Clock,
   Download,
   File as FileIcon,
   FileImage,
@@ -53,6 +54,8 @@ interface Message {
   body: string;
   attachments: ChatAttachment[];
   createdAt: string;
+  /** true пока сообщение не подтверждено сервером (optimistic). */
+  pending?: boolean;
 }
 
 interface DayGroup {
@@ -64,9 +67,13 @@ interface DayGroup {
 export function ChatsView({
   initialChannels,
   meId,
+  meName,
+  meAvatarUrl,
 }: {
   initialChannels: ChannelRow[];
   meId: string;
+  meName: string;
+  meAvatarUrl: string | null;
 }) {
   const [channels, setChannels] = React.useState(initialChannels);
   const [activeId, setActiveId] = React.useState<string | null>(initialChannels[0]?.id ?? null);
@@ -76,6 +83,8 @@ export function ChatsView({
   const [uploading, setUploading] = React.useState(false);
   const [search, setSearch] = React.useState("");
   const [loading, setLoading] = React.useState(false);
+  /** userId → имя тех, кто сейчас печатает (кроме меня). */
+  const [typingUsers, setTypingUsers] = React.useState<Record<string, string>>({});
   const socketRef = React.useRef<Socket | null>(null);
   const sessionRef = React.useRef<{ token: string; tenantSlug: string; apiUrl: string } | null>(
     null,
@@ -83,6 +92,9 @@ export function ChatsView({
   const messagesEndRef = React.useRef<HTMLDivElement | null>(null);
   const composerRef = React.useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const lastTypingSentRef = React.useRef<number>(0);
+  // Имена авторов, виденные в сообщениях — для подписи «X печатает…».
+  const nameByUserRef = React.useRef<Record<string, string>>({});
 
   // Загружаем session info один раз.
   React.useEffect(() => {
@@ -149,22 +161,59 @@ export function ChatsView({
         socket.emit("channel:join", { channelId: activeId });
       });
       socket.on("connect_error", (err) => {
-        // eslint-disable-next-line no-console
         console.warn("[chat] socket connect_error:", err.message);
       });
       socket.on("message:new", (message: Message) => {
-        if (message.channelId === activeId) {
-          setMessages((prev) => [...prev, message]);
-        }
+        if (message.channelId !== activeId) return;
+        nameByUserRef.current[message.authorId] = message.authorName;
+        setMessages((prev) => {
+          // Свой эхо-месседж — заменяем первый pending temp с тем же текстом.
+          if (message.authorId === meId) {
+            const idx = prev.findIndex((m) => m.pending && m.body === message.body);
+            if (idx >= 0) {
+              const next = [...prev];
+              next.splice(idx, 1);
+              return [...next, message];
+            }
+          }
+          // Дедуп на случай повторной доставки.
+          if (prev.some((m) => m.id === message.id)) return prev;
+          return [...prev, message];
+        });
+        // Печатавший прислал сообщение — убираем его из «печатает».
+        setTypingUsers((prev) => {
+          if (!prev[message.authorId]) return prev;
+          const next = { ...prev };
+          delete next[message.authorId];
+          return next;
+        });
+      });
+      socket.on("typing", ({ userId }: { channelId: string; userId: string }) => {
+        if (userId === meId) return;
+        const name = nameByUserRef.current[userId] ?? "Кто-то";
+        setTypingUsers((prev) => ({ ...prev, [userId]: name }));
+        // Авто-сброс через 3.5с, если не пришло новое typing.
+        window.setTimeout(() => {
+          setTypingUsers((prev) => {
+            const next = { ...prev };
+            delete next[userId];
+            return next;
+          });
+        }, 3500);
       });
     }
 
     void connect();
+    setTypingUsers({});
 
     // Загружаем историю
     void (async () => {
       const history = await fetch(`/api/chats/channels/${activeId}/messages`);
-      if (history.ok) setMessages((await history.json()) as Message[]);
+      if (history.ok) {
+        const loaded = (await history.json()) as Message[];
+        for (const m of loaded) nameByUserRef.current[m.authorId] = m.authorName;
+        setMessages(loaded);
+      }
       setLoading(false);
     })();
 
@@ -176,7 +225,7 @@ export function ChatsView({
       socketRef.current?.disconnect();
       socketRef.current = null;
     };
-  }, [activeId]);
+  }, [activeId, meId]);
 
   // Autoscroll при новых сообщениях.
   React.useEffect(() => {
@@ -189,14 +238,41 @@ export function ChatsView({
     if (!activeId) return;
     // Разрешаем отправку без текста, если есть вложения.
     if (!body && pendingAttachments.length === 0) return;
+
+    const attachments = pendingAttachments.length > 0 ? pendingAttachments : [];
+
+    // Optimistic: сразу показываем сообщение со статусом pending. Серверный
+    // message:new заменит его (дедуп по body в обработчике).
+    const optimistic: Message = {
+      id: `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      channelId: activeId,
+      authorId: meId,
+      authorName: meName,
+      authorAvatarUrl: meAvatarUrl,
+      body,
+      attachments,
+      createdAt: new Date().toISOString(),
+      pending: true,
+    };
+    setMessages((prev) => [...prev, optimistic]);
+
     socketRef.current?.emit("message:send", {
       channelId: activeId,
       body,
-      attachments: pendingAttachments.length > 0 ? pendingAttachments : undefined,
+      attachments: attachments.length > 0 ? attachments : undefined,
     });
     setDraft("");
     setPendingAttachments([]);
     composerRef.current?.focus();
+  }
+
+  /** Throttled typing-сигнал — не чаще раза в 2с. */
+  function notifyTyping(): void {
+    if (!activeId) return;
+    const now = Date.now();
+    if (now - lastTypingSentRef.current < 2000) return;
+    lastTypingSentRef.current = now;
+    socketRef.current?.emit("typing", { channelId: activeId });
   }
 
   async function uploadFiles(files: FileList | File[]): Promise<void> {
@@ -344,6 +420,18 @@ export function ChatsView({
               </div>
             </ScrollArea>
 
+            {/* Typing-индикатор */}
+            {Object.keys(typingUsers).length > 0 ? (
+              <div className="text-muted-foreground border-border flex items-center gap-2 border-t px-5 py-1.5 text-xs">
+                <span className="flex gap-0.5">
+                  <span className="bg-muted-foreground inline-block h-1.5 w-1.5 animate-bounce rounded-full [animation-delay:-0.3s]" />
+                  <span className="bg-muted-foreground inline-block h-1.5 w-1.5 animate-bounce rounded-full [animation-delay:-0.15s]" />
+                  <span className="bg-muted-foreground inline-block h-1.5 w-1.5 animate-bounce rounded-full" />
+                </span>
+                {formatTyping(Object.values(typingUsers))}
+              </div>
+            ) : null}
+
             <form onSubmit={send} className="border-border bg-card border-t p-3">
               {/* Pending attachments chips */}
               {pendingAttachments.length > 0 ? (
@@ -398,6 +486,7 @@ export function ChatsView({
                 />
                 <textarea
                   ref={composerRef}
+                  onInput={notifyTyping}
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   onKeyDown={onComposerKeyDown}
@@ -568,6 +657,15 @@ function formatBytes(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} МБ`;
 }
 
+/** «X печатает…» / «X и ещё N печатают…» по списку имён. */
+function formatTyping(names: string[]): string {
+  const list = names.filter(Boolean);
+  if (list.length === 0) return "печатает…";
+  if (list.length === 1) return `${list[0]} печатает…`;
+  if (list.length === 2) return `${list[0]} и ${list[1]} печатают…`;
+  return `${list[0]} и ещё ${list.length - 1} печатают…`;
+}
+
 function MessageCluster({ cluster }: { cluster: MessageClusterT }) {
   const time = new Date(cluster.startedAt).toLocaleTimeString("ru-RU", {
     hour: "2-digit",
@@ -588,10 +686,13 @@ function MessageCluster({ cluster }: { cluster: MessageClusterT }) {
         </p>
         <div className="space-y-1">
           {cluster.messages.map((m) => (
-            <div key={m.id}>
+            <div key={m.id} className={m.pending ? "opacity-60" : undefined}>
               {m.body ? (
-                <p className="text-foreground whitespace-pre-wrap break-words text-sm leading-relaxed">
-                  {m.body}
+                <p className="text-foreground flex items-end gap-1 whitespace-pre-wrap break-words text-sm leading-relaxed">
+                  <span>{m.body}</span>
+                  {m.pending ? (
+                    <Clock className="text-muted-foreground mb-0.5 h-3 w-3 shrink-0" />
+                  ) : null}
                 </p>
               ) : null}
               <MessageAttachments items={m.attachments} />
