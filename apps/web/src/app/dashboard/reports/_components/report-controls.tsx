@@ -7,9 +7,12 @@ import { Button, Input } from "@pandaclock/ui";
 export function ReportControls({
   type,
   period,
+  exportable = true,
 }: {
-  type: "attendance" | "hours" | "tasks";
+  type: "attendance" | "hours" | "tasks" | "overview";
   period: { startIso: string; endIso: string };
+  /** Показывать кнопки выгрузки Excel/PDF (overview не экспортируется). */
+  exportable?: boolean;
 }) {
   const router = useRouter();
   const [start, setStart] = useState(period.startIso);
@@ -41,14 +44,16 @@ export function ReportControls({
         <Input type="date" value={end} onChange={(e) => setEnd(e.target.value)} />
       </div>
       <Button onClick={applyPeriod}>Применить</Button>
-      <div className="ml-auto flex gap-2">
-        <Button variant="secondary" onClick={() => download("xlsx")}>
-          📥 Excel
-        </Button>
-        <Button variant="secondary" onClick={() => download("pdf")}>
-          📄 PDF
-        </Button>
-      </div>
+      {exportable ? (
+        <div className="ml-auto flex gap-2">
+          <Button variant="secondary" onClick={() => download("xlsx")}>
+            📥 Excel
+          </Button>
+          <Button variant="secondary" onClick={() => download("pdf")}>
+            📄 PDF
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }

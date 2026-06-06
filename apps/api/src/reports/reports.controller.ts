@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Param,
-  Query,
-  Res,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Param, Query, Res, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import type { Response } from "express";
 import { ReportsService } from "./reports.service.js";
@@ -48,6 +41,14 @@ export class ReportsController {
     const period = await this.reports.period(user.tenantSlug, query);
     const rows = await this.reports.tasks(period);
     return { period, rows };
+  }
+
+  @Get("overview")
+  @ApiOperation({ summary: "Сводная аналитика за период (графики)" })
+  async overview(@Query() query: ReportQueryDto, @CurrentUser() user: AuthRequestUser) {
+    const period = await this.reports.period(user.tenantSlug, query);
+    const data = await this.reports.overview(period);
+    return { period, ...data };
   }
 
   @Get(":type/export")
