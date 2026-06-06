@@ -3,6 +3,7 @@ import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } fr
 import { router, Stack } from "expo-router";
 import { ArrowLeft, Bell, CheckCheck } from "lucide-react-native";
 import { api } from "@/lib/api-client";
+import { mapLinkToMobileRoute } from "@/lib/use-push-notifications";
 import { Card, EmptyState, Screen } from "@/components/ui";
 
 interface NotificationItem {
@@ -98,7 +99,8 @@ export default function NotificationsScreen() {
           renderItem={({ item }) => (
             <Pressable
               onPress={() => {
-                if (item.link) router.push(item.link as never);
+                const route = mapLinkToMobileRoute(item.link);
+                if (route) router.push(route as never);
               }}
             >
               <Card

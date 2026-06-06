@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import * as SecureStore from "expo-secure-store";
 import { publicApi } from "./api-client";
+import { unregisterCurrentPushToken } from "./push-token";
 
 const KEY = "pcl.auth.v1";
 
@@ -81,6 +82,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   async logout() {
     const { refreshToken } = get();
+    // Снимаем push-токен ДО очистки сессии (нужен валидный accessToken),
+    // чтобы на общем устройстве не приходили чужие уведомления.
+    await unregisterCurrentPushToken();
     if (refreshToken) {
       try {
         await publicApi.request("/auth/logout", { method: "POST", body: { refreshToken } });
