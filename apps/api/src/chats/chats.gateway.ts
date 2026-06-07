@@ -87,6 +87,8 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private readonly logger: Logger;
   private readonly jwt: JwtService;
   private readonly prisma: PrismaClient;
+  private readonly expoUrl = "https://exp.host/--/api/v2/push/send";
+  private readonly expoAccessToken = process.env.EXPO_ACCESS_TOKEN;
 
   @WebSocketServer()
   server!: Server;
@@ -175,6 +177,10 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server
       .to(`tenant:${user.tenantSlug}:channel:${body.channelId}`)
       .emit("message:new", message);
+
+    // Push офлайн-участникам (у кого канал не открыт). Fire-and-forget.
+    void this.pushToOfflineMembers(schema, user.tenantSlug, body.channelId, user.userId, message);
+
     return message;
   }
 
@@ -364,6 +370,88 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       userId,
     );
     return affected > 0;
+  }
+
+  /**
+   * Шлёт Expo push участникам канала, которые СЕЙЧАС не находятся в комнате
+   * канала (т.е. не видят сообщение в реальном времени). Best-effort.
+   */
+  private async pushToOfflineMembers(
+    schema: string,
+    slug: string,
+    channelId: string,
+    authorId: string,
+    message: MessageRow,
+  ): Promise<void> {
+    try {
+      const members = await this.prisma.$queryRawUnsafe<{ user_id: string }[]>(
+        `SELECT user_id FROM "${schema}".chat_members
+         WHERE channel_id = $1::uuid AND user_id <> $2::uuid`,
+        channelId,
+        authorId,
+      );
+      if (members.length === 0) return;
+
+      // Кто сейчас в комнате канала — им push не нужен (видят онлайн).
+      const room = `tenant:${slug}:channel:${channelId}`;
+      const sockets = await this.server.in(room).fetchSockets();
+      const onlineUserIds = new Set<string>();
+      for (const s of sockets) {
+        const u = s.data?.user as SocketUser | undefined;
+        if (u) onlineUserIds.add(u.userId);
+      }
+
+      const offline = members.map((m) => m.user_id).filter((id) => !onlineUserIds.has(id));
+      if (offline.length === 0) return;
+
+      const tokens = await this.prisma.$queryRawUnsafe<{ token: string }[]>(
+        `SELECT token FROM "${schema}".push_tokens WHERE user_id = ANY($1::uuid[])`,
+        offline,
+      );
+      if (tokens.length === 0) return;
+
+      const channelName = await this.channelTitle(schema, channelId);
+      const title = channelName ? `${message.authorName} · ${channelName}` : message.authorName;
+      const raw =
+        message.body.trim().length > 0
+          ? message.body.trim()
+          : message.attachments.length > 0
+            ? "📎 Вложение"
+            : "Новое сообщение";
+      const text = raw.length > 140 ? `${raw.slice(0, 137)}…` : raw;
+
+      const payloads = tokens.map((t) => ({
+        to: t.token,
+        sound: "default",
+        title,
+        body: text,
+        data: { link: `/dashboard/chats/${channelId}`, type: "chat_message", channelId },
+      }));
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      };
+      if (this.expoAccessToken) headers.Authorization = `Bearer ${this.expoAccessToken}`;
+      await fetch(this.expoUrl, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payloads),
+      });
+    } catch (err) {
+      this.logger.warn(`chat push failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  /** Заголовок канала для push: "#general" для CHANNEL, null для DM. */
+  private async channelTitle(schema: string, channelId: string): Promise<string | null> {
+    const rows = await this.prisma.$queryRawUnsafe<{ name: string | null; type: string }[]>(
+      `SELECT name, type FROM "${schema}".chat_channels WHERE id = $1::uuid LIMIT 1`,
+      channelId,
+    );
+    const row = rows[0];
+    if (!row || row.type === "DM") return null;
+    return row.name ? `#${row.name}` : null;
   }
 
   private extractToken(client: Socket): string | null {

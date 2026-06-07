@@ -30,12 +30,11 @@
       },
       "package": "uz.pandaclock.app",
       "permissions": [
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "USE_BIOMETRIC",
+        "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
-      ]
+        "android.permission.USE_BIOMETRIC"
+      ],
+      "blockedPermissions": ["android.permission.RECORD_AUDIO"]
     },
     "plugins": [
       "expo-router",
@@ -77,6 +76,12 @@
         "projectId": "b85651fd-1cd1-42f1-87b0-80b0720ea5ab"
       }
     },
-    "owner": "abdullo_amrilloev"
+    "owner": "abdullo_amrilloev",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/b85651fd-1cd1-42f1-87b0-80b0720ea5ab"
+    }
   }
 }
