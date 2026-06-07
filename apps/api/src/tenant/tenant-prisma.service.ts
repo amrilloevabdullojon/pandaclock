@@ -50,6 +50,7 @@ const TENANT_TABLES = [
   "push_tokens",
   "verification_tokens",
   "notifications",
+  "shifts",
 ] as const;
 
 /**

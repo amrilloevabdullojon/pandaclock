@@ -4,6 +4,7 @@ import {
   Clock,
   CheckSquare,
   Calendar,
+  CalendarClock,
   FileText,
   MessageCircle,
   BarChart3,
@@ -81,6 +82,13 @@ export const NAV: NavItem[] = [
     icon: BarChart3,
     description: "Аналитика и экспорт в Excel/PDF",
     permission: "reports:read",
+  },
+  {
+    label: "Смены",
+    href: "/dashboard/shifts",
+    icon: CalendarClock,
+    description: "Планирование графика смен команды",
+    permission: "shifts:read",
   },
   {
     label: "Уведомления",

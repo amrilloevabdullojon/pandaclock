@@ -21,6 +21,7 @@ export type NotificationType =
   | "task_status_changed"
   | "leave_requested"
   | "leave_decided"
+  | "shift_assigned"
   | "mention"
   | "system";
 
