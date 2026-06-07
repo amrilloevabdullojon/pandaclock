@@ -51,6 +51,8 @@ const TENANT_TABLES = [
   "verification_tokens",
   "notifications",
   "shifts",
+  "goals",
+  "reviews",
 ] as const;
 
 /**

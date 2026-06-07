@@ -2,7 +2,7 @@
   "expo": {
     "name": "Pandaclock",
     "slug": "pandaclock",
-    "version": "0.0.4",
+    "version": "0.0.5",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",

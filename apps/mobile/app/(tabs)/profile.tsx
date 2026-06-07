@@ -7,6 +7,7 @@ import {
   Building2,
   CalendarClock,
   Camera,
+  Target,
   ChevronRight,
   HelpCircle,
   LogOut,
@@ -249,6 +250,12 @@ export default function ProfileScreen() {
                 icon={<CalendarClock size={18} color="#5B4FE2" />}
                 label="Мои смены"
                 onPress={() => router.push("/shifts")}
+              />
+              <Divider />
+              <MenuRow
+                icon={<Target size={18} color="#5B4FE2" />}
+                label="Цели и оценки"
+                onPress={() => router.push("/performance")}
               />
             </Card>
           </View>

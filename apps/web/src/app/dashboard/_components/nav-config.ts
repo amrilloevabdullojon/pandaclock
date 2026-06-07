@@ -5,6 +5,7 @@ import {
   CheckSquare,
   Calendar,
   CalendarClock,
+  Target,
   FileText,
   MessageCircle,
   BarChart3,
@@ -89,6 +90,13 @@ export const NAV: NavItem[] = [
     icon: CalendarClock,
     description: "Планирование графика смен команды",
     permission: "shifts:read",
+  },
+  {
+    label: "Эффективность",
+    href: "/dashboard/performance",
+    icon: Target,
+    description: "Цели (OKR) и оценки эффективности",
+    permission: "performance:read",
   },
   {
     label: "Уведомления",

@@ -23,6 +23,7 @@ import { SearchModule } from "./search/search.module.js";
 import { UploadsModule } from "./uploads/uploads.module.js";
 import { OnboardingModule } from "./onboarding/onboarding.module.js";
 import { ShiftsModule } from "./shifts/shifts.module.js";
+import { PerformanceModule } from "./performance/performance.module.js";
 import { TenantMiddleware } from "./tenant/tenant.middleware.js";
 
 @Module({
@@ -58,6 +59,7 @@ import { TenantMiddleware } from "./tenant/tenant.middleware.js";
     UploadsModule,
     OnboardingModule,
     ShiftsModule,
+    PerformanceModule,
     HealthModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

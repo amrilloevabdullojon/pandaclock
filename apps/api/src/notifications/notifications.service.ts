@@ -22,6 +22,8 @@ export type NotificationType =
   | "leave_requested"
   | "leave_decided"
   | "shift_assigned"
+  | "goal_assigned"
+  | "review_received"
   | "mention"
   | "system";
 

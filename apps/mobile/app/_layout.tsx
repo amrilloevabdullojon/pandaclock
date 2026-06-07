@@ -63,6 +63,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="team" />
         <Stack.Screen name="shifts" />
+        <Stack.Screen name="performance" />
         <Stack.Screen name="notifications" options={{ presentation: "card" }} />
       </Stack>
     </>
