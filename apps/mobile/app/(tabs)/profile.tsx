@@ -5,6 +5,7 @@ import {
   BarChart3,
   Bell,
   Building2,
+  CalendarClock,
   Camera,
   ChevronRight,
   HelpCircle,
@@ -236,6 +237,20 @@ export default function ProfileScreen() {
               Внешний вид
             </Text>
             <ThemePicker />
+          </View>
+
+          {/* === Работа === */}
+          <View className="mt-6">
+            <Text className="text-muted-foreground mb-2 px-1 text-xs font-bold uppercase tracking-wider">
+              Работа
+            </Text>
+            <Card padding="none" className="overflow-hidden">
+              <MenuRow
+                icon={<CalendarClock size={18} color="#5B4FE2" />}
+                label="Мои смены"
+                onPress={() => router.push("/shifts")}
+              />
+            </Card>
           </View>
 
           {/* === Admin === */}
