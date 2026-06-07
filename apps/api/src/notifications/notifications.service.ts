@@ -24,6 +24,7 @@ export type NotificationType =
   | "shift_assigned"
   | "goal_assigned"
   | "review_received"
+  | "hr_document"
   | "mention"
   | "system";
 

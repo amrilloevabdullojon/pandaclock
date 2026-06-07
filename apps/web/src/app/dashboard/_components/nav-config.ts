@@ -6,6 +6,7 @@ import {
   Calendar,
   CalendarClock,
   Target,
+  UserPlus,
   FileText,
   MessageCircle,
   BarChart3,
@@ -97,6 +98,13 @@ export const NAV: NavItem[] = [
     icon: Target,
     description: "Цели (OKR) и оценки эффективности",
     permission: "performance:read",
+  },
+  {
+    label: "Кадры",
+    href: "/dashboard/hr",
+    icon: UserPlus,
+    description: "Адаптация сотрудников и кадровый ЭДО",
+    permission: "hr:read",
   },
   {
     label: "Уведомления",
