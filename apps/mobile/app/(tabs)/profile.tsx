@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import {
+  BarChart3,
   Bell,
   Building2,
   Camera,
@@ -238,12 +239,18 @@ export default function ProfileScreen() {
           </View>
 
           {/* === Admin === */}
-          {me && ["OWNER", "ADMIN", "HR"].includes(me.role) ? (
+          {me && ["OWNER", "ADMIN", "HR", "MANAGER"].includes(me.role) ? (
             <View className="mt-6">
               <Text className="text-muted-foreground mb-2 px-1 text-xs font-bold uppercase tracking-wider">
                 Управление
               </Text>
               <Card padding="none" className="overflow-hidden">
+                <MenuRow
+                  icon={<BarChart3 size={18} color="#5B4FE2" />}
+                  label="Команда · аналитика"
+                  onPress={() => router.push("/team")}
+                />
+                <Divider />
                 <MenuRow
                   icon={<Building2 size={18} color="#5B4FE2" />}
                   label="Отделы"
