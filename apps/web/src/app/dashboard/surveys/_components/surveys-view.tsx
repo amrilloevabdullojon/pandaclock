@@ -399,6 +399,8 @@ function ManageTab() {
   const [surveys, setSurveys] = React.useState<ManagedSurvey[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [createOpen, setCreateOpen] = React.useState(false);
+  const [editing, setEditing] = React.useState<EditableSurvey | null>(null);
+  const [editOpen, setEditOpen] = React.useState(false);
   const [resultsId, setResultsId] = React.useState<string | null>(null);
 
   const load = React.useCallback(async () => {
@@ -441,6 +443,14 @@ function ManageTab() {
     }
   }
 
+  async function openEdit(id: string) {
+    const res = await fetch(`/api/surveys/${id}`);
+    if (res.ok) {
+      setEditing((await res.json()) as EditableSurvey);
+      setEditOpen(true);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
@@ -477,9 +487,14 @@ function ManageTab() {
                   </p>
                 </div>
                 {s.status === "DRAFT" ? (
-                  <Button size="sm" variant="success" onClick={() => setStatus(s.id, "ACTIVE")}>
-                    Активировать
-                  </Button>
+                  <>
+                    <Button size="sm" variant="ghost" onClick={() => openEdit(s.id)}>
+                      Изменить
+                    </Button>
+                    <Button size="sm" variant="success" onClick={() => setStatus(s.id, "ACTIVE")}>
+                      Активировать
+                    </Button>
+                  </>
                 ) : null}
                 {s.status === "ACTIVE" ? (
                   <Button size="sm" variant="outline" onClick={() => setStatus(s.id, "CLOSED")}>
@@ -507,8 +522,22 @@ function ManageTab() {
       )}
 
       <CreateSurveyDialog open={createOpen} onOpenChange={setCreateOpen} onSaved={load} />
+      <CreateSurveyDialog
+        open={editOpen}
+        editing={editing}
+        onOpenChange={setEditOpen}
+        onSaved={load}
+      />
     </div>
   );
+}
+
+interface EditableSurvey {
+  id: string;
+  title: string;
+  description: string | null;
+  anonymous: boolean;
+  questions: SurveyQuestion[];
 }
 
 interface DraftQuestion {
@@ -521,10 +550,12 @@ interface DraftQuestion {
 function CreateSurveyDialog({
   open,
   onOpenChange,
+  editing,
   onSaved,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  editing?: EditableSurvey | null;
   onSaved: () => Promise<void>;
 }) {
   const [title, setTitle] = React.useState("");
@@ -537,21 +568,30 @@ function CreateSurveyDialog({
 
   React.useEffect(() => {
     if (open) {
-      setTitle("");
-      setDescription("");
+      setTitle(editing?.title ?? "");
+      setDescription(editing?.description ?? "");
       setType("ENPS");
-      setAnonymous(true);
-      setQuestions([
-        {
-          text: "Насколько вероятно, что вы порекомендуете нашу компанию как место работы?",
-          kind: "SCALE_0_10",
-          optionsText: "",
-          required: true,
-        },
-      ]);
+      setAnonymous(editing?.anonymous ?? true);
+      setQuestions(
+        editing
+          ? editing.questions.map((q) => ({
+              text: q.text,
+              kind: q.kind as QuestionKind,
+              optionsText: (q.options ?? []).join("\n"),
+              required: q.required,
+            }))
+          : [
+              {
+                text: "Насколько вероятно, что вы порекомендуете нашу компанию как место работы?",
+                kind: "SCALE_0_10",
+                optionsText: "",
+                required: true,
+              },
+            ],
+      );
       setError(null);
     }
-  }, [open]);
+  }, [open, editing]);
 
   function addQuestion() {
     setQuestions((p) => [...p, { text: "", kind: "SCALE_1_5", optionsText: "", required: true }]);
@@ -595,23 +635,25 @@ function CreateSurveyDialog({
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch("/api/surveys", {
-        method: "POST",
+      const res = await fetch(editing ? `/api/surveys/${editing.id}` : "/api/surveys", {
+        method: editing ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: title.trim(),
           description: description.trim() || undefined,
-          type,
+          ...(editing ? {} : { type }),
           anonymous,
           questions: prepared,
         }),
       });
       if (!res.ok) {
         const b = (await res.json().catch(() => ({}))) as { message?: string };
-        setError(b.message ?? "Не удалось создать");
+        setError(b.message ?? "Не удалось сохранить");
         return;
       }
-      toast.success("Опрос создан (черновик) — активируйте, когда будет готово");
+      toast.success(
+        editing ? "Опрос обновлён" : "Опрос создан (черновик) — активируйте, когда будет готово",
+      );
       onOpenChange(false);
       await onSaved();
     } catch {
@@ -625,7 +667,7 @@ function CreateSurveyDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Новый опрос</DialogTitle>
+          <DialogTitle>{editing ? "Изменить опрос" : "Новый опрос"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">

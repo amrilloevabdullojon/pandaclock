@@ -74,19 +74,25 @@ const COURSE_STATUS: Record<
   ARCHIVED: { label: "Архив", variant: "warning" },
 };
 
-export function KnowledgeView() {
+export function KnowledgeView({
+  initialArticle,
+  initialCourse,
+}: {
+  initialArticle?: string;
+  initialCourse?: string;
+}) {
   const canWrite = usePermission("knowledge:write");
   return (
-    <Tabs defaultValue="kb" className="space-y-4">
+    <Tabs defaultValue={initialCourse ? "courses" : "kb"} className="space-y-4">
       <TabsList>
         <TabsTrigger value="kb">База знаний</TabsTrigger>
         <TabsTrigger value="courses">Курсы</TabsTrigger>
       </TabsList>
       <TabsContent value="kb">
-        <KbTab canWrite={canWrite} />
+        <KbTab canWrite={canWrite} initialOpenId={initialArticle} />
       </TabsContent>
       <TabsContent value="courses">
-        <CoursesTab canWrite={canWrite} />
+        <CoursesTab canWrite={canWrite} initialOpenId={initialCourse} />
       </TabsContent>
     </Tabs>
   );
@@ -94,12 +100,12 @@ export function KnowledgeView() {
 
 /* ───────── База знаний ───────── */
 
-function KbTab({ canWrite }: { canWrite: boolean }) {
+function KbTab({ canWrite, initialOpenId }: { canWrite: boolean; initialOpenId?: string }) {
   const [articles, setArticles] = React.useState<Article[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [q, setQ] = React.useState("");
   const [category, setCategory] = React.useState("");
-  const [openId, setOpenId] = React.useState<string | null>(null);
+  const [openId, setOpenId] = React.useState<string | null>(initialOpenId ?? null);
   const [dialogArticle, setDialogArticle] = React.useState<Article | null>(null);
   const [dialogOpen, setDialogOpen] = React.useState(false);
 
@@ -435,10 +441,10 @@ function ArticleDialog({
 
 /* ───────── Курсы ───────── */
 
-function CoursesTab({ canWrite }: { canWrite: boolean }) {
+function CoursesTab({ canWrite, initialOpenId }: { canWrite: boolean; initialOpenId?: string }) {
   const [courses, setCourses] = React.useState<Course[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [openId, setOpenId] = React.useState<string | null>(null);
+  const [openId, setOpenId] = React.useState<string | null>(initialOpenId ?? null);
   const [dialogCourse, setDialogCourse] = React.useState<CourseDetail | null>(null);
   const [dialogOpen, setDialogOpen] = React.useState(false);
 

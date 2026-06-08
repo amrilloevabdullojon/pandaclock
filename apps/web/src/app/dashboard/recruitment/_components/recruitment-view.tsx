@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
   ArrowLeft,
   ArrowRight,
@@ -12,6 +13,7 @@ import {
   Star,
   Trash2,
   UserCheck,
+  UserPlus,
   X,
 } from "lucide-react";
 import {
@@ -575,7 +577,16 @@ function CandidateCard({
         >
           <ArrowRight className="h-3.5 w-3.5" />
         </button>
-        {!isRejected ? (
+        {c.stage === "HIRED" ? (
+          <Link
+            href={`/dashboard/employees?invite=1${c.email ? `&email=${encodeURIComponent(c.email)}` : ""}`}
+            className="bg-success-light text-success hover:bg-success/20 ml-auto flex items-center gap-1 rounded px-2 py-1 text-xs font-medium"
+            title="Оформить сотрудника"
+          >
+            <UserPlus className="h-3.5 w-3.5" />
+            Оформить
+          </Link>
+        ) : !isRejected ? (
           <button
             type="button"
             onClick={() => onReject(c)}

@@ -3,7 +3,12 @@ import { PageHeader } from "@pandaclock/ui";
 import { PageBreadcrumbs } from "../_components/page-breadcrumbs";
 import { KnowledgeView } from "./_components/knowledge-view";
 
-export default function KnowledgePage() {
+export default async function KnowledgePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ article?: string; course?: string }>;
+}) {
+  const { article, course } = await searchParams;
   return (
     <>
       <PageHeader
@@ -12,7 +17,7 @@ export default function KnowledgePage() {
         title="Обучение"
         description="База знаний и онлайн-курсы"
       />
-      <KnowledgeView />
+      <KnowledgeView initialArticle={article} initialCourse={course} />
     </>
   );
 }

@@ -225,14 +225,14 @@ export class SearchService {
         type: "article" as const,
         title: row.title,
         subtitle: row.category,
-        link: `/dashboard/knowledge`,
+        link: `/dashboard/knowledge?article=${row.id}`,
       })),
       courses: coursesRows.map((row) => ({
         id: row.id,
         type: "course" as const,
         title: row.title,
         subtitle: `${row.lesson_count} уроков`,
-        link: `/dashboard/knowledge`,
+        link: `/dashboard/knowledge?course=${row.id}`,
       })),
     };
   }

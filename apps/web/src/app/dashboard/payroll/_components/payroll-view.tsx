@@ -234,8 +234,31 @@ function SalaryDialog({
   const [amount, setAmount] = React.useState(row.amount != null ? String(row.amount) : "");
   const [currency, setCurrency] = React.useState(row.currency ?? "UZS");
   const [effectiveFrom, setEffectiveFrom] = React.useState(new Date().toISOString().slice(0, 10));
+  const [history, setHistory] = React.useState<
+    { id: string; amount: number; currency: string; effectiveFrom: string }[]
+  >([]);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    void (async () => {
+      try {
+        const res = await fetch(`/api/payroll/salaries/${row.userId}/history`);
+        if (res.ok) {
+          setHistory(
+            (await res.json()) as {
+              id: string;
+              amount: number;
+              currency: string;
+              effectiveFrom: string;
+            }[],
+          );
+        }
+      } catch {
+        setHistory([]);
+      }
+    })();
+  }, [row.userId]);
 
   async function save() {
     const amt = Number(amount);
@@ -308,6 +331,22 @@ function SalaryDialog({
               onChange={(e) => setEffectiveFrom(e.target.value)}
             />
           </div>
+          {history.length > 0 ? (
+            <div className="space-y-1.5">
+              <p className="text-muted-foreground text-xs font-medium">История окладов</p>
+              <div className="border-border divide-border max-h-32 divide-y overflow-y-auto rounded-md border">
+                {history.map((h) => (
+                  <div
+                    key={h.id}
+                    className="text-muted-foreground flex items-center justify-between px-3 py-1.5 text-xs"
+                  >
+                    <span>{money(h.amount, h.currency)}</span>
+                    <span>с {h.effectiveFrom}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
           {error ? (
             <p className="text-danger text-sm font-semibold" role="alert">
               {error}

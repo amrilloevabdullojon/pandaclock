@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -42,6 +42,7 @@ type InviteValues = z.infer<typeof inviteSchema>;
 
 export function InviteEmployees() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [open, setOpen] = React.useState(false);
   const [summary, setSummary] = React.useState<{ invited: number; skipped: number } | null>(null);
 
@@ -58,6 +59,17 @@ export function InviteEmployees() {
       setSummary(null);
     }
   }, [open, form]);
+
+  // Авто-открытие и префилл из query (?invite=1&email=…) — например при
+  // оформлении принятого кандидата из раздела «Найм».
+  React.useEffect(() => {
+    if (searchParams.get("invite") === "1") {
+      const email = searchParams.get("email");
+      if (email) form.reset({ invitees: [{ email }] });
+      setOpen(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   async function onSubmit(values: InviteValues) {
     const clean = values.invitees
