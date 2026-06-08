@@ -26,6 +26,7 @@ import { ShiftsModule } from "./shifts/shifts.module.js";
 import { PerformanceModule } from "./performance/performance.module.js";
 import { HrModule } from "./hr/hr.module.js";
 import { RecruitmentModule } from "./recruitment/recruitment.module.js";
+import { TravelModule } from "./travel/travel.module.js";
 import { TenantMiddleware } from "./tenant/tenant.middleware.js";
 
 @Module({
@@ -64,6 +65,7 @@ import { TenantMiddleware } from "./tenant/tenant.middleware.js";
     PerformanceModule,
     HrModule,
     RecruitmentModule,
+    TravelModule,
     HealthModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

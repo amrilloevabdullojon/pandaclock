@@ -7,6 +7,7 @@ import {
   CalendarClock,
   Target,
   Briefcase,
+  Plane,
   UserPlus,
   FileText,
   MessageCircle,
@@ -113,6 +114,13 @@ export const NAV: NavItem[] = [
     icon: Briefcase,
     description: "Вакансии и воронка кандидатов (ATS)",
     permission: "recruitment:read",
+  },
+  {
+    label: "Командировки",
+    href: "/dashboard/travel",
+    icon: Plane,
+    description: "Поездки и расходы с одобрением",
+    permission: "travel:read",
   },
   {
     label: "Уведомления",

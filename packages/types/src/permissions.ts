@@ -44,6 +44,10 @@ export const PERMISSIONS = [
   // Recruitment / ATS (вакансии и кандидаты)
   "recruitment:read",
   "recruitment:write",
+  // Travel / Expenses (командировки и расходы)
+  "travel:read",
+  "travel:write",
+  "travel:approve",
   // Billing
   "billing:read",
   "billing:manage",
@@ -90,6 +94,9 @@ const _ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "hr:write",
     "recruitment:read",
     "recruitment:write",
+    "travel:read",
+    "travel:write",
+    "travel:approve",
     "billing:read",
     // NB: ADMIN ≠ billing:manage — оплата плана только OWNER.
     "notifications:read_all",
@@ -121,6 +128,9 @@ const _ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "hr:write",
     "recruitment:read",
     "recruitment:write",
+    "travel:read",
+    "travel:write",
+    "travel:approve",
     "audit:read",
   ],
   MANAGER: [
@@ -138,8 +148,18 @@ const _ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "performance:read",
     "performance:write",
     "recruitment:read",
+    "travel:read",
+    "travel:write",
+    "travel:approve",
   ],
-  EMPLOYEE: ["employees:read", "departments:read", "tasks:create", "requests:create"],
+  EMPLOYEE: [
+    "employees:read",
+    "departments:read",
+    "tasks:create",
+    "requests:create",
+    "travel:read",
+    "travel:write",
+  ],
 };
 
 export const ROLE_PERMISSIONS: Readonly<Record<UserRole, readonly Permission[]>> =

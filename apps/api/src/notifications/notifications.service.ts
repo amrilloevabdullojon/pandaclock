@@ -25,6 +25,9 @@ export type NotificationType =
   | "goal_assigned"
   | "review_received"
   | "hr_document"
+  | "trip_submitted"
+  | "trip_decided"
+  | "expense_decided"
   | "mention"
   | "system";
 
