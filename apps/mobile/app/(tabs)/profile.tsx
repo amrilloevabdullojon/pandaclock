@@ -7,8 +7,12 @@ import {
   Building2,
   CalendarClock,
   Camera,
+  ClipboardList,
   FileText,
+  GraduationCap,
+  Laptop,
   Target,
+  Wallet,
   ChevronRight,
   HelpCircle,
   LogOut,
@@ -263,6 +267,30 @@ export default function ProfileScreen() {
                 icon={<FileText size={18} color="#5B4FE2" />}
                 label="Кадры и документы"
                 onPress={() => router.push("/hr")}
+              />
+              <Divider />
+              <MenuRow
+                icon={<Wallet size={18} color="#5B4FE2" />}
+                label="Расчётные листки"
+                onPress={() => router.push("/payroll")}
+              />
+              <Divider />
+              <MenuRow
+                icon={<ClipboardList size={18} color="#5B4FE2" />}
+                label="Опросы"
+                onPress={() => router.push("/surveys")}
+              />
+              <Divider />
+              <MenuRow
+                icon={<Laptop size={18} color="#5B4FE2" />}
+                label="Мои активы"
+                onPress={() => router.push("/assets")}
+              />
+              <Divider />
+              <MenuRow
+                icon={<GraduationCap size={18} color="#5B4FE2" />}
+                label="Обучение"
+                onPress={() => router.push("/knowledge")}
               />
             </Card>
           </View>
