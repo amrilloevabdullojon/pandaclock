@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, ChevronLeft, Plus, Trash2, Wallet } from "lucide-react";
+import { Check, ChevronLeft, Download, Plus, Trash2, Wallet } from "lucide-react";
 import {
   Badge,
   Button,
@@ -630,6 +630,15 @@ function RunDetailPanel({ runId, onBack }: { runId: string; onBack: () => void }
           <Button size="sm" onClick={() => setStatus("PAID")} loading={busy}>
             Отметить выплаченным
           </Button>
+        ) : null}
+        {run.payslips.length > 0 ? (
+          <a
+            href={`/api/payroll/runs/${runId}/export?format=xlsx`}
+            className="border-border hover:bg-muted text-foreground ml-auto inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium"
+          >
+            <Download className="h-4 w-4" />
+            Excel
+          </a>
         ) : null}
       </div>
 

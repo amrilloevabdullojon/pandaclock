@@ -64,6 +64,16 @@ export function mapLinkToMobileRoute(link: string | null | undefined): string | 
   if (chatDetail) return `/chats/${chatDetail[1]}`;
   if (link.startsWith("/dashboard/chats")) return "/(tabs)/chats";
 
+  // Модульные экраны (push: shift_assigned, payslip_ready, survey_published,
+  // asset_assigned, hr_document, goal_assigned/review_received и т.д.).
+  if (link.startsWith("/dashboard/shifts")) return "/shifts";
+  if (link.startsWith("/dashboard/performance")) return "/performance";
+  if (link.startsWith("/dashboard/hr")) return "/hr";
+  if (link.startsWith("/dashboard/payroll")) return "/payroll";
+  if (link.startsWith("/dashboard/surveys")) return "/surveys";
+  if (link.startsWith("/dashboard/assets")) return "/assets";
+  if (link.startsWith("/dashboard/knowledge")) return "/knowledge";
+
   return "/notifications";
 }
 

@@ -9,9 +9,13 @@ import {
   Patch,
   Post,
   Put,
+  Query,
+  Res,
   UseGuards,
 } from "@nestjs/common";
+import type { Response } from "express";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
+import { ExportService } from "../reports/export.service.js";
 import {
   PayrollService,
   type MyPayslip,
@@ -38,7 +42,10 @@ import type { AuthRequestUser } from "../auth/jwt.strategy.js";
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller("payroll")
 export class PayrollController {
-  constructor(private readonly payroll: PayrollService) {}
+  constructor(
+    private readonly payroll: PayrollService,
+    private readonly exporter: ExportService,
+  ) {}
 
   /* ───────── Сотрудник ───────── */
 
@@ -97,6 +104,41 @@ export class PayrollController {
   @Roles("OWNER", "ADMIN", "HR")
   getRun(@Param("id", ParseUUIDPipe) id: string): Promise<PayrollRunDetail> {
     return this.payroll.getRun(id);
+  }
+
+  @Get("runs/:id/export")
+  @Roles("OWNER", "ADMIN", "HR")
+  @ApiOperation({ summary: "Экспорт ведомости (xlsx | pdf)" })
+  async exportRun(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Query("format") format: string | undefined,
+    @Res() res: Response,
+  ): Promise<void> {
+    const run = await this.payroll.getRun(id);
+    const title = `Ведомость ${run.period}`;
+    const headers = ["Сотрудник", "Оклад", "Премия", "Удержания", "К выплате", "Валюта"];
+    const rows: (string | number)[][] = run.payslips.map((p) => [
+      p.userName,
+      p.baseAmount,
+      p.bonus,
+      p.deductions,
+      p.netAmount,
+      p.currency,
+    ]);
+    const fmt = format === "pdf" ? "pdf" : "xlsx";
+    const buffer =
+      fmt === "pdf"
+        ? await this.exporter.toPdf(title, headers, rows)
+        : this.exporter.toExcel(title, headers, rows);
+    const safePeriod = run.period.replace(/[^a-zA-Zа-яА-Я0-9]+/g, "_");
+    res.setHeader(
+      "Content-Type",
+      fmt === "pdf"
+        ? "application/pdf"
+        : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    );
+    res.setHeader("Content-Disposition", `attachment; filename="payroll-${safePeriod}.${fmt}"`);
+    res.send(buffer);
   }
 
   @Patch("runs/:id")
