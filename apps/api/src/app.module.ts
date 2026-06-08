@@ -29,6 +29,7 @@ import { RecruitmentModule } from "./recruitment/recruitment.module.js";
 import { TravelModule } from "./travel/travel.module.js";
 import { SurveysModule } from "./surveys/surveys.module.js";
 import { AssetsModule } from "./assets/assets.module.js";
+import { KnowledgeModule } from "./knowledge/knowledge.module.js";
 import { TenantMiddleware } from "./tenant/tenant.middleware.js";
 
 @Module({
@@ -70,6 +71,7 @@ import { TenantMiddleware } from "./tenant/tenant.middleware.js";
     TravelModule,
     SurveysModule,
     AssetsModule,
+    KnowledgeModule,
     HealthModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

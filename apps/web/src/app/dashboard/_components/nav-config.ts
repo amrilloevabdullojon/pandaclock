@@ -10,6 +10,7 @@ import {
   Plane,
   ClipboardList,
   Laptop,
+  GraduationCap,
   UserPlus,
   FileText,
   MessageCircle,
@@ -137,6 +138,13 @@ export const NAV: NavItem[] = [
     icon: Laptop,
     description: "Учёт оборудования и его выдача",
     permission: "assets:read",
+  },
+  {
+    label: "Обучение",
+    href: "/dashboard/knowledge",
+    icon: GraduationCap,
+    description: "База знаний и онлайн-курсы",
+    permission: "knowledge:read",
   },
   {
     label: "Уведомления",

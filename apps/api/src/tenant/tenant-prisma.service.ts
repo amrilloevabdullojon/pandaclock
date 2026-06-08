@@ -66,6 +66,11 @@ const TENANT_TABLES = [
   "survey_answers",
   "assets",
   "asset_assignments",
+  "kb_articles",
+  "courses",
+  "course_lessons",
+  "course_enrollments",
+  "lesson_completions",
 ] as const;
 
 /**
