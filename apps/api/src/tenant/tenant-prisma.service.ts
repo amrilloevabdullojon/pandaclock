@@ -64,6 +64,8 @@ const TENANT_TABLES = [
   "survey_questions",
   "survey_responses",
   "survey_answers",
+  "assets",
+  "asset_assignments",
 ] as const;
 
 /**

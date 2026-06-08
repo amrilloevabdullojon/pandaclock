@@ -9,6 +9,7 @@ import {
   Briefcase,
   Plane,
   ClipboardList,
+  Laptop,
   UserPlus,
   FileText,
   MessageCircle,
@@ -129,6 +130,13 @@ export const NAV: NavItem[] = [
     icon: ClipboardList,
     description: "Опросы вовлечённости и eNPS",
     permission: "surveys:read",
+  },
+  {
+    label: "Активы",
+    href: "/dashboard/assets",
+    icon: Laptop,
+    description: "Учёт оборудования и его выдача",
+    permission: "assets:read",
   },
   {
     label: "Уведомления",

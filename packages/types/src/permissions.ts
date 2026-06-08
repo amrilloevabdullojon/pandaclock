@@ -51,6 +51,9 @@ export const PERMISSIONS = [
   // Surveys / eNPS (опросы)
   "surveys:read",
   "surveys:write",
+  // Assets (учёт активов)
+  "assets:read",
+  "assets:write",
   // Billing
   "billing:read",
   "billing:manage",
@@ -102,6 +105,8 @@ const _ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "travel:approve",
     "surveys:read",
     "surveys:write",
+    "assets:read",
+    "assets:write",
     "billing:read",
     // NB: ADMIN ≠ billing:manage — оплата плана только OWNER.
     "notifications:read_all",
@@ -138,6 +143,8 @@ const _ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "travel:approve",
     "surveys:read",
     "surveys:write",
+    "assets:read",
+    "assets:write",
     "audit:read",
   ],
   MANAGER: [
@@ -159,6 +166,7 @@ const _ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "travel:write",
     "travel:approve",
     "surveys:read",
+    "assets:read",
   ],
   EMPLOYEE: [
     "employees:read",
@@ -168,6 +176,7 @@ const _ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "travel:read",
     "travel:write",
     "surveys:read",
+    "assets:read",
   ],
 };
 
