@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import { TenantPrismaService } from "../tenant/tenant-prisma.service.js";
 import { NotificationsService } from "../notifications/notifications.service.js";
+import { effectiveScope } from "./scope-utils.js";
 import type {
   CreateBusinessTripDto,
   CreateExpenseDto,
@@ -158,7 +159,7 @@ export class TravelService {
     canApprove: boolean,
     ownerCol: string,
   ): { where: string; params: unknown[] } {
-    const effective: Scope = canApprove ? scope : "my";
+    const effective: Scope = effectiveScope(scope, canApprove);
     if (effective === "my") {
       return { where: `${ownerCol} = $1::uuid`, params: [userId] };
     }

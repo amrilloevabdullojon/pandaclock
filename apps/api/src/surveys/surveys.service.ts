@@ -7,6 +7,7 @@ import {
 import { TenantPrismaService } from "../tenant/tenant-prisma.service.js";
 import { NotificationsService } from "../notifications/notifications.service.js";
 import type { CreateSurveyDto, SubmitResponseDto, UpdateSurveyDto } from "./dto/survey.dto.js";
+import { average, choiceDistribution, computeEnps, distribution } from "./enps-utils.js";
 
 export interface SurveyQuestion {
   id: string;
@@ -308,28 +309,13 @@ export class SurveysService {
         answered: q.kind === "TEXT" ? bucket.texts.length : bucket.ints.length,
       };
       if (q.kind === "SCALE_0_10") {
-        const total = bucket.ints.length;
-        const promoters = bucket.ints.filter((v) => v >= 9).length;
-        const passives = bucket.ints.filter((v) => v >= 7 && v <= 8).length;
-        const detractors = bucket.ints.filter((v) => v <= 6).length;
-        const score = total > 0 ? Math.round(((promoters - detractors) / total) * 100) : 0;
-        result.enps = { promoters, passives, detractors, score };
-        result.average =
-          total > 0 ? Math.round((bucket.ints.reduce((s, v) => s + v, 0) / total) * 10) / 10 : 0;
+        result.enps = computeEnps(bucket.ints);
+        result.average = average(bucket.ints);
       } else if (q.kind === "SCALE_1_5") {
-        const total = bucket.ints.length;
-        result.average =
-          total > 0 ? Math.round((bucket.ints.reduce((s, v) => s + v, 0) / total) * 10) / 10 : 0;
-        result.distribution = [1, 2, 3, 4, 5].map((n) => ({
-          label: String(n),
-          count: bucket.ints.filter((v) => v === n).length,
-        }));
+        result.average = average(bucket.ints);
+        result.distribution = distribution(bucket.ints, [1, 2, 3, 4, 5]);
       } else if (q.kind === "CHOICE") {
-        const opts = q.options ?? [];
-        result.distribution = opts.map((label, idx) => ({
-          label,
-          count: bucket.ints.filter((v) => v === idx).length,
-        }));
+        result.distribution = choiceDistribution(bucket.ints, q.options ?? []);
       } else {
         result.texts = bucket.texts;
       }

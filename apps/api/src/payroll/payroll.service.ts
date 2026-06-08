@@ -7,6 +7,7 @@ import {
 import { TenantPrismaService } from "../tenant/tenant-prisma.service.js";
 import { NotificationsService } from "../notifications/notifications.service.js";
 import type { CreateRunDto, SetSalaryDto, UpdatePayslipDto } from "./dto/payroll.dto.js";
+import { computeNet, isValidRunTransition } from "./payroll-utils.js";
 
 export interface SalaryRow {
   userId: string;
@@ -291,12 +292,9 @@ export class PayrollService {
 
   async updateRunStatus(id: string, status: "APPROVED" | "PAID"): Promise<PayrollRunDetail> {
     const run = await this.getRun(id);
-    // Допустимые переходы: DRAFT→APPROVED, APPROVED→PAID.
-    const ok =
-      (status === "APPROVED" && run.status === "DRAFT") ||
-      (status === "PAID" && run.status === "APPROVED");
-    if (!ok)
+    if (!isValidRunTransition(run.status, status)) {
       throw new ConflictException({ code: "INVALID_TRANSITION", from: run.status, to: status });
+    }
 
     const client = await this.tenantDb.getClient();
     await client.$executeRawUnsafe(
@@ -339,26 +337,35 @@ export class PayrollService {
 
   async updatePayslip(id: string, dto: UpdatePayslipDto): Promise<Payslip> {
     const client = await this.tenantDb.getClient();
-    const meta = await client.$queryRawUnsafe<{ status: string }[]>(
-      `SELECT r.status FROM payslips p JOIN payroll_runs r ON r.id = p.run_id
+    const meta = await client.$queryRawUnsafe<
+      { status: string; base_amount: number; bonus: number; deductions: number }[]
+    >(
+      `SELECT r.status, p.base_amount::float8 AS base_amount,
+              p.bonus::float8 AS bonus, p.deductions::float8 AS deductions
+       FROM payslips p JOIN payroll_runs r ON r.id = p.run_id
        WHERE p.id = $1::uuid`,
       id,
     );
-    if (meta.length === 0) throw new NotFoundException({ code: "PAYSLIP_NOT_FOUND" });
-    if (meta[0]!.status !== "DRAFT") {
-      throw new ConflictException({ code: "RUN_LOCKED", current: meta[0]!.status });
+    const current = meta[0];
+    if (!current) throw new NotFoundException({ code: "PAYSLIP_NOT_FOUND" });
+    if (current.status !== "DRAFT") {
+      throw new ConflictException({ code: "RUN_LOCKED", current: current.status });
     }
+    const bonus = dto.bonus ?? current.bonus;
+    const deductions = dto.deductions ?? current.deductions;
+    const net = computeNet(current.base_amount, bonus, deductions);
     await client.$executeRawUnsafe(
       `UPDATE payslips SET
-         bonus = COALESCE($2::numeric, bonus),
-         deductions = COALESCE($3::numeric, deductions),
+         bonus = $2::numeric,
+         deductions = $3::numeric,
          note = COALESCE($4, note),
-         net_amount = base_amount + COALESCE($2::numeric, bonus) - COALESCE($3::numeric, deductions)
+         net_amount = $5::numeric
        WHERE id = $1::uuid`,
       id,
-      dto.bonus ?? null,
-      dto.deductions ?? null,
+      bonus,
+      deductions,
       dto.note ?? null,
+      net,
     );
     const rows = await client.$queryRawUnsafe<PayslipRow[]>(
       `SELECT ${PAYSLIP_SELECT}

@@ -6,6 +6,7 @@ import type {
   UpdateArticleDto,
   UpdateCourseDto,
 } from "./dto/knowledge.dto.js";
+import { courseProgress } from "./progress-utils.js";
 
 export interface Article {
   id: string;
@@ -79,7 +80,7 @@ function mapArticle(r: ArticleRow): Article {
 }
 
 function mapCourse(r: CourseRow): Course {
-  const progress = r.lesson_count > 0 ? Math.round((r.done_count / r.lesson_count) * 100) : 0;
+  const progress = courseProgress(r.done_count, r.lesson_count);
   return {
     id: r.id,
     title: r.title,
