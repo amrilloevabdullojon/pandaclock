@@ -14,8 +14,10 @@ import {
   CommandShortcut,
 } from "@pandaclock/ui";
 import {
+  BookOpen,
   CheckSquare,
   FileText,
+  GraduationCap,
   LogOut,
   Monitor,
   Moon,
@@ -29,7 +31,7 @@ import { NAV_FLAT } from "./nav-config";
 
 interface SearchHit {
   id: string;
-  type: "employee" | "task" | "request";
+  type: "employee" | "task" | "request" | "article" | "course";
   title: string;
   subtitle: string;
   link: string;
@@ -39,9 +41,17 @@ interface SearchResponse {
   employees: SearchHit[];
   tasks: SearchHit[];
   requests: SearchHit[];
+  articles: SearchHit[];
+  courses: SearchHit[];
 }
 
-const EMPTY_RESULTS: SearchResponse = { employees: [], tasks: [], requests: [] };
+const EMPTY_RESULTS: SearchResponse = {
+  employees: [],
+  tasks: [],
+  requests: [],
+  articles: [],
+  courses: [],
+};
 
 /**
  * Командная палитра (cmd+K / ctrl+K).
@@ -112,7 +122,13 @@ export function CommandPalette() {
     fn();
   }
 
-  const hasResults = results.employees.length + results.tasks.length + results.requests.length > 0;
+  const hasResults =
+    results.employees.length +
+      results.tasks.length +
+      results.requests.length +
+      results.articles.length +
+      results.courses.length >
+    0;
   const showSearchGroups = query.trim().length >= 2;
 
   return (
@@ -169,6 +185,42 @@ export function CommandPalette() {
                 onSelect={() => runAndClose(() => router.push(hit.link))}
               >
                 <FileText />
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate">{hit.title}</span>
+                  <span className="text-muted-foreground truncate text-xs">{hit.subtitle}</span>
+                </div>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+
+        {showSearchGroups && results.articles.length > 0 && (
+          <CommandGroup heading="База знаний">
+            {results.articles.map((hit) => (
+              <CommandItem
+                key={`art-${hit.id}`}
+                value={`article ${hit.title} ${hit.subtitle}`}
+                onSelect={() => runAndClose(() => router.push(hit.link))}
+              >
+                <BookOpen />
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate">{hit.title}</span>
+                  <span className="text-muted-foreground truncate text-xs">{hit.subtitle}</span>
+                </div>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+
+        {showSearchGroups && results.courses.length > 0 && (
+          <CommandGroup heading="Курсы">
+            {results.courses.map((hit) => (
+              <CommandItem
+                key={`crs-${hit.id}`}
+                value={`course ${hit.title} ${hit.subtitle}`}
+                onSelect={() => runAndClose(() => router.push(hit.link))}
+              >
+                <GraduationCap />
                 <div className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate">{hit.title}</span>
                   <span className="text-muted-foreground truncate text-xs">{hit.subtitle}</span>

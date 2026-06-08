@@ -16,6 +16,7 @@ import {
 } from "@pandaclock/ui";
 import { serverFetch } from "@/lib/server-api";
 import { OnboardingChecklist } from "./_components/onboarding-checklist";
+import { MyActions } from "./_components/my-actions";
 
 interface OnboardingResponse {
   steps: { key: "departments" | "employees" | "tasks" | "time"; done: boolean }[];
@@ -101,6 +102,10 @@ export default async function DashboardPage() {
       />
 
       {showOnboarding ? <OnboardingChecklist initial={onboarding} /> : null}
+
+      <ErrorBoundary>
+        <MyActions />
+      </ErrorBoundary>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
