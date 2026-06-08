@@ -60,6 +60,10 @@ const TENANT_TABLES = [
   "candidates",
   "business_trips",
   "expenses",
+  "surveys",
+  "survey_questions",
+  "survey_responses",
+  "survey_answers",
 ] as const;
 
 /**

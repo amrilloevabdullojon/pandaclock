@@ -28,6 +28,7 @@ export type NotificationType =
   | "trip_submitted"
   | "trip_decided"
   | "expense_decided"
+  | "survey_published"
   | "mention"
   | "system";
 
