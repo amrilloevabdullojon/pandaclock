@@ -41,6 +41,9 @@ export const PERMISSIONS = [
   // HR (адаптация + кадровый ЭДО)
   "hr:read",
   "hr:write",
+  // Recruitment / ATS (вакансии и кандидаты)
+  "recruitment:read",
+  "recruitment:write",
   // Billing
   "billing:read",
   "billing:manage",
@@ -85,6 +88,8 @@ const _ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "performance:write",
     "hr:read",
     "hr:write",
+    "recruitment:read",
+    "recruitment:write",
     "billing:read",
     // NB: ADMIN ≠ billing:manage — оплата плана только OWNER.
     "notifications:read_all",
@@ -114,6 +119,8 @@ const _ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "performance:write",
     "hr:read",
     "hr:write",
+    "recruitment:read",
+    "recruitment:write",
     "audit:read",
   ],
   MANAGER: [
@@ -130,6 +137,7 @@ const _ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "shifts:write",
     "performance:read",
     "performance:write",
+    "recruitment:read",
   ],
   EMPLOYEE: ["employees:read", "departments:read", "tasks:create", "requests:create"],
 };

@@ -6,6 +6,7 @@ import {
   Calendar,
   CalendarClock,
   Target,
+  Briefcase,
   UserPlus,
   FileText,
   MessageCircle,
@@ -105,6 +106,13 @@ export const NAV: NavItem[] = [
     icon: UserPlus,
     description: "Адаптация сотрудников и кадровый ЭДО",
     permission: "hr:read",
+  },
+  {
+    label: "Найм",
+    href: "/dashboard/recruitment",
+    icon: Briefcase,
+    description: "Вакансии и воронка кандидатов (ATS)",
+    permission: "recruitment:read",
   },
   {
     label: "Уведомления",

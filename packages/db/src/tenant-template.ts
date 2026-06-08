@@ -400,6 +400,37 @@ CREATE TABLE IF NOT EXISTS hr_document_acks (
 
 CREATE INDEX IF NOT EXISTS idx_hr_doc_acks_user ON hr_document_acks(user_id);
 CREATE INDEX IF NOT EXISTS idx_hr_doc_acks_doc ON hr_document_acks(document_id);
+
+-- Recruitment / ATS: вакансии
+CREATE TABLE IF NOT EXISTS vacancies (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  department_id UUID REFERENCES departments(id) ON DELETE SET NULL,
+  description TEXT,
+  status VARCHAR(16) NOT NULL DEFAULT 'OPEN',
+  created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_vacancies_status ON vacancies(status, created_at DESC);
+
+-- Recruitment / ATS: кандидаты (воронка найма)
+CREATE TABLE IF NOT EXISTS candidates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  vacancy_id UUID NOT NULL REFERENCES vacancies(id) ON DELETE CASCADE,
+  full_name TEXT NOT NULL,
+  email TEXT,
+  phone TEXT,
+  source TEXT,
+  stage VARCHAR(16) NOT NULL DEFAULT 'NEW',
+  notes TEXT,
+  rating INT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_candidates_vacancy ON candidates(vacancy_id, stage);
 `;
 
 /**

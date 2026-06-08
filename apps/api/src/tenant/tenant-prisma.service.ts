@@ -56,6 +56,8 @@ const TENANT_TABLES = [
   "onboarding_items",
   "hr_documents",
   "hr_document_acks",
+  "vacancies",
+  "candidates",
 ] as const;
 
 /**
