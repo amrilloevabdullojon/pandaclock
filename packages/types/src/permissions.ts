@@ -57,6 +57,9 @@ export const PERMISSIONS = [
   // Knowledge base / LMS (база знаний и обучение)
   "knowledge:read",
   "knowledge:write",
+  // Payroll (зарплата)
+  "payroll:read",
+  "payroll:write",
   // Billing
   "billing:read",
   "billing:manage",
@@ -112,6 +115,8 @@ const _ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "assets:write",
     "knowledge:read",
     "knowledge:write",
+    "payroll:read",
+    "payroll:write",
     "billing:read",
     // NB: ADMIN ≠ billing:manage — оплата плана только OWNER.
     "notifications:read_all",
@@ -152,6 +157,8 @@ const _ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "assets:write",
     "knowledge:read",
     "knowledge:write",
+    "payroll:read",
+    "payroll:write",
     "audit:read",
   ],
   MANAGER: [
@@ -175,6 +182,7 @@ const _ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "surveys:read",
     "assets:read",
     "knowledge:read",
+    "payroll:read",
   ],
   EMPLOYEE: [
     "employees:read",
@@ -186,6 +194,7 @@ const _ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "surveys:read",
     "assets:read",
     "knowledge:read",
+    "payroll:read",
   ],
 };
 

@@ -71,6 +71,9 @@ const TENANT_TABLES = [
   "course_lessons",
   "course_enrollments",
   "lesson_completions",
+  "salaries",
+  "payroll_runs",
+  "payslips",
 ] as const;
 
 /**

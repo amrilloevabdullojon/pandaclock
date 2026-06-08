@@ -11,6 +11,7 @@ import {
   ClipboardList,
   Laptop,
   GraduationCap,
+  Wallet,
   UserPlus,
   FileText,
   MessageCircle,
@@ -145,6 +146,13 @@ export const NAV: NavItem[] = [
     icon: GraduationCap,
     description: "База знаний и онлайн-курсы",
     permission: "knowledge:read",
+  },
+  {
+    label: "Зарплата",
+    href: "/dashboard/payroll",
+    icon: Wallet,
+    description: "Оклады, расчётные периоды и листки",
+    permission: "payroll:read",
   },
   {
     label: "Уведомления",
