@@ -50,6 +50,8 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "payroll:write",
     "announcements:read",
     "announcements:write",
+    "org:read",
+    "org:write",
     "billing:read",
     "billing:manage",
     "notifications:read_all",
@@ -96,6 +98,8 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "payroll:write",
     "announcements:read",
     "announcements:write",
+    "org:read",
+    "org:write",
     "billing:read",
     "notifications:read_all",
     "audit:read",
@@ -139,6 +143,8 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "payroll:write",
     "announcements:read",
     "announcements:write",
+    "org:read",
+    "org:write",
     "audit:read",
   ],
   MANAGER: [
@@ -164,6 +170,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "knowledge:read",
     "payroll:read",
     "announcements:read",
+    "org:read",
   ],
   EMPLOYEE: [
     "employees:read",
@@ -177,6 +184,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "knowledge:read",
     "payroll:read",
     "announcements:read",
+    "org:read",
   ],
 };
 

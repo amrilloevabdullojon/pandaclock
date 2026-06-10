@@ -14,6 +14,7 @@ import {
   Laptop,
   GraduationCap,
   Wallet,
+  Network,
   UserPlus,
   FileText,
   MessageCircle,
@@ -55,6 +56,13 @@ export const NAV: NavItem[] = [
     icon: Users,
     description: "Управление командой и приглашения",
     permission: "employees:read",
+  },
+  {
+    label: "Оргструктура",
+    href: "/dashboard/org",
+    icon: Network,
+    description: "Структура компании и штатное расписание",
+    permission: "org:read",
   },
   {
     label: "Учёт времени",

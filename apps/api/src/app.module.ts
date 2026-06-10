@@ -33,6 +33,7 @@ import { KnowledgeModule } from "./knowledge/knowledge.module.js";
 import { PayrollModule } from "./payroll/payroll.module.js";
 import { AnalyticsModule } from "./analytics/analytics.module.js";
 import { AnnouncementsModule } from "./announcements/announcements.module.js";
+import { OrgModule } from "./org/org.module.js";
 import { TenantMiddleware } from "./tenant/tenant.middleware.js";
 
 @Module({
@@ -78,6 +79,7 @@ import { TenantMiddleware } from "./tenant/tenant.middleware.js";
     PayrollModule,
     AnalyticsModule,
     AnnouncementsModule,
+    OrgModule,
     HealthModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
