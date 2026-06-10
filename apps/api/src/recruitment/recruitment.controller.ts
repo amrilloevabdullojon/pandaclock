@@ -12,7 +12,12 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
-import { RecruitmentService, type Candidate, type Vacancy } from "./recruitment.service.js";
+import {
+  RecruitmentService,
+  type Candidate,
+  type RecruitmentAnalytics,
+  type Vacancy,
+} from "./recruitment.service.js";
 import {
   CreateCandidateDto,
   CreateVacancyDto,
@@ -32,6 +37,13 @@ import type { AuthRequestUser } from "../auth/jwt.strategy.js";
 @Controller("recruitment")
 export class RecruitmentController {
   constructor(private readonly recruitment: RecruitmentService) {}
+
+  @Get("analytics")
+  @Roles("OWNER", "ADMIN", "HR", "MANAGER")
+  @ApiOperation({ summary: "Аналитика найма (воронка, источники, time-to-hire)" })
+  analytics(): Promise<RecruitmentAnalytics> {
+    return this.recruitment.analytics();
+  }
 
   /* ───────── Вакансии ───────── */
 

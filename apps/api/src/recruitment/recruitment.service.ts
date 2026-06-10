@@ -260,4 +260,77 @@ export class RecruitmentService {
     );
     if (affected === 0) throw new NotFoundException({ code: "CANDIDATE_NOT_FOUND" });
   }
+
+  /* ───────── Аналитика найма ───────── */
+
+  async analytics(): Promise<RecruitmentAnalytics> {
+    const client = await this.tenantDb.getClient();
+
+    const funnelRows = await client.$queryRawUnsafe<{ stage: string; count: number }[]>(
+      `SELECT stage, COUNT(*)::int AS count FROM candidates GROUP BY stage`,
+    );
+    const funnelMap = new Map(funnelRows.map((r) => [r.stage, r.count]));
+    const funnel = CANDIDATE_STAGE_ORDER.map((stage) => ({
+      stage,
+      count: funnelMap.get(stage) ?? 0,
+    }));
+
+    const sources = await client.$queryRawUnsafe<
+      { source: string; total: number; hired: number }[]
+    >(
+      `SELECT COALESCE(NULLIF(source, ''), '—') AS source,
+              COUNT(*)::int AS total,
+              COUNT(*) FILTER (WHERE stage = 'HIRED')::int AS hired
+       FROM candidates
+       GROUP BY COALESCE(NULLIF(source, ''), '—')
+       ORDER BY total DESC
+       LIMIT 20`,
+    );
+
+    const tth = await client.$queryRawUnsafe<{ days: number | null }[]>(
+      `SELECT AVG(EXTRACT(EPOCH FROM (updated_at - created_at)) / 86400)::float8 AS days
+       FROM candidates WHERE stage = 'HIRED'`,
+    );
+    const avgTimeToHireDays =
+      tth[0]?.days !== null && tth[0]?.days !== undefined
+        ? Math.round(tth[0].days * 10) / 10
+        : null;
+
+    const totals = await client.$queryRawUnsafe<
+      { total: number; hired: number; open_vacancies: number }[]
+    >(
+      `SELECT
+         (SELECT COUNT(*) FROM candidates)::int AS total,
+         (SELECT COUNT(*) FROM candidates WHERE stage = 'HIRED')::int AS hired,
+         (SELECT COUNT(*) FROM vacancies WHERE status = 'OPEN')::int AS open_vacancies`,
+    );
+    const t = totals[0] ?? { total: 0, hired: 0, open_vacancies: 0 };
+
+    return {
+      funnel,
+      sources,
+      avgTimeToHireDays,
+      totalCandidates: t.total,
+      hiredCount: t.hired,
+      openVacancies: t.open_vacancies,
+    };
+  }
+}
+
+const CANDIDATE_STAGE_ORDER = [
+  "NEW",
+  "SCREENING",
+  "INTERVIEW",
+  "OFFER",
+  "HIRED",
+  "REJECTED",
+] as const;
+
+export interface RecruitmentAnalytics {
+  funnel: { stage: string; count: number }[];
+  sources: { source: string; total: number; hired: number }[];
+  avgTimeToHireDays: number | null;
+  totalCandidates: number;
+  hiredCount: number;
+  openVacancies: number;
 }

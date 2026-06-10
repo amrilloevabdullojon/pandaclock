@@ -26,6 +26,10 @@ import {
   DialogTitle,
   Input,
   Label,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
   toast,
 } from "@pandaclock/ui";
 
@@ -105,13 +109,24 @@ export function RecruitmentView({ departments }: { departments: DepartmentOption
   }
 
   return (
-    <VacanciesList
-      vacancies={vacancies}
-      loading={loading}
-      departments={departments}
-      onReload={loadVacancies}
-      onOpen={setSelected}
-    />
+    <Tabs defaultValue="vacancies" className="space-y-4">
+      <TabsList>
+        <TabsTrigger value="vacancies">Вакансии</TabsTrigger>
+        <TabsTrigger value="analytics">Аналитика</TabsTrigger>
+      </TabsList>
+      <TabsContent value="vacancies">
+        <VacanciesList
+          vacancies={vacancies}
+          loading={loading}
+          departments={departments}
+          onReload={loadVacancies}
+          onOpen={setSelected}
+        />
+      </TabsContent>
+      <TabsContent value="analytics">
+        <RecruitmentAnalyticsTab />
+      </TabsContent>
+    </Tabs>
   );
 }
 
@@ -766,5 +781,126 @@ function CandidateDialog({
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/* ───────── Аналитика найма ───────── */
+
+interface Analytics {
+  funnel: { stage: string; count: number }[];
+  sources: { source: string; total: number; hired: number }[];
+  avgTimeToHireDays: number | null;
+  totalCandidates: number;
+  hiredCount: number;
+  openVacancies: number;
+}
+
+const STAGE_LABELS_FULL: Record<string, string> = {
+  NEW: "Новые",
+  SCREENING: "Скрининг",
+  INTERVIEW: "Интервью",
+  OFFER: "Оффер",
+  HIRED: "Приняты",
+  REJECTED: "Отказ",
+};
+
+function RecruitmentAnalyticsTab() {
+  const [data, setData] = React.useState<Analytics | null>(null);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    void (async () => {
+      try {
+        const res = await fetch("/api/recruitment/analytics");
+        setData(res.ok ? ((await res.json()) as Analytics) : null);
+      } catch {
+        setData(null);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  if (loading) return <p className="text-muted-foreground text-sm">Загрузка…</p>;
+  if (!data) return <p className="text-muted-foreground text-sm">Не удалось загрузить.</p>;
+
+  const maxFunnel = Math.max(1, ...data.funnel.map((f) => f.count));
+
+  return (
+    <div className="space-y-5">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Metric label="Всего кандидатов" value={String(data.totalCandidates)} />
+        <Metric label="Принято" value={String(data.hiredCount)} tone="success" />
+        <Metric
+          label="Среднее время найма"
+          value={data.avgTimeToHireDays === null ? "—" : `${data.avgTimeToHireDays} дн.`}
+        />
+      </div>
+
+      <section className="border-border bg-card rounded-lg border p-4">
+        <h3 className="text-foreground mb-3 text-sm font-semibold">Воронка по стадиям</h3>
+        <div className="space-y-2">
+          {data.funnel.map((f) => (
+            <div key={f.stage} className="flex items-center gap-2">
+              <span className="text-muted-foreground w-24 shrink-0 text-xs">
+                {STAGE_LABELS_FULL[f.stage] ?? f.stage}
+              </span>
+              <div className="bg-muted h-5 flex-1 overflow-hidden rounded">
+                <div
+                  className={`h-full ${f.stage === "REJECTED" ? "bg-danger" : "bg-primary-500"}`}
+                  style={{ width: `${(f.count / maxFunnel) * 100}%` }}
+                />
+              </div>
+              <span className="text-foreground w-8 shrink-0 text-right text-xs font-semibold">
+                {f.count}
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="border-border bg-card rounded-lg border p-4">
+        <h3 className="text-foreground mb-3 text-sm font-semibold">Эффективность источников</h3>
+        {data.sources.length === 0 ? (
+          <p className="text-muted-foreground text-sm">Нет данных.</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="text-muted-foreground border-border border-b text-left text-xs">
+              <tr>
+                <th className="pb-2 font-medium">Источник</th>
+                <th className="pb-2 text-right font-medium">Кандидатов</th>
+                <th className="pb-2 text-right font-medium">Принято</th>
+                <th className="pb-2 text-right font-medium">Конверсия</th>
+              </tr>
+            </thead>
+            <tbody className="divide-border divide-y">
+              {data.sources.map((s) => (
+                <tr key={s.source}>
+                  <td className="text-foreground py-2">{s.source}</td>
+                  <td className="text-foreground py-2 text-right">{s.total}</td>
+                  <td className="text-foreground py-2 text-right">{s.hired}</td>
+                  <td className="text-muted-foreground py-2 text-right">
+                    {s.total > 0 ? `${Math.round((s.hired / s.total) * 100)}%` : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function Metric({ label, value, tone }: { label: string; value: string; tone?: "success" }) {
+  return (
+    <div className="border-border bg-card rounded-lg border p-4">
+      <p
+        className={`text-2xl font-extrabold ${tone === "success" ? "text-success" : "text-foreground"}`}
+      >
+        {value}
+      </p>
+      <p className="text-muted-foreground text-xs">{label}</p>
+    </div>
   );
 }
