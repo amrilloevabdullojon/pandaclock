@@ -12,8 +12,14 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
-import { PerformanceService, type GoalRow, type ReviewRow } from "./performance.service.js";
 import {
+  PerformanceService,
+  type GoalCheckin,
+  type GoalRow,
+  type ReviewRow,
+} from "./performance.service.js";
+import {
+  CreateCheckinDto,
   CreateGoalDto,
   CreateReviewDto,
   UpdateGoalDto,
@@ -76,6 +82,24 @@ export class PerformanceController {
   @HttpCode(204)
   removeGoal(@Param("id", ParseUUIDPipe) id: string): Promise<void> {
     return this.performance.removeGoal(id);
+  }
+
+  @Get("goals/:id/checkins")
+  @ApiOperation({ summary: "История чек-инов по цели" })
+  listCheckins(@Param("id", ParseUUIDPipe) id: string): Promise<GoalCheckin[]> {
+    return this.performance.listCheckins(id);
+  }
+
+  @Post("goals/:id/checkins")
+  @HttpCode(201)
+  @ApiOperation({ summary: "Чек-ин по цели (владелец или менеджер)" })
+  createCheckin(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() dto: CreateCheckinDto,
+    @CurrentUser() user: AuthRequestUser,
+  ): Promise<GoalCheckin> {
+    const canManage = ["OWNER", "ADMIN", "HR", "MANAGER"].includes(user.role);
+    return this.performance.createCheckin(id, user.id, canManage, dto);
   }
 
   /* ───────── Reviews ───────── */

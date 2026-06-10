@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Pencil, Plus, Star, Target, Trash2 } from "lucide-react";
+import { History, Pencil, Plus, Star, Target, Trash2 } from "lucide-react";
 import {
   Button,
   Dialog,
@@ -108,6 +108,7 @@ function GoalsTab({ employees, filter }: { employees: EmployeeOption[]; filter: 
   } | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [checkinGoal, setCheckinGoal] = React.useState<Goal | null>(null);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -233,6 +234,15 @@ function GoalsTab({ employees, filter }: { employees: EmployeeOption[]; filter: 
                   <p className="text-muted-foreground text-xs">{g.userName}</p>
                 </div>
                 <div className="flex shrink-0 gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setCheckinGoal(g)}
+                    className="hover:bg-muted text-muted-foreground hover:text-foreground rounded p-1"
+                    aria-label="Чек-ины"
+                    title="Чек-ины"
+                  >
+                    <History className="h-3.5 w-3.5" />
+                  </button>
                   <button
                     type="button"
                     onClick={() => openEdit(g)}
@@ -372,7 +382,140 @@ function GoalsTab({ employees, filter }: { employees: EmployeeOption[]; filter: 
           ) : null}
         </DialogContent>
       </Dialog>
+
+      <CheckinsDialog goal={checkinGoal} onClose={() => setCheckinGoal(null)} onChanged={load} />
     </div>
+  );
+}
+
+interface Checkin {
+  id: string;
+  progress: number;
+  comment: string | null;
+  authorName: string | null;
+  createdAt: string;
+}
+
+function CheckinsDialog({
+  goal,
+  onClose,
+  onChanged,
+}: {
+  goal: Goal | null;
+  onClose: () => void;
+  onChanged: () => Promise<void>;
+}) {
+  const [items, setItems] = React.useState<Checkin[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [progress, setProgress] = React.useState(0);
+  const [comment, setComment] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
+
+  const load = React.useCallback(async () => {
+    if (!goal) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/performance/goals/${goal.id}/checkins`);
+      setItems(res.ok ? ((await res.json()) as Checkin[]) : []);
+    } catch {
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [goal]);
+
+  React.useEffect(() => {
+    if (goal) {
+      setProgress(goal.progress);
+      setComment("");
+      void load();
+    }
+  }, [goal, load]);
+
+  async function submit() {
+    if (!goal) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/performance/goals/${goal.id}/checkins`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ progress, comment: comment.trim() || undefined }),
+      });
+      if (res.ok) {
+        toast.success("Чек-ин добавлен");
+        setComment("");
+        await load();
+        await onChanged();
+      } else {
+        toast.error("Не удалось добавить чек-ин");
+      }
+    } catch {
+      toast.error("Нет связи с сервером");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open={goal !== null} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Чек-ины · {goal?.title}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="border-border space-y-3 rounded-lg border p-3">
+            <div className="space-y-2">
+              <Label htmlFor="ci-progress">Прогресс, % — {progress}</Label>
+              <input
+                id="ci-progress"
+                type="range"
+                min={0}
+                max={100}
+                step={5}
+                value={progress}
+                onChange={(e) => setProgress(Number(e.target.value))}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ci-comment">Комментарий</Label>
+              <Input
+                id="ci-comment"
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="Что сделано за период…"
+              />
+            </div>
+            <Button size="sm" onClick={submit} loading={saving} loadingText="Сохраняем…">
+              <Plus className="h-4 w-4" />
+              Добавить чек-ин
+            </Button>
+          </div>
+
+          {loading ? (
+            <p className="text-muted-foreground text-sm">Загрузка…</p>
+          ) : items.length === 0 ? (
+            <p className="text-muted-foreground text-sm">Чек-инов пока нет.</p>
+          ) : (
+            <div className="space-y-2">
+              {items.map((c) => (
+                <div key={c.id} className="border-border rounded-md border p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-foreground text-sm font-semibold">{c.progress}%</span>
+                    <span className="text-muted-foreground text-xs">
+                      {c.authorName ?? "—"} · {new Date(c.createdAt).toLocaleDateString("ru-RU")}
+                    </span>
+                  </div>
+                  {c.comment ? (
+                    <p className="text-muted-foreground mt-1 text-sm">{c.comment}</p>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

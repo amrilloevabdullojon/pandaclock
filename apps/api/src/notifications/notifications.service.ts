@@ -35,6 +35,7 @@ export type NotificationType =
   | "course_reminder"
   | "approval_reminder"
   | "announcement"
+  | "goal_checkin"
   | "mention"
   | "system";
 

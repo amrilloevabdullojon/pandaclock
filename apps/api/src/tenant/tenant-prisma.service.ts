@@ -77,6 +77,7 @@ const TENANT_TABLES = [
   "announcements",
   "announcement_reads",
   "staff_positions",
+  "goal_checkins",
 ] as const;
 
 /**

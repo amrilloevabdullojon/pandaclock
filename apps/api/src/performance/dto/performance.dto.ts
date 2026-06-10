@@ -63,6 +63,18 @@ export class UpdateProgressDto {
   progress!: number;
 }
 
+export class CreateCheckinDto {
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  progress!: number;
+
+  @IsOptional()
+  @IsString()
+  @Length(0, 2000)
+  comment?: string;
+}
+
 export class CreateReviewDto {
   @IsUUID()
   userId!: string;

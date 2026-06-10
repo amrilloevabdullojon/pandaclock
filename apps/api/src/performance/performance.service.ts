@@ -19,6 +19,14 @@ export interface GoalRow {
   createdBy: string | null;
 }
 
+export interface GoalCheckin {
+  id: string;
+  progress: number;
+  comment: string | null;
+  authorName: string | null;
+  createdAt: Date;
+}
+
 export interface ReviewRow {
   id: string;
   userId: string;
@@ -220,6 +228,109 @@ export class PerformanceService {
     const client = await this.tenantDb.getClient();
     const affected = await client.$executeRawUnsafe(`DELETE FROM goals WHERE id = $1::uuid`, id);
     if (affected === 0) throw new NotFoundException({ code: "GOAL_NOT_FOUND" });
+  }
+
+  /* ───────── OKR-чекины ───────── */
+
+  async listCheckins(goalId: string): Promise<GoalCheckin[]> {
+    const client = await this.tenantDb.getClient();
+    const rows = await client.$queryRawUnsafe<
+      {
+        id: string;
+        progress: number;
+        comment: string | null;
+        author_name: string | null;
+        created_at: Date;
+      }[]
+    >(
+      `SELECT c.id, c.progress, c.comment, c.created_at,
+              CASE WHEN u.id IS NOT NULL THEN u.first_name || ' ' || u.last_name END AS author_name
+       FROM goal_checkins c
+       LEFT JOIN users u ON u.id = c.created_by
+       WHERE c.goal_id = $1::uuid
+       ORDER BY c.created_at DESC`,
+      goalId,
+    );
+    return rows.map((r) => ({
+      id: r.id,
+      progress: r.progress,
+      comment: r.comment,
+      authorName: r.author_name,
+      createdAt: r.created_at,
+    }));
+  }
+
+  /**
+   * Создаёт чек-ин по цели и подтягивает прогресс цели к значению чек-ина.
+   * Доступно владельцу цели или менеджеру.
+   */
+  async createCheckin(
+    goalId: string,
+    userId: string,
+    canManage: boolean,
+    input: { progress: number; comment?: string },
+  ): Promise<GoalCheckin> {
+    const client = await this.tenantDb.getClient();
+    const goalRows = await client.$queryRawUnsafe<{ user_id: string; title: string }[]>(
+      `SELECT user_id, title FROM goals WHERE id = $1::uuid LIMIT 1`,
+      goalId,
+    );
+    const goal = goalRows[0];
+    if (!goal) throw new NotFoundException({ code: "GOAL_NOT_FOUND" });
+    if (!canManage && goal.user_id !== userId) {
+      throw new ForbiddenException({ code: "NOT_GOAL_OWNER" });
+    }
+
+    const inserted = await client.$queryRawUnsafe<{ id: string; created_at: Date }[]>(
+      `INSERT INTO goal_checkins (goal_id, progress, comment, created_by)
+       VALUES ($1::uuid, $2::int, $3, $4::uuid) RETURNING id, created_at`,
+      goalId,
+      input.progress,
+      input.comment ?? null,
+      userId,
+    );
+    const row = inserted[0];
+    if (!row) throw new BadRequestException({ code: "INSERT_FAILED" });
+
+    // Прогресс цели = последний чек-ин.
+    const status = input.progress >= 100 ? "DONE" : "ACTIVE";
+    await client.$executeRawUnsafe(
+      `UPDATE goals SET progress = $2::int, status = $3, updated_at = NOW() WHERE id = $1::uuid`,
+      goalId,
+      input.progress,
+      status,
+    );
+
+    // Уведомить руководителя владельца (если чек-ин от самого владельца).
+    if (goal.user_id === userId) {
+      const mgr = await client.$queryRawUnsafe<{ manager_id: string | null }[]>(
+        `SELECT manager_id FROM users WHERE id = $1::uuid LIMIT 1`,
+        userId,
+      );
+      const managerId = mgr[0]?.manager_id;
+      if (managerId) {
+        void this.notifications
+          .notify([managerId], {
+            type: "goal_checkin",
+            title: "Чек-ин по цели",
+            body: `${goal.title}: ${input.progress}%`,
+            link: "/dashboard/performance",
+          })
+          .catch(() => undefined);
+      }
+    }
+
+    const me = await client.$queryRawUnsafe<{ author_name: string | null }[]>(
+      `SELECT first_name || ' ' || last_name AS author_name FROM users WHERE id = $1::uuid`,
+      userId,
+    );
+    return {
+      id: row.id,
+      progress: input.progress,
+      comment: input.comment ?? null,
+      authorName: me[0]?.author_name ?? null,
+      createdAt: row.created_at,
+    };
   }
 
   /* ───────── Reviews ───────── */
