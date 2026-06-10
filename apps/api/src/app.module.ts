@@ -31,6 +31,7 @@ import { SurveysModule } from "./surveys/surveys.module.js";
 import { AssetsModule } from "./assets/assets.module.js";
 import { KnowledgeModule } from "./knowledge/knowledge.module.js";
 import { PayrollModule } from "./payroll/payroll.module.js";
+import { AnalyticsModule } from "./analytics/analytics.module.js";
 import { TenantMiddleware } from "./tenant/tenant.middleware.js";
 
 @Module({
@@ -74,6 +75,7 @@ import { TenantMiddleware } from "./tenant/tenant.middleware.js";
     AssetsModule,
     KnowledgeModule,
     PayrollModule,
+    AnalyticsModule,
     HealthModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

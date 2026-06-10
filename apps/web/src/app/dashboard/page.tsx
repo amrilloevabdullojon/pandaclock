@@ -17,6 +17,7 @@ import {
 import { serverFetch } from "@/lib/server-api";
 import { OnboardingChecklist } from "./_components/onboarding-checklist";
 import { MyActions } from "./_components/my-actions";
+import { ManagerAnalytics } from "./_components/manager-analytics";
 
 interface OnboardingResponse {
   steps: { key: "departments" | "employees" | "tasks" | "time"; done: boolean }[];
@@ -102,6 +103,10 @@ export default async function DashboardPage() {
       />
 
       {showOnboarding ? <OnboardingChecklist initial={onboarding} /> : null}
+
+      <ErrorBoundary>
+        <ManagerAnalytics />
+      </ErrorBoundary>
 
       <ErrorBoundary>
         <MyActions />
