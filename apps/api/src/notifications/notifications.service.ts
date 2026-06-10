@@ -34,6 +34,7 @@ export type NotificationType =
   | "survey_reminder"
   | "course_reminder"
   | "approval_reminder"
+  | "announcement"
   | "mention"
   | "system";
 

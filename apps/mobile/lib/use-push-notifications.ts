@@ -73,6 +73,7 @@ export function mapLinkToMobileRoute(link: string | null | undefined): string | 
   if (link.startsWith("/dashboard/surveys")) return "/surveys";
   if (link.startsWith("/dashboard/assets")) return "/assets";
   if (link.startsWith("/dashboard/knowledge")) return "/knowledge";
+  if (link.startsWith("/dashboard/announcements")) return "/announcements";
 
   return "/notifications";
 }

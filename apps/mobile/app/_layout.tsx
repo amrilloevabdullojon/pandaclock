@@ -69,6 +69,7 @@ export default function RootLayout() {
         <Stack.Screen name="surveys" />
         <Stack.Screen name="assets" />
         <Stack.Screen name="knowledge" />
+        <Stack.Screen name="announcements" />
         <Stack.Screen name="notifications" options={{ presentation: "card" }} />
       </Stack>
     </>

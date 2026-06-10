@@ -11,6 +11,7 @@ import {
   FileText,
   GraduationCap,
   Laptop,
+  Megaphone,
   Target,
   Wallet,
   ChevronRight,
@@ -251,6 +252,12 @@ export default function ProfileScreen() {
               Работа
             </Text>
             <Card padding="none" className="overflow-hidden">
+              <MenuRow
+                icon={<Megaphone size={18} color="#5B4FE2" />}
+                label="Объявления"
+                onPress={() => router.push("/announcements")}
+              />
+              <Divider />
               <MenuRow
                 icon={<CalendarClock size={18} color="#5B4FE2" />}
                 label="Мои смены"

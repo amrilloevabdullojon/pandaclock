@@ -10,6 +10,7 @@ import {
   Plane,
   ClipboardCheck,
   ClipboardList,
+  Megaphone,
   Laptop,
   GraduationCap,
   Wallet,
@@ -78,6 +79,13 @@ export const NAV: NavItem[] = [
     href: "/dashboard/requests",
     icon: FileText,
     description: "Отпуска и больничные на одобрении",
+  },
+  {
+    label: "Объявления",
+    href: "/dashboard/announcements",
+    icon: Megaphone,
+    description: "Новости и объявления компании",
+    permission: "announcements:read",
   },
   {
     label: "Чаты",

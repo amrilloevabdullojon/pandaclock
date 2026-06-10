@@ -60,6 +60,9 @@ export const PERMISSIONS = [
   // Payroll (зарплата)
   "payroll:read",
   "payroll:write",
+  // Announcements (объявления компании)
+  "announcements:read",
+  "announcements:write",
   // Billing
   "billing:read",
   "billing:manage",
@@ -117,6 +120,8 @@ const _ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "knowledge:write",
     "payroll:read",
     "payroll:write",
+    "announcements:read",
+    "announcements:write",
     "billing:read",
     // NB: ADMIN ≠ billing:manage — оплата плана только OWNER.
     "notifications:read_all",
@@ -159,6 +164,8 @@ const _ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "knowledge:write",
     "payroll:read",
     "payroll:write",
+    "announcements:read",
+    "announcements:write",
     "audit:read",
   ],
   MANAGER: [
@@ -183,6 +190,7 @@ const _ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "assets:read",
     "knowledge:read",
     "payroll:read",
+    "announcements:read",
   ],
   EMPLOYEE: [
     "employees:read",
@@ -195,6 +203,7 @@ const _ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "assets:read",
     "knowledge:read",
     "payroll:read",
+    "announcements:read",
   ],
 };
 
