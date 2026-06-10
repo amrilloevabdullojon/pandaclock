@@ -60,15 +60,121 @@ export class SchedulerService {
     }
   }
 
+  /**
+   * Еженедельно (пн 10:00 UTC = 15:00 в Ташкенте) — напоминания о
+   * незавершённых опросах/курсах и зависших согласованиях. In-app уведомления.
+   */
+  @Cron("0 10 * * 1", { name: "engagement-reminders" })
+  async sendEngagementReminders(): Promise<void> {
+    this.logger.log("running engagement reminders");
+    const tenants = await prisma.tenant.findMany({
+      where: { status: { in: ["ACTIVE", "TRIAL"] } },
+      select: { slug: true, schemaName: true },
+    });
+    for (const tenant of tenants) {
+      try {
+        await this.sendEngagementForTenant(tenant.schemaName);
+      } catch (error) {
+        this.logger.warn({ err: error, tenant: tenant.slug }, "engagement reminder failed");
+      }
+    }
+  }
+
+  private async sendEngagementForTenant(schemaName: string): Promise<void> {
+    const client = new PrismaClient();
+    try {
+      await client.$executeRawUnsafe(`SET search_path TO "${schemaName}", public`);
+
+      const notify = async (
+        userIds: string[],
+        type: string,
+        title: string,
+        body: string,
+        link: string,
+      ): Promise<void> => {
+        if (userIds.length === 0) return;
+        const valuesSql: string[] = [];
+        const params: unknown[] = [];
+        userIds.forEach((uid, idx) => {
+          const b = idx * 5;
+          valuesSql.push(
+            `($${b + 1}::uuid, $${b + 2}::varchar, $${b + 3}::text, $${b + 4}::text, $${b + 5}::text)`,
+          );
+          params.push(uid, type, title, body, link);
+        });
+        await client.$executeRawUnsafe(
+          `INSERT INTO notifications (user_id, type, title, body, link) VALUES ${valuesSql.join(", ")}`,
+          ...params,
+        );
+      };
+
+      // 1. Сотрудники с незавершёнными активными опросами.
+      const surveyUsers = await client.$queryRawUnsafe<{ id: string }[]>(
+        `SELECT DISTINCT u.id
+         FROM users u
+         JOIN surveys s ON s.status = 'ACTIVE'
+         WHERE u.status = 'ACTIVE'
+           AND NOT EXISTS (
+             SELECT 1 FROM survey_responses r WHERE r.survey_id = s.id AND r.user_id = u.id
+           )
+         LIMIT 1000`,
+      );
+      await notify(
+        surveyUsers.map((u) => u.id),
+        "survey_reminder",
+        "Незавершённый опрос",
+        "Пройдите активный опрос — это займёт пару минут",
+        "/dashboard/surveys",
+      );
+
+      // 2. Сотрудники с незавершёнными курсами.
+      const courseUsers = await client.$queryRawUnsafe<{ user_id: string }[]>(
+        `SELECT DISTINCT e.user_id
+         FROM course_enrollments e
+         JOIN courses c ON c.id = e.course_id
+         WHERE c.status = 'PUBLISHED' AND e.completed_at IS NULL
+         LIMIT 1000`,
+      );
+      await notify(
+        courseUsers.map((u) => u.user_id),
+        "course_reminder",
+        "Продолжите обучение",
+        "У вас есть незавершённый курс",
+        "/dashboard/knowledge",
+      );
+
+      // 3. Зависшие согласования (старше 2 дней) → напомнить согласующим.
+      const pending = await client.$queryRawUnsafe<{ c: number }[]>(
+        `SELECT (
+           (SELECT COUNT(*) FROM business_trips WHERE status = 'SUBMITTED' AND created_at < NOW() - INTERVAL '2 days')
+           + (SELECT COUNT(*) FROM expenses WHERE status = 'PENDING' AND created_at < NOW() - INTERVAL '2 days')
+         )::int AS c`,
+      );
+      const pendingCount = pending[0]?.c ?? 0;
+      if (pendingCount > 0) {
+        const approvers = await client.$queryRawUnsafe<{ id: string }[]>(
+          `SELECT id FROM users WHERE status = 'ACTIVE' AND role IN ('OWNER', 'ADMIN', 'HR', 'MANAGER') LIMIT 100`,
+        );
+        await notify(
+          approvers.map((a) => a.id),
+          "approval_reminder",
+          "Заявки ждут согласования",
+          `${pendingCount} заявок ожидают вашего решения`,
+          "/dashboard/approvals",
+        );
+      }
+    } finally {
+      await client.$disconnect();
+    }
+  }
+
   /* ---------- Internal helpers ---------- */
 
   private async sendForTenant(schemaName: string): Promise<void> {
     const client = new PrismaClient();
     try {
       await client.$executeRawUnsafe(`SET search_path TO "${schemaName}", public`);
-      const users = await client.$queryRawUnsafe<
-        { email: string; first_name: string }[]
-      >(
+      const users = await client.$queryRawUnsafe<{ email: string; first_name: string }[]>(
         `SELECT u.email, u.first_name
          FROM users u
          LEFT JOIN time_entries te ON te.user_id = u.id AND te.date = CURRENT_DATE

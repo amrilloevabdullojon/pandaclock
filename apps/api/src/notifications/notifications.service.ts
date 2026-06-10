@@ -31,6 +31,9 @@ export type NotificationType =
   | "survey_published"
   | "asset_assigned"
   | "payslip_ready"
+  | "survey_reminder"
+  | "course_reminder"
+  | "approval_reminder"
   | "mention"
   | "system";
 
