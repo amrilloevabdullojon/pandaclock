@@ -472,4 +472,100 @@ export class TravelService {
     );
     return rows[0]?.manager_id ?? null;
   }
+
+  /* ───────── Единый инбокс согласований ───────── */
+
+  async listApprovals(
+    canApprove: boolean,
+  ): Promise<{ trips: BusinessTrip[]; expenses: Expense[] }> {
+    if (!canApprove) return { trips: [], expenses: [] };
+    const client = await this.tenantDb.getClient();
+    const tripRows = await client.$queryRawUnsafe<TripRow[]>(
+      `SELECT ${TRIP_SELECT}
+       FROM business_trips t
+       JOIN users u ON u.id = t.user_id
+       LEFT JOIN users a ON a.id = t.approver_id
+       LEFT JOIN expenses e ON e.trip_id = t.id
+       WHERE t.status = 'SUBMITTED'
+       GROUP BY t.id, u.first_name, u.last_name, a.id, a.first_name, a.last_name
+       ORDER BY t.created_at
+       LIMIT 200`,
+    );
+    const expenseRows = await client.$queryRawUnsafe<ExpenseRow[]>(
+      `SELECT ${EXPENSE_SELECT}
+       FROM expenses e
+       JOIN users u ON u.id = e.user_id
+       LEFT JOIN users a ON a.id = e.approver_id
+       WHERE e.status = 'PENDING'
+       ORDER BY e.created_at
+       LIMIT 300`,
+    );
+    return { trips: tripRows.map(mapTrip), expenses: expenseRows.map(mapExpense) };
+  }
+
+  /** Пакетное решение по командировкам и расходам одним действием. */
+  async bulkDecide(
+    tripIds: string[],
+    expenseIds: string[],
+    decision: "APPROVED" | "REJECTED",
+    approverId: string,
+    comment?: string,
+  ): Promise<{ trips: number; expenses: number }> {
+    const client = await this.tenantDb.getClient();
+    let trips = 0;
+    let expenses = 0;
+
+    if (tripIds.length > 0) {
+      const rows = await client.$queryRawUnsafe<{ user_id: string; destination: string }[]>(
+        `UPDATE business_trips SET status = $2, approver_id = $3::uuid, approver_comment = $4,
+           decided_at = NOW(), updated_at = NOW()
+         WHERE id = ANY($1::uuid[]) AND status = 'SUBMITTED'
+         RETURNING user_id, destination`,
+        tripIds,
+        decision,
+        approverId,
+        comment ?? null,
+      );
+      trips = rows.length;
+      for (const r of rows) {
+        void this.notifications
+          .notify([r.user_id], {
+            type: "trip_decided",
+            title:
+              decision === "APPROVED" ? "Командировка одобрена ✅" : "Командировка отклонена ❌",
+            body: r.destination,
+            link: `/dashboard/travel?scope=my`,
+          })
+          .catch(() => undefined);
+      }
+    }
+
+    if (expenseIds.length > 0) {
+      const rows = await client.$queryRawUnsafe<
+        { user_id: string; category: string; amount: number; currency: string }[]
+      >(
+        `UPDATE expenses SET status = $2, approver_id = $3::uuid, approver_comment = $4,
+           decided_at = NOW(), updated_at = NOW()
+         WHERE id = ANY($1::uuid[]) AND status = 'PENDING'
+         RETURNING user_id, category, amount::float8 AS amount, currency`,
+        expenseIds,
+        decision,
+        approverId,
+        comment ?? null,
+      );
+      expenses = rows.length;
+      for (const r of rows) {
+        void this.notifications
+          .notify([r.user_id], {
+            type: "expense_decided",
+            title: decision === "APPROVED" ? "Расход одобрен ✅" : "Расход отклонён ❌",
+            body: `${r.category}: ${r.amount} ${r.currency}`,
+            link: `/dashboard/travel?scope=my`,
+          })
+          .catch(() => undefined);
+      }
+    }
+
+    return { trips, expenses };
+  }
 }

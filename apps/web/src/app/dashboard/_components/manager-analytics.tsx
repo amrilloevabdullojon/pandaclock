@@ -43,7 +43,7 @@ export async function ManagerAnalytics() {
           hint={`${data.recruitment.totalCandidates} кандидатов`}
         />
         <KpiLink
-          href="/dashboard/travel?scope=team"
+          href="/dashboard/approvals"
           icon={<ClipboardCheck className="h-5 w-5" />}
           tone={pending > 0 ? "warning" : "success"}
           value={String(pending)}

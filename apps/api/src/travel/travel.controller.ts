@@ -20,6 +20,7 @@ import {
   type Scope,
 } from "./travel.service.js";
 import {
+  BulkDecisionDto,
   CreateBusinessTripDto,
   CreateExpenseDto,
   DecisionDto,
@@ -44,6 +45,33 @@ function canApprove(user: AuthRequestUser): boolean {
 @Controller("travel")
 export class TravelController {
   constructor(private readonly travel: TravelService) {}
+
+  /* ───────── Инбокс согласований ───────── */
+
+  @Get("approvals")
+  @Roles("OWNER", "ADMIN", "HR", "MANAGER")
+  @ApiOperation({ summary: "Командировки и расходы, ожидающие согласования" })
+  approvals(
+    @CurrentUser() user: AuthRequestUser,
+  ): Promise<{ trips: BusinessTrip[]; expenses: Expense[] }> {
+    return this.travel.listApprovals(canApprove(user));
+  }
+
+  @Post("approvals/decide")
+  @Roles("OWNER", "ADMIN", "HR", "MANAGER")
+  @ApiOperation({ summary: "Пакетное решение по командировкам/расходам" })
+  bulkDecide(
+    @Body() dto: BulkDecisionDto,
+    @CurrentUser() user: AuthRequestUser,
+  ): Promise<{ trips: number; expenses: number }> {
+    return this.travel.bulkDecide(
+      dto.tripIds ?? [],
+      dto.expenseIds ?? [],
+      dto.decision as "APPROVED" | "REJECTED",
+      user.id,
+      dto.comment,
+    );
+  }
 
   /* ───────── Командировки ───────── */
 

@@ -1,4 +1,5 @@
 import {
+  IsArray,
   IsDateString,
   IsIn,
   IsNumber,
@@ -119,6 +120,26 @@ export class UpdateExpenseDto {
 }
 
 export class DecisionDto {
+  @IsIn(["APPROVED", "REJECTED"])
+  decision!: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(0, 2000)
+  comment?: string;
+}
+
+export class BulkDecisionDto {
+  @IsOptional()
+  @IsArray()
+  @IsUUID("4", { each: true })
+  tripIds?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID("4", { each: true })
+  expenseIds?: string[];
+
   @IsIn(["APPROVED", "REJECTED"])
   decision!: string;
 
